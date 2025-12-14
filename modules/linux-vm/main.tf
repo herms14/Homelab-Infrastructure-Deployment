@@ -40,13 +40,14 @@ resource "proxmox_vm_qemu" "linux_vm" {
   }
 
   # Cloud-Init Configuration
-  os_type = "cloud-init"
+  os_type   = "cloud-init"
+  ciupgrade = true  # Upgrade packages on first boot
 
   # Network IP Configuration
   ipconfig0 = "ip=${var.ip_address}/${var.subnet_mask},gw=${var.gateway}"
 
   # DNS Configuration
-  nameserver = var.nameserver
+  nameserver   = var.nameserver
   searchdomain = var.searchdomain
 
   # Cloud-Init User Configuration

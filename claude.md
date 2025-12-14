@@ -25,6 +25,8 @@ This repository contains Terraform infrastructure-as-code for deploying VMs and 
 
 #### Network Bridge
 - **Bridge**: vmbr0 (all VMs and containers use this bridge)
+- **VLAN Support**: Bridge must be VLAN-aware on all nodes
+- **Required Configuration**: See Node Network Requirements below
 
 ### Storage Configuration
 
@@ -136,58 +138,89 @@ mp0: /mnt/nfs/lxcs/traefik,mp=/app/config
 
 **Key Insight**: Proxmox storages are for Proxmox-managed content (VM disks, ISOs, LXC rootfs). Application data and media require manual mounts with bind mounts into containers.
 
+### Node Network Requirements
+
+#### Critical Network Configuration
+
+All Proxmox nodes **MUST** have VLAN-aware bridge configuration. Missing this configuration will cause VM deployment failures with error: `QEMU exited with code 1`.
+
+**Required `/etc/network/interfaces` configuration**:
+```bash
+auto lo
+iface lo inet loopback
+
+# IMPORTANT: Physical interface must be set to auto
+auto nic0
+iface nic0 inet manual
+
+auto vmbr0
+iface vmbr0 inet static
+	address 192.168.20.XX/24   # XX = node-specific IP
+	gateway 192.168.20.1
+	bridge-ports nic0
+	bridge-stp off
+	bridge-fd 0
+	bridge-vlan-aware yes      # CRITICAL: Required for VLAN support
+	bridge-vids 2-4094         # CRITICAL: Allowed VLAN range
+
+source /etc/network/interfaces.d/*
+```
+
+**Key Requirements**:
+1. **`auto nic0`** - Ensures physical interface starts before bridge
+2. **`bridge-vlan-aware yes`** - Enables VLAN filtering on the bridge
+3. **`bridge-vids 2-4094`** - Allows all standard VLAN tags
+
+**Verification after configuration**:
+```bash
+# Reload network configuration
+ifreload -a
+# OR reboot for clean reload
+reboot
+
+# Verify VLAN filtering is active (should show "vlan_filtering 1")
+ip -d link show vmbr0 | grep vlan_filtering
+```
+
+**Common Issue**: Node03 initially lacked VLAN-aware configuration, causing all VM deployments to fail with "no physical interface on bridge 'vmbr0'" error. See [TROUBLESHOOTING.md](./TROUBLESHOOTING.md) for detailed resolution steps.
+
 ## Deployed Infrastructure
 
-### Virtual Machines (node01)
+### Current Deployment Status
 
-#### Kubernetes Cluster - VLAN 20
+This is the initial deployment focusing on Ansible control nodes. Additional infrastructure will be added incrementally.
 
-**Control Plane Nodes:**
-| Hostname | IP Address | Cores | RAM | Disk | Purpose |
-|----------|------------|-------|-----|------|---------|
-| k8s-controlplane01 | 192.168.20.10 | 2 | 4GB | 50GB | K8s Control Plane |
-| k8s-controlplane02 | 192.168.20.11 | 2 | 4GB | 50GB | K8s Control Plane |
-| k8s-controlplane03 | 192.168.20.12 | 2 | 4GB | 50GB | K8s Control Plane |
+#### Virtual Machines - VLAN 20
 
-**Worker Nodes:**
-| Hostname | IP Address | Cores | RAM | Disk | Purpose |
-|----------|------------|-------|-----|------|---------|
-| k8s-workernode01 | 192.168.20.20 | 4 | 8GB | 100GB | K8s Worker |
-| k8s-workernode02 | 192.168.20.21 | 4 | 8GB | 100GB | K8s Worker |
-| k8s-workernode03 | 192.168.20.22 | 4 | 8GB | 100GB | K8s Worker |
-| k8s-workernode04 | 192.168.20.23 | 4 | 8GB | 100GB | K8s Worker |
-| k8s-workernode05 | 192.168.20.24 | 4 | 8GB | 100GB | K8s Worker |
-| k8s-workernode06 | 192.168.20.25 | 4 | 8GB | 100GB | K8s Worker |
+**Automation & Management:**
+| Hostname | Node | IP Address | Cores | RAM | Disk | Purpose |
+|----------|------|------------|-------|-----|------|---------|
+| ansible-control01 | node02 | 192.168.20.50 | 4 | 8GB | 20GB | Ansible control node |
+| ansible-control02 | node03 | 192.168.20.51 | 4 | 8GB | 20GB | Ansible control node |
 
-#### Services & Management - VLAN 40
+**Template Used**: ubuntu-24.04-cloudinit-template
+**Storage**: VMDisks (NFS on Synology)
+**Network**: vmbr0 (VLAN 20)
+**DNS**: 192.168.91.30
+**Access**: SSH key authentication (user: hermes-admin)
 
-| Hostname | IP Address | Cores | RAM | Disk | Purpose |
-|----------|------------|-------|-----|------|---------|
-| docker-media01 | 192.168.40.10 | 4 | 8GB | 100GB | Media services (Plex, etc.) |
-| docker-utilities01 | 192.168.40.20 | 4 | 8GB | 100GB | Utility services |
-| linux-syslogserver01 | 192.168.40.30 | 2 | 4GB | 50GB | Centralized logging |
-| ansible-master01 | 192.168.40.40 | 2 | 4GB | 50GB | Ansible automation |
+### LXC Containers
 
-### LXC Containers (node02)
-
-#### Reverse Proxy - VLAN 20
-
-| Hostname | IP Address | Cores | RAM | Disk | Template | Purpose |
-|----------|------------|-------|-----|------|----------|---------|
-| traefik01 | 192.168.20.100 | 2 | 1GB | 10GB | Ubuntu 22.04 | Reverse proxy/Load balancer |
+LXC container deployments are currently disabled. Will be enabled after VM infrastructure is stable.
 
 ## IP Address Allocation
 
 ### VLAN 20 (192.168.20.0/24)
-- **10-12**: Kubernetes Control Plane
-- **20-25**: Kubernetes Worker Nodes
-- **100-199**: LXC Containers (Traefik, future services)
+- **20-22**: Proxmox cluster nodes (node01, node02, node03)
+- **50-59**: Ansible automation infrastructure (ansible-control01, ansible-control02)
+- **100-199**: Reserved for LXC containers
+- **200-254**: Reserved for future VM deployments
 
 ### VLAN 40 (192.168.40.0/24)
-- **10-19**: Docker Media Services
-- **20-29**: Docker Utility Services
-- **30-39**: Logging & Monitoring
-- **40-49**: Automation & Management
+- **10-19**: Reserved for Docker Media Services
+- **20-29**: Reserved for Docker Utility Services
+- **30-39**: Reserved for Logging & Monitoring
+- **40-49**: Reserved for additional Automation & Management
 
 ## Authentication & Access
 
@@ -239,14 +272,27 @@ tf-proxmox/
 
 ## VM Configuration Standards
 
+### Default VM Specifications:
+- **CPU**: 1 socket, 4 cores
+- **Memory**: 8GB (8192 MB)
+- **Disk**: 20GB
+- **Storage**: VMDisks (NFS)
+- **Cloud-init User**: hermes-admin
+- **SSH Authentication**: SSH key only (password authentication disabled)
+- **SSH Key**: `ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIAby7br+5MzyDus2fi2UFjUBZvGucN40Gxa29bgUTbfz hermes@homelab`
+
 ### All VMs Include:
-- **Cloud-init**: For automated provisioning
+- **Cloud-init**: For automated provisioning with SSH key authentication
 - **QEMU Guest Agent**: Enabled for better integration
 - **On Boot**: Auto-start enabled
 - **CPU Type**: host (maximum performance)
 - **SCSI Controller**: lsi
 - **Network Model**: virtio
-- **Template**: tpl-ubuntu-24.04-cloudinit-v3
+- **Template**: ubuntu-24.04-cloudinit-template (available on all nodes)
+
+### VLAN Configuration:
+- **VLAN 20**: vlan_tag = null (default, no tag needed)
+- **VLAN 40**: vlan_tag = 40 (explicit tag)
 
 ## LXC Configuration Standards
 
@@ -298,17 +344,21 @@ new-service = {
   count         = 1
   starting_ip   = "192.168.20.50"
   starting_node = "node01"  # Optional: auto-increment nodes (node01, node02, node03...)
-  template      = "tpl-ubuntu-24.04-cloudinit-v3"
-  cores         = 2
-  sockets       = 1
-  memory        = 4096
-  disk_size     = "50G"
+  template      = "ubuntu-24.04-cloudinit-template"
+  cores         = 4      # Default: 4 cores
+  sockets       = 1      # Default: 1 socket
+  memory        = 8192   # Default: 8GB
+  disk_size     = "20G"  # Default: 20GB
   storage       = "VMDisks"
-  vlan_tag      = null  # or specific VLAN number
+  vlan_tag      = null   # null for VLAN 20, 40 for VLAN 40
   gateway       = "192.168.20.1"
-  nameserver    = "192.168.20.1"
+  nameserver    = "192.168.91.30"
 }
 ```
+
+**VLAN Examples:**
+- VLAN 20: `vlan_tag = null`, `gateway = "192.168.20.1"`, `nameserver = "192.168.91.30"`, `starting_ip = "192.168.20.x"`
+- VLAN 40: `vlan_tag = 40`, `gateway = "192.168.40.1"`, `nameserver = "192.168.91.30"`, `starting_ip = "192.168.40.x"`
 
 ### Add New LXC Container
 Edit `lxc.tf` and add to `lxc_groups` local:
@@ -325,7 +375,7 @@ new-container = {
   storage      = "local-lvm"  # LXC rootfs on local storage
   vlan_tag     = null
   gateway      = "192.168.20.1"
-  nameserver   = "192.168.20.1"
+  nameserver   = "192.168.91.30"
   nesting      = false
 }
 ```

@@ -119,10 +119,11 @@ locals {
       count         = 2
       starting_ip   = "192.168.20.50"
       starting_node = "node02"  # node02, node03
-      template      = "tpl-ubuntu-24.04-cloudinit-v3"
-      cores         = 2
-      memory        = 4096
-      disk_size     = "50G"
+      template      = "ubuntu-24.04-cloudinit-template"
+      cores         = 4
+      sockets       = 1
+      memory        = 8192
+      disk_size     = "20G"
       storage       = "VMDisks"
       vlan_tag      = null
       gateway       = "192.168.20.1"
@@ -133,8 +134,8 @@ locals {
 ```
 
 This creates:
-- `ansible-control01` on node02 at 192.168.20.50
-- `ansible-control02` on node03 at 192.168.20.51
+- `ansible-control01` on node02 at 192.168.20.50 (4 cores, 8GB RAM, 20GB disk)
+- `ansible-control02` on node03 at 192.168.20.51 (4 cores, 8GB RAM, 20GB disk)
 
 ### Deploy LXC Container with Persistent Storage
 
@@ -264,7 +265,34 @@ All VMs include:
 
 ## Troubleshooting
 
-### Storage Issues
+For detailed troubleshooting guides, see **[TROUBLESHOOTING.md](./TROUBLESHOOTING.md)**.
+
+### Common Issues
+
+#### QEMU Exit Code 1 - Missing VLAN Configuration
+
+**Problem**: VMs fail to start with `QEMU exited with code 1`
+
+**Cause**: Proxmox node bridge (`vmbr0`) not configured as VLAN-aware
+
+**Solution**: Update `/etc/network/interfaces` on affected node:
+```bash
+auto vmbr0
+iface vmbr0 inet static
+	address 192.168.20.XX/24
+	gateway 192.168.20.1
+	bridge-ports nic0
+	bridge-stp off
+	bridge-fd 0
+	bridge-vlan-aware yes      # Required!
+	bridge-vids 2-4094         # Required!
+```
+
+Then reload: `ifreload -a` or `reboot`
+
+See [TROUBLESHOOTING.md](./TROUBLESHOOTING.md) for the complete resolution process.
+
+#### Storage Issues
 
 **Problem**: Storage marked as inactive or showing `?` icons
 
@@ -277,13 +305,13 @@ showmount -e 192.168.20.31
 df -h | grep 192.168.20.31
 ```
 
-### Template Not Found
+#### Template Not Found
 
 **Problem**: VM template doesn't exist on target node
 
 **Solution**: Ensure template exists on all nodes or use `starting_node` to target specific nodes with the template.
 
-### Connection Refused
+#### Connection Refused
 
 **Problem**: Terraform can't connect to Proxmox API
 
@@ -296,10 +324,16 @@ df -h | grep 192.168.20.31
 
 - **[CLAUDE.md](./CLAUDE.md)**: Comprehensive infrastructure documentation including:
   - Storage architecture deep-dive
-  - Network configuration
+  - Network configuration and requirements
+  - Node setup requirements (VLAN-aware bridges)
   - Deployed infrastructure inventory
   - Terraform usage guide
-  - Troubleshooting
+
+- **[TROUBLESHOOTING.md](./TROUBLESHOOTING.md)**: Detailed troubleshooting guide covering:
+  - Node03 QEMU deployment failure resolution
+  - Network bridge VLAN configuration
+  - Step-by-step diagnostic process
+  - Prevention strategies for new nodes
 
 ## Security Considerations
 

@@ -4,22 +4,23 @@
 locals {
   # Define your LXC container groups here
   lxc_groups = {
-    # Traefik Reverse Proxy - VLAN 20
-    traefik = {
-      count        = 1
-      starting_ip  = "192.168.20.100"
-      ostemplate   = "local:vztmpl/ubuntu-22.04-standard_22.04-1_amd64.tar.zst"
-      unprivileged = true
-      cores        = 2
-      memory       = 1024
-      swap         = 512
-      disk_size    = "10G"
-      storage      = "ProxmoxData"
-      vlan_tag     = null # VLAN 20 is default
-      gateway      = "192.168.20.1"
-      nameserver   = "192.168.20.1"
-      nesting      = false
-    }
+    # LXC deployments disabled - focusing on VMs first
+    # Uncomment to enable:
+    # traefik = {
+    #   count        = 1
+    #   starting_ip  = "192.168.20.100"
+    #   ostemplate   = "local:vztmpl/ubuntu-22.04-standard_22.04-1_amd64.tar.zst"
+    #   unprivileged = true
+    #   cores        = 2
+    #   memory       = 1024
+    #   swap         = 512
+    #   disk_size    = "10G"
+    #   storage      = "local-lvm"
+    #   vlan_tag     = null # VLAN 20 is default
+    #   gateway      = "192.168.20.1"
+    #   nameserver   = "192.168.91.30"
+    #   nesting      = false
+    # }
   }
 
   # Generate flat map of all LXC containers to create

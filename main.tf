@@ -9,15 +9,15 @@ locals {
       count         = 2
       starting_ip   = "192.168.20.50"
       starting_node = "node02" # First on node02, second on node03
-      template      = "tpl-ubuntu-24.04-cloudinit-v3"
-      cores         = 2
-      sockets       = 1
-      memory        = 4096
-      disk_size     = "50G"
-      storage       = "ProxmoxData"
-      vlan_tag      = null # VLAN 20 is default
+      template      = "ubuntu-24.04-cloudinit-template"
+      cores         = 4     # Default: 4 cores
+      sockets       = 1     # Default: 1 socket
+      memory        = 8192  # Default: 8GB
+      disk_size     = "20G" # Default: 20GB
+      storage       = "VMDisks"
+      vlan_tag      = null # null for VLAN 20
       gateway       = "192.168.20.1"
-      nameserver    = "192.168.20.1"
+      nameserver    = "192.168.91.30"
     }
   }
 
@@ -79,9 +79,8 @@ module "vms" {
   nameserver     = each.value.nameserver
 
   # Cloud-Init
-  ci_user  = "hermes-admin"
+  ci_user  = var.ci_user
   ssh_keys = var.ssh_public_key
-
 
   # VM Behavior
   onboot             = true

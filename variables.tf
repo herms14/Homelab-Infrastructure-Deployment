@@ -56,7 +56,7 @@ variable "default_gateway" {
 variable "default_nameserver" {
   description = "Default DNS nameserver"
   type        = string
-  default     = "192.168.20.1"
+  default     = "192.168.91.30"
 }
 
 # VLAN 40 Network Configuration
@@ -69,7 +69,7 @@ variable "vlan40_gateway" {
 variable "vlan40_nameserver" {
   description = "VLAN 40 DNS nameserver"
   type        = string
-  default     = "192.168.40.1"
+  default     = "192.168.91.30"
 }
 
 # SSH Configuration
@@ -77,4 +77,36 @@ variable "ssh_public_key" {
   description = "SSH public key for VM and container access"
   type        = string
   sensitive   = true
+}
+
+# VM Default Specifications
+variable "default_vm_cores" {
+  description = "Default number of CPU cores for VMs"
+  type        = number
+  default     = 4
+}
+
+variable "default_vm_sockets" {
+  description = "Default number of CPU sockets for VMs"
+  type        = number
+  default     = 1
+}
+
+variable "default_vm_memory" {
+  description = "Default memory in MB for VMs"
+  type        = number
+  default     = 8192
+}
+
+variable "default_vm_disk_size" {
+  description = "Default disk size for VMs"
+  type        = string
+  default     = "20G"
+}
+
+# Cloud-init Configuration
+variable "ci_user" {
+  description = "Cloud-init default username"
+  type        = string
+  default     = "hermes-admin"
 }
