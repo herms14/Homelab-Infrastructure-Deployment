@@ -8,10 +8,11 @@ This repository contains Terraform infrastructure-as-code for deploying VMs and 
 
 ### Proxmox Cluster Nodes
 
-| Node | Purpose | Workload Type |
-|------|---------|---------------|
-| **node01** | VM Host | All virtual machines |
-| **node02** | LXC Host | All LXC containers |
+| Node | IP Address | Purpose | Workload Type |
+|------|------------|---------|---------------|
+| **node01** | 192.168.20.20 | VM Host | All virtual machines |
+| **node02** | 192.168.20.21 | LXC Host | All LXC containers |
+| **node03** | 192.168.20.22 | General Purpose | Mixed workloads |
 
 ### Network Architecture
 
@@ -27,11 +28,113 @@ This repository contains Terraform infrastructure-as-code for deploying VMs and 
 
 ### Storage Configuration
 
-| Storage Pool | Type | Usage |
-|--------------|------|-------|
-| **Synology-VMDisks** | Network Storage | Primary storage for all VMs and containers |
-| **local-lvm** | Local LVM | Alternative storage option for LXC containers |
-| **SynologyISOS** | ISO Storage | ISO images and templates |
+The cluster uses a production-grade NFS storage architecture with dedicated exports for each content type. This design prevents storage state ambiguity, content type conflicts, and ensures consistent behavior across all nodes.
+
+#### Synology NAS Configuration
+
+**NAS Address**: 192.168.20.31
+
+| Storage Pool | Export Path | Type | Content Type | Management |
+|--------------|-------------|------|--------------|------------|
+| **VMDisks** | `/volume2/ProxmoxCluster-VMDisks` | NFS | Disk image | Proxmox-managed |
+| **ISOs** | `/volume2/ProxmoxCluster-ISOs` | NFS | ISO image | Proxmox-managed |
+| **LXC Configs** | `/volume2/Proxmox-LXCs` | NFS | N/A | Manual mount |
+| **Media** | `/volume2/Proxmox-Media` | NFS | N/A | Manual mount |
+| **local-lvm** | N/A | Local LVM | Container | Local storage |
+
+#### Storage Architecture Principles
+
+**Design Rule**: One NFS export = One Proxmox storage pool
+
+1. **VMDisks** - Proxmox-managed storage for VM disk images
+   - Used for: VM virtual disks, cloud-init drives
+   - Enables: Live migration, snapshots, HA
+   - Mount: Automatically managed by Proxmox on all nodes
+
+2. **ISOs** - Proxmox-managed storage for installation media
+   - Used for: ISO images, installation media
+   - Separated from VM disks to prevent accidental operations
+   - Mount: Automatically managed by Proxmox on all nodes
+
+3. **LXC Configs** - Manual NFS mount for application data
+   - Mount point: `/mnt/nfs/lxcs` (on all nodes)
+   - Used for: LXC application configurations via bind mounts
+   - Why NOT a Proxmox storage: Proxmox expects LXC rootfs images, not app directories
+   - Configured in: `/etc/fstab` on all nodes
+
+4. **Media** - Manual NFS mount for media files
+   - Mount point: `/mnt/nfs/media` (on all nodes)
+   - Used for: Radarr, Sonarr, Plex media files
+   - Directory structure: `/Movies/`, `/Series/`
+   - Why NOT a Proxmox storage: Prevents Proxmox from scanning thousands of media files
+   - Configured in: `/etc/fstab` on all nodes
+
+#### Proxmox Storage Configuration
+
+**VMDisks Storage** (Datacenter → Storage → VMDisks):
+```
+ID: VMDisks
+Server: 192.168.20.31
+Export: /volume2/ProxmoxCluster-VMDisks
+Content: Disk image
+Nodes: All nodes
+```
+
+**ISOs Storage** (Datacenter → Storage → ISOs):
+```
+ID: ISOs
+Server: 192.168.20.31
+Export: /volume2/ProxmoxCluster-ISOs
+Content: ISO image
+Nodes: All nodes
+```
+
+#### Manual NFS Mounts
+
+**Configuration** (`/etc/fstab` on all nodes):
+```bash
+192.168.20.31:/volume2/Proxmox-LXCs   /mnt/nfs/lxcs   nfs  defaults,_netdev  0  0
+192.168.20.31:/volume2/Proxmox-Media  /mnt/nfs/media  nfs  defaults,_netdev  0  0
+```
+
+**Setup commands** (run on all nodes):
+```bash
+# Create mount points
+mkdir -p /mnt/nfs/lxcs
+mkdir -p /mnt/nfs/media
+
+# Mount all
+mount -a
+
+# Verify
+df -h | grep /mnt/nfs
+```
+
+#### LXC Bind Mount Strategy
+
+**Example**: Traefik container with persistent config
+```
+Container config (/etc/pve/lxc/100.conf):
+mp0: /mnt/nfs/lxcs/traefik,mp=/app/config
+```
+
+**Flow**:
+1. Host has `/mnt/nfs/lxcs` mounted via NFS
+2. Subdirectory `/mnt/nfs/lxcs/traefik/` bind-mounted into container
+3. Container sees `/app/config` as normal directory
+4. Data persists on NAS at `/volume2/Proxmox-LXCs/traefik/`
+
+#### Why This Architecture Works
+
+**Problem Prevention**:
+- ✅ No inactive storage warnings (each storage has dedicated export)
+- ✅ No `?` icons in UI (homogeneous content types)
+- ✅ No template clone failures (all storages on all nodes)
+- ✅ No LXC rootfs errors (app configs are manual mounts)
+- ✅ No performance degradation (media not scanned by Proxmox)
+- ✅ Migration works consistently (identical paths across nodes)
+
+**Key Insight**: Proxmox storages are for Proxmox-managed content (VM disks, ISOs, LXC rootfs). Application data and media require manual mounts with bind mounts into containers.
 
 ## Deployed Infrastructure
 
@@ -192,17 +295,18 @@ terraform output lxc_ips
 Edit `main.tf` and add to `vm_groups` local:
 ```hcl
 new-service = {
-  count       = 1
-  starting_ip = "192.168.20.50"
-  template    = "tpl-ubuntu-24.04-cloudinit-v3"
-  cores       = 2
-  sockets     = 1
-  memory      = 4096
-  disk_size   = "50G"
-  storage     = "Synology-VMDisks"
-  vlan_tag    = null  # or specific VLAN number
-  gateway     = "192.168.20.1"
-  nameserver  = "192.168.20.1"
+  count         = 1
+  starting_ip   = "192.168.20.50"
+  starting_node = "node01"  # Optional: auto-increment nodes (node01, node02, node03...)
+  template      = "tpl-ubuntu-24.04-cloudinit-v3"
+  cores         = 2
+  sockets       = 1
+  memory        = 4096
+  disk_size     = "50G"
+  storage       = "VMDisks"
+  vlan_tag      = null  # or specific VLAN number
+  gateway       = "192.168.20.1"
+  nameserver    = "192.168.20.1"
 }
 ```
 
@@ -218,12 +322,18 @@ new-container = {
   memory       = 512
   swap         = 256
   disk_size    = "8G"
-  storage      = "Synology-VMDisks"
+  storage      = "local-lvm"  # LXC rootfs on local storage
   vlan_tag     = null
   gateway      = "192.168.20.1"
   nameserver   = "192.168.20.1"
   nesting      = false
 }
+```
+
+**Note**: LXC containers use `local-lvm` for rootfs. Application data should be bind-mounted from `/mnt/nfs/lxcs`:
+```
+Container config (/etc/pve/lxc/101.conf):
+mp0: /mnt/nfs/lxcs/new-container,mp=/app/config
 ```
 
 ## LXC Template Management
@@ -311,6 +421,7 @@ terraform fmt
 ## Future Expansion
 
 ### Planned Services
+- **Media Stack (arr suite)**: Radarr, Sonarr, Plex with dedicated media storage
 - Additional LXC containers for lightweight services
 - Monitoring stack (Prometheus, Grafana)
 - GitLab or similar CI/CD

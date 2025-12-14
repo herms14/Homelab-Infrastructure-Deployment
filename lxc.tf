@@ -14,8 +14,8 @@ locals {
       memory       = 1024
       swap         = 512
       disk_size    = "10G"
-      storage      = "Synology-VMDisks"
-      vlan_tag     = null  # VLAN 20 is default
+      storage      = "ProxmoxData"
+      vlan_tag     = null # VLAN 20 is default
       gateway      = "192.168.20.1"
       nameserver   = "192.168.20.1"
       nesting      = false
@@ -55,7 +55,7 @@ module "lxc" {
 
   # Container Identification
   hostname     = each.value.hostname
-  target_node  = var.lxc_node  # LXCs always deploy to node02
+  target_node  = var.lxc_node # LXCs always deploy to node02
   ostemplate   = each.value.ostemplate
   unprivileged = each.value.unprivileged
 

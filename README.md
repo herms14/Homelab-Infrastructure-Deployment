@@ -1,165 +1,328 @@
 # Proxmox Terraform Deployments
 
-Infrastructure as Code for deploying Linux and Windows VMs on Proxmox using Terraform.
+Infrastructure-as-code for deploying virtual machines and LXC containers on a Proxmox VE cluster using Terraform.
 
-## Structure
+## Overview
+
+This repository contains Terraform configurations for managing a 3-node Proxmox VE 9.1.2 cluster with automated VM and container deployments. The infrastructure uses a production-grade NFS storage architecture backed by Synology NAS, with support for auto-incrementing hostnames, IP addresses, and multi-node deployment.
+
+## Features
+
+- **Auto-incrementing deployments**: Automatic sequential naming and IP allocation
+- **Multi-node support**: Deploy VMs across different Proxmox nodes automatically
+- **Production storage architecture**: Dedicated NFS exports for VM disks, ISOs, and application data
+- **Dynamic resource creation**: Terraform `for_each` for scalable infrastructure
+- **Cloud-init provisioning**: Automated VM configuration on first boot
+- **LXC container support**: Lightweight containers with persistent storage via NFS bind mounts
+
+## Architecture
+
+### Proxmox Cluster
+
+| Node | IP Address | Purpose |
+|------|------------|---------|
+| node01 | 192.168.20.20 | VM Host |
+| node02 | 192.168.20.21 | LXC Host |
+| node03 | 192.168.20.22 | General Purpose |
+
+### Storage Architecture
+
+The cluster uses a dedicated NFS export strategy:
+
+```
+Synology NAS (192.168.20.31)
+├── /volume2/ProxmoxCluster-VMDisks → Proxmox-managed VM disks
+├── /volume2/ProxmoxCluster-ISOs    → Proxmox-managed ISO storage
+├── /volume2/Proxmox-LXCs           → Manual mount for LXC app configs
+└── /volume2/Proxmox-Media          → Manual mount for media files
+```
+
+**Key Principle**: One NFS export = One Proxmox storage pool
+
+See [CLAUDE.md](./CLAUDE.md) for detailed storage architecture documentation.
+
+### Network
+
+- **VLAN 20** (192.168.20.0/24): Infrastructure and management
+- **VLAN 40** (192.168.40.0/24): Services and applications
+- **Bridge**: vmbr0 (all VMs and containers)
+
+## Repository Structure
 
 ```
 tf-proxmox/
+├── main.tf                 # VM group definitions and orchestration
+├── lxc.tf                  # LXC container definitions
+├── variables.tf            # Global variables
+├── outputs.tf              # Output definitions
+├── terraform.tfvars        # Variable values (gitignored)
 ├── modules/
-│   ├── linux-vm/       # Reusable Linux VM module
-│   └── windows-vm/     # Reusable Windows VM module
-├── env/                # Environment-specific variable files
-├── scripts/            # Helper scripts and cloud-init configurations
-├── main.tf             # Main deployment configuration
-├── variables.tf        # Variable definitions
-├── terraform.tfvars    # Your variable values (DO NOT COMMIT)
-├── providers.tf        # Provider configuration
-└── outputs.tf          # Output definitions
+│   ├── linux-vm/          # VM deployment module
+│   └── lxc/               # LXC deployment module
+├── CLAUDE.md              # Comprehensive infrastructure documentation
+└── README.md              # This file
 ```
 
-## Prerequisites
+## Quick Start
 
-1. **Terraform** >= 1.0
-2. **Proxmox VE** cluster with API access
-3. **Cloud-init templates** for Linux VMs (Ubuntu/Debian recommended)
-4. **Windows templates** for Windows VMs (optional)
+### Prerequisites
 
-## Setup
+- Proxmox VE 9.x cluster
+- Terraform >= 1.0
+- Synology NAS with NFS configured
+- VM template with cloud-init support
 
-### 1. Configure API Access
+### 1. Clone and Configure
 
-Edit `terraform.tfvars` and update:
-- `proxmox_api_url`: Your Proxmox API URL (e.g., `https://192.168.1.100:8006/api2/json`)
-- API token credentials are already configured
+```bash
+git clone https://github.com/herms14/Proxmox-TerraformDeployments.git
+cd Proxmox-TerraformDeployments
+```
 
-### 2. Customize the Test Deployment
+### 2. Create `terraform.tfvars`
 
-Edit `main.tf` and update the following in the `test_linux_vm` module:
-- `target_node`: Your Proxmox node name (default: "pve")
-- `template_name`: Your cloud-init template name
-- `storage`: Your storage pool (e.g., "local-lvm", "ceph-pool")
-- `ip_address`: Desired IP in the 192.168.20.0/24 network
-- `gateway`: Your gateway (typically 192.168.20.1)
-- `nameserver`: Your DNS server
-- `ssh_keys`: Your SSH public key for access
+```hcl
+# Proxmox API Configuration
+proxmox_api_url          = "https://192.168.20.21:8006/api2/json"
+proxmox_api_token_id     = "terraform-deployment-user@pve!tf"
+proxmox_api_token_secret = "your-api-token-secret"
+proxmox_tls_insecure     = true
 
-### 3. Initialize Terraform
+# Infrastructure Defaults
+default_storage    = "VMDisks"
+default_node       = "node01"
+default_vlan       = 20
+default_gateway    = "192.168.20.1"
+default_nameserver = "192.168.20.1"
+
+# SSH Configuration
+ssh_public_key = "ssh-ed25519 AAAA... user@host"
+```
+
+### 3. Initialize and Deploy
 
 ```bash
 terraform init
-```
-
-## Usage
-
-### Deploy Test Linux VM
-
-The test configuration deploys a Linux VM on VLAN 20 (192.168.20.0/24):
-
-```bash
-# Preview changes
 terraform plan
-
-# Deploy
 terraform apply
-
-# Show outputs
-terraform output
 ```
 
-### Deploy Custom Linux VM
+## Usage Examples
 
-Use the linux-vm module in your `main.tf`:
+### Deploy VMs Across Multiple Nodes
 
 ```hcl
-module "my_linux_vm" {
-  source = "./modules/linux-vm"
-
-  vm_name       = "my-server"
-  target_node   = "pve"
-  template_name = "ubuntu-cloud-template"
-
-  cores   = 4
-  memory  = 8192
-  storage = "local-lvm"
-
-  vlan_tag    = 20
-  ip_address  = "192.168.20.100"
-  gateway     = "192.168.20.1"
-
-  ci_user  = "admin"
-  ssh_keys = "ssh-rsa AAAAB3..."
+# main.tf
+locals {
+  vm_groups = {
+    ansible-control = {
+      count         = 2
+      starting_ip   = "192.168.20.50"
+      starting_node = "node02"  # node02, node03
+      template      = "tpl-ubuntu-24.04-cloudinit-v3"
+      cores         = 2
+      memory        = 4096
+      disk_size     = "50G"
+      storage       = "VMDisks"
+      vlan_tag      = null
+      gateway       = "192.168.20.1"
+      nameserver    = "192.168.20.1"
+    }
+  }
 }
 ```
 
-### Deploy Windows VM
+This creates:
+- `ansible-control01` on node02 at 192.168.20.50
+- `ansible-control02` on node03 at 192.168.20.51
 
-Use the windows-vm module:
+### Deploy LXC Container with Persistent Storage
 
 ```hcl
-module "my_windows_vm" {
-  source = "./modules/windows-vm"
-
-  vm_name       = "win-server"
-  target_node   = "pve"
-  template_name = "windows-2022-template"
-
-  cores   = 4
-  memory  = 16384
-  storage = "local-lvm"
-
-  vlan_tag  = 20
-  use_dhcp  = true  # or set to false for static IP
+# lxc.tf
+locals {
+  lxc_groups = {
+    traefik = {
+      count        = 1
+      starting_ip  = "192.168.20.100"
+      ostemplate   = "local:vztmpl/ubuntu-22.04-standard_22.04-1_amd64.tar.zst"
+      cores        = 2
+      memory       = 1024
+      disk_size    = "10G"
+      storage      = "local-lvm"
+      vlan_tag     = null
+      gateway      = "192.168.20.1"
+      nameserver   = "192.168.20.1"
+      nesting      = false
+    }
+  }
 }
 ```
 
-## Module Parameters
+**Bind mount app config** (add to `/etc/pve/lxc/100.conf`):
+```
+mp0: /mnt/nfs/lxcs/traefik,mp=/app/config
+```
 
-### Linux VM Module
+## Storage Setup
 
-| Parameter | Description | Default |
-|-----------|-------------|---------|
-| `vm_name` | VM hostname | required |
-| `target_node` | Proxmox node | required |
-| `template_name` | Template to clone | required |
-| `cores` | CPU cores | 2 |
-| `memory` | RAM in MB | 2048 |
-| `storage` | Storage pool | required |
-| `disk_size` | Disk size | "20G" |
-| `vlan_tag` | VLAN tag | -1 (no VLAN) |
-| `ip_address` | Static IP | required |
-| `gateway` | Default gateway | required |
-| `ci_user` | Cloud-init username | "ubuntu" |
-| `ssh_keys` | SSH public keys | "" |
+### Proxmox Configuration
 
-### Windows VM Module
+**Add NFS storages** (Datacenter → Storage):
 
-Similar to Linux, but with:
-- `use_dhcp`: Enable DHCP (default: true)
-- Higher default resources (4 cores, 8GB RAM, 100GB disk)
-- Windows-specific OS type
+1. **VMDisks**:
+   - Server: 192.168.20.31
+   - Export: `/volume2/ProxmoxCluster-VMDisks`
+   - Content: Disk image
 
-## Network Configuration
+2. **ISOs**:
+   - Server: 192.168.20.31
+   - Export: `/volume2/ProxmoxCluster-ISOs`
+   - Content: ISO image
 
-The example is configured for VLAN 20 (192.168.20.0/24):
-- VLAN Tag: 20
-- Network: 192.168.20.0/24
-- Gateway: 192.168.20.1
-- Test VM IP: 192.168.20.10
+### Manual Mounts
 
-## Cleanup
+**On all Proxmox nodes**, add to `/etc/fstab`:
 
 ```bash
-terraform destroy
+192.168.20.31:/volume2/Proxmox-LXCs   /mnt/nfs/lxcs   nfs  defaults,_netdev  0  0
+192.168.20.31:/volume2/Proxmox-Media  /mnt/nfs/media  nfs  defaults,_netdev  0  0
 ```
 
-## Security Notes
+Then mount:
+```bash
+mkdir -p /mnt/nfs/lxcs /mnt/nfs/media
+mount -a
+```
 
-- `terraform.tfvars` contains sensitive credentials - ensure it's in `.gitignore`
-- API tokens are already configured with proper permissions
-- Use SSH keys instead of passwords for Linux VMs
+## Common Operations
 
-## Requirements
+### View Deployed Resources
 
-- Terraform >= 1.0
-- Proxmox VE with API access
+```bash
+# All VMs
+terraform output vm_summary
+
+# All LXC containers
+terraform output lxc_summary
+
+# IP mappings
+terraform output vm_ips
+terraform output lxc_ips
+```
+
+### Deploy Only VMs
+
+```bash
+terraform apply -target=module.vms
+```
+
+### Deploy Only LXC Containers
+
+```bash
+terraform apply -target=module.lxc
+```
+
+### Format Configuration
+
+```bash
+terraform fmt
+```
+
+### Validate Configuration
+
+```bash
+terraform validate
+```
+
+## Key Configuration Variables
+
+| Variable | Description | Default |
+|----------|-------------|---------|
+| `proxmox_api_url` | Proxmox API endpoint | - |
+| `proxmox_api_token_id` | API token ID | - |
+| `proxmox_api_token_secret` | API token secret | - |
+| `default_storage` | Default VM storage | `local-lvm` |
+| `default_node` | Default Proxmox node | `node01` |
+| `ssh_public_key` | SSH public key for access | - |
+
+## VM Configuration Standards
+
+All VMs include:
+- **Cloud-init**: Automated provisioning
+- **QEMU Guest Agent**: Enhanced integration
+- **Auto-start**: Start on boot
+- **CPU Type**: host (maximum performance)
+- **Network**: virtio model on vmbr0
+
+## LXC Configuration Standards
+
+- **Default**: Unprivileged containers
+- **Storage**: local-lvm for rootfs
+- **App Data**: Bind-mounted from `/mnt/nfs/lxcs`
+- **Auto-start**: Enabled for production services
+
+## Troubleshooting
+
+### Storage Issues
+
+**Problem**: Storage marked as inactive or showing `?` icons
+
+**Solution**: Ensure NFS exports are configured correctly:
+```bash
+# On NAS, verify exports
+showmount -e 192.168.20.31
+
+# On Proxmox nodes, verify mounts
+df -h | grep 192.168.20.31
+```
+
+### Template Not Found
+
+**Problem**: VM template doesn't exist on target node
+
+**Solution**: Ensure template exists on all nodes or use `starting_node` to target specific nodes with the template.
+
+### Connection Refused
+
+**Problem**: Terraform can't connect to Proxmox API
+
+**Solution**:
+- Verify Proxmox node is online
+- Check API token is valid
+- Confirm firewall allows connections
+
+## Documentation
+
+- **[CLAUDE.md](./CLAUDE.md)**: Comprehensive infrastructure documentation including:
+  - Storage architecture deep-dive
+  - Network configuration
+  - Deployed infrastructure inventory
+  - Terraform usage guide
+  - Troubleshooting
+
+## Security Considerations
+
+- API tokens stored in `terraform.tfvars` (excluded from git)
+- SSH key authentication only
+- Unprivileged LXC containers by default
+- Network segmentation via VLANs
+- TLS for Proxmox API (self-signed certificate accepted)
+
+## Contributing
+
+This is a personal homelab infrastructure repository. Feel free to fork and adapt for your own use.
+
+## License
+
+MIT License - See LICENSE file for details
+
+## Author
+
+Hermes - Homelab Infrastructure
+
+## Acknowledgments
+
+- Telmate Proxmox Terraform Provider
+- Proxmox VE Team
+- Synology NAS Platform
