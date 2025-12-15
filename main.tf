@@ -4,19 +4,162 @@
 # Define your VM groups here
 locals {
   vm_groups = {
-    # Test VM using new cloud-init template
-    test-cloudinit = {
-      count         = 1
-      starting_ip   = "192.168.20.60"
-      target_node   = "node01"  # Template is on node01
+    # ============================================
+    # Agent 1: Ansible Controllers on node01
+    # ============================================
+    ansible-controller = {
+      count         = 2
+      starting_ip   = "192.168.20.30"
+      target_node   = "node01"
       template      = "tpl-ubuntuv24.04-v1"
       cores         = 2
       sockets       = 1
-      memory        = 4096   # 4GB for testing
+      memory        = 4096   # 4GB
       disk_size     = "20G"
       storage       = "VMDisks"
-      vlan_tag      = null   # VLAN 20 (untagged)
+      vlan_tag      = null   # VLAN 20
       gateway       = "192.168.20.1"
+      nameserver    = "192.168.20.1"
+    }
+
+    # ============================================
+    # Agent 2: Kubernetes Infrastructure on node03
+    # ============================================
+    k8s-controller = {
+      count         = 3
+      starting_ip   = "192.168.20.32"
+      target_node   = "node03"
+      template      = "tpl-ubuntu-shared-v1"
+      cores         = 2
+      sockets       = 1
+      memory        = 4096   # 4GB
+      disk_size     = "20G"
+      storage       = "VMDisks"
+      vlan_tag      = null   # VLAN 20
+      gateway       = "192.168.20.1"
+      nameserver    = "192.168.20.1"
+    }
+
+    k8s-worker = {
+      count         = 4
+      starting_ip   = "192.168.20.40"
+      target_node   = "node03"
+      template      = "tpl-ubuntu-shared-v1"
+      cores         = 2
+      sockets       = 1
+      memory        = 4096   # 4GB
+      disk_size     = "20G"
+      storage       = "VMDisks"
+      vlan_tag      = null   # VLAN 20
+      gateway       = "192.168.20.1"
+      nameserver    = "192.168.20.1"
+    }
+
+    # ============================================
+    # Agent 3: Services on node02 - VLAN 40
+    # ============================================
+    linux-syslog-server = {
+      count         = 1
+      starting_ip   = "192.168.40.5"
+      target_node   = "node02"
+      template      = "tpl-ubuntu-shared-v1"
+      cores         = 4
+      sockets       = 2
+      memory        = 6144   # 6GB
+      disk_size     = "50G"
+      storage       = "VMDisks"
+      vlan_tag      = 40     # VLAN 40
+      gateway       = "192.168.40.1"
+      nameserver    = "192.168.20.1"
+    }
+
+    docker-vm-utilities = {
+      count         = 1
+      starting_ip   = "192.168.40.10"
+      target_node   = "node02"
+      template      = "tpl-ubuntu-shared-v1"
+      cores         = 2
+      sockets       = 1
+      memory        = 4096   # 4GB
+      disk_size     = "20G"
+      storage       = "VMDisks"
+      vlan_tag      = 40     # VLAN 40
+      gateway       = "192.168.40.1"
+      nameserver    = "192.168.20.1"
+    }
+
+    docker-vm-media = {
+      count         = 1
+      starting_ip   = "192.168.40.11"
+      target_node   = "node02"
+      template      = "tpl-ubuntu-shared-v1"
+      cores         = 2
+      sockets       = 1
+      memory        = 4096   # 4GB
+      disk_size     = "20G"
+      storage       = "VMDisks"
+      vlan_tag      = 40     # VLAN 40
+      gateway       = "192.168.40.1"
+      nameserver    = "192.168.20.1"
+    }
+
+    traefik-vm = {
+      count         = 1
+      starting_ip   = "192.168.40.20"
+      target_node   = "node02"
+      template      = "tpl-ubuntu-shared-v1"
+      cores         = 2
+      sockets       = 1
+      memory        = 4096   # 4GB
+      disk_size     = "20G"
+      storage       = "VMDisks"
+      vlan_tag      = 40     # VLAN 40
+      gateway       = "192.168.40.1"
+      nameserver    = "192.168.20.1"
+    }
+
+    authentik-vm = {
+      count         = 1
+      starting_ip   = "192.168.40.21"
+      target_node   = "node02"
+      template      = "tpl-ubuntu-shared-v1"
+      cores         = 2
+      sockets       = 1
+      memory        = 4096   # 4GB
+      disk_size     = "20G"
+      storage       = "VMDisks"
+      vlan_tag      = 40     # VLAN 40
+      gateway       = "192.168.40.1"
+      nameserver    = "192.168.20.1"
+    }
+
+    immich-vm = {
+      count         = 1
+      starting_ip   = "192.168.40.22"
+      target_node   = "node02"
+      template      = "tpl-ubuntu-shared-v1"
+      cores         = 2
+      sockets       = 1
+      memory        = 4096   # 4GB
+      disk_size     = "20G"
+      storage       = "VMDisks"
+      vlan_tag      = 40     # VLAN 40
+      gateway       = "192.168.40.1"
+      nameserver    = "192.168.20.1"
+    }
+
+    gitlab-vm = {
+      count         = 1
+      starting_ip   = "192.168.40.23"
+      target_node   = "node02"
+      template      = "tpl-ubuntu-shared-v1"
+      cores         = 2
+      sockets       = 1
+      memory        = 4096   # 4GB
+      disk_size     = "20G"
+      storage       = "VMDisks"
+      vlan_tag      = 40     # VLAN 40
+      gateway       = "192.168.40.1"
       nameserver    = "192.168.20.1"
     }
   }

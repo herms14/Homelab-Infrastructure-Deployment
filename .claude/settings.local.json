@@ -2,7 +2,14 @@
   "permissions": {
     "allow": [
       "Bash(terraform providers:*)",
-      "Bash(terraform apply:*)"
+      "Bash(terraform apply:*)",
+      "Bash(ssh root@192.168.20.22:*)",
+      "Bash(ssh:*)",
+      "Bash(ping:*)",
+      "Bash(git rm:*)",
+      "Bash(del nul)",
+      "Bash(terraform plan:*)",
+      "Bash(ls:*)"
     ],
     "deny": [],
     "ask": []
