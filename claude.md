@@ -229,6 +229,7 @@ ip -d link show vmbr0 | grep vlan_filtering
 |---------|-----|---------|
 | Paperless-ngx | https://paperless.hrmsmrflrii.xyz | 192.168.40.10:8000 |
 | Glance Dashboard | https://glance.hrmsmrflrii.xyz | 192.168.40.10:8080 |
+| n8n Automation | https://n8n.hrmsmrflrii.xyz | 192.168.40.10:5678 |
 
 #### SSL Certificate Configuration
 
@@ -1033,6 +1034,77 @@ ssh hermes-admin@192.168.40.23 "sudo docker exec gitlab gitlab-ctl reconfigure"
 ```
 
 See [SERVICES_GUIDE.md](./SERVICES_GUIDE.md) for comprehensive service documentation and learning resources.
+
+### n8n Workflow Automation (docker-vm-utilities01)
+
+**Status**: ✅ Deployed December 19, 2025
+
+n8n workflow automation platform deployed on docker-vm-utilities01 (192.168.40.10) using Docker Compose.
+
+| Service | Port | URL | Purpose |
+|---------|------|-----|---------|
+| n8n Web UI | 5678 | http://192.168.40.10:5678 | Workflow editor & execution |
+| n8n HTTPS | 443 | https://n8n.hrmsmrflrii.xyz | Via Traefik reverse proxy |
+
+**Features**:
+- Visual workflow builder (node-based)
+- 400+ integrations (APIs, databases, services)
+- Webhook triggers for external automation
+- Schedule-based workflow execution
+- Self-hosted with full data control
+
+**Storage Configuration**:
+- Config & Workflows: `/opt/n8n/data/` (local storage)
+- Docker Compose: `/opt/n8n/docker-compose.yml`
+- Database: SQLite (default) or PostgreSQL (optional)
+
+**Initial Setup**:
+1. Navigate to https://n8n.hrmsmrflrii.xyz (or http://192.168.40.10:5678)
+2. Create your admin account on first access
+3. Start building workflows!
+
+**Management**:
+- Ansible playbook: `~/ansible/n8n/deploy-n8n.yml` on ansible-controller01
+- Docker Compose: `/opt/n8n/docker-compose.yml` on docker-vm-utilities01
+
+**Useful Commands**:
+```bash
+# View logs
+ssh hermes-admin@192.168.40.10 "cd /opt/n8n && sudo docker compose logs -f"
+
+# Restart n8n
+ssh hermes-admin@192.168.40.10 "cd /opt/n8n && sudo docker compose restart"
+
+# Update n8n
+ssh hermes-admin@192.168.40.10 "cd /opt/n8n && sudo docker compose pull && sudo docker compose up -d"
+```
+
+## OPNsense DNS Automation
+
+Ansible playbooks for managing DNS host overrides in OPNsense via API.
+
+### Prerequisites
+
+1. Create API key in OPNsense: System > Access > Users > [user] > API keys
+2. Set environment variables:
+   ```bash
+   export OPNSENSE_API_KEY="your-api-key"
+   export OPNSENSE_API_SECRET="your-api-secret"
+   ```
+
+### Add Single DNS Record
+```bash
+ansible-playbook opnsense/add-dns-record.yml -e "hostname=myservice ip=192.168.40.10"
+```
+
+### Add All Homelab Services
+```bash
+ansible-playbook opnsense/add-all-services-dns.yml
+```
+
+### Playbook Files
+- `~/ansible/opnsense/add-dns-record.yml` - Add individual DNS records
+- `~/ansible/opnsense/add-all-services-dns.yml` - Add all 22 homelab services
 
 ## Future Expansion
 
