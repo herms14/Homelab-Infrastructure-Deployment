@@ -272,14 +272,14 @@ Full infrastructure deployment including Ansible automation, Kubernetes cluster 
 | k8s-worker06 | node03 | 192.168.20.45 | 2 | 4GB | 20GB | K8s worker node | Cloud-init |
 
 **Kubernetes Cluster Specifications:**
-- **Version**: 1.28.x (latest stable)
+- **Version**: v1.28.15 (stable)
 - **HA Control Plane**: 3 controller nodes with stacked etcd
 - **Worker Nodes**: 6 worker nodes for application workloads
-- **Container Runtime**: containerd with systemd cgroup driver
-- **CNI Plugin**: Calico 3.27.0
+- **Container Runtime**: containerd v1.7.28 with systemd cgroup driver
+- **CNI Plugin**: Calico v3.27.0
 - **Pod Network**: 10.244.0.0/16
-- **Deployment**: Production-grade Ansible playbooks (see [Kubernetes_Setup.md](./Kubernetes_Setup.md))
-- **Status**: Infrastructure deployed, cluster initialization pending
+- **Deployment**: Ansible playbooks (see `docs/legacy/Kubernetes_Setup.md`)
+- **Status**: Fully deployed and operational (December 19, 2025)
 
 #### Virtual Machines - VLAN 40
 
