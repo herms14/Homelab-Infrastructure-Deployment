@@ -133,6 +133,25 @@ ansible-playbook gitlab/deploy-gitlab.yml -l gitlab-vm01 -v
 
 See [SERVICES_GUIDE.md - GitLab Section](./SERVICES_GUIDE.md#gitlab-ce) for complete GitLab deployment documentation.
 
+### Deploy n8n Workflow Automation
+```bash
+# Deploy n8n on docker-vm-utilities01
+cd ~/ansible
+ansible-playbook n8n/deploy-n8n.yml -l docker-vm-utilities01 -v
+```
+
+### Manage OPNsense DNS Records
+```bash
+# Add single DNS record
+cd ~/ansible
+ansible-playbook opnsense/add-dns-record.yml -e "hostname=myservice ip=192.168.40.10"
+
+# Add all homelab services DNS records
+ansible-playbook opnsense/add-all-services-dns.yml
+```
+
+**Note**: OPNsense API credentials required. Set `OPNSENSE_API_KEY` and `OPNSENSE_API_SECRET` environment variables.
+
 ## Files
 
 ### General Playbooks
@@ -153,6 +172,11 @@ See [SERVICES_GUIDE.md - GitLab Section](./SERVICES_GUIDE.md#gitlab-ce) for comp
 - **gitlab/deploy-gitlab.yml**: Deploy GitLab CE DevOps platform
 - **paperless/deploy-paperless.yml**: Deploy Paperless-ngx document management
 - **glance/deploy-glance.yml**: Deploy Glance dashboard
+- **n8n/deploy-n8n.yml**: Deploy n8n workflow automation
+
+### OPNsense DNS Automation (~/ansible/opnsense/)
+- **opnsense/add-dns-record.yml**: Add individual DNS host override to OPNsense
+- **opnsense/add-all-services-dns.yml**: Add all homelab services DNS records
 
 ### Kubernetes Playbooks (~/ansible/k8s/)
 - **k8s-deploy-all.yml**: Master playbook - deploys complete K8s cluster

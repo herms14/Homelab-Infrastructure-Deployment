@@ -1,0 +1,159 @@
+---
+# n8n Workflow Automation Deployment Playbook
+# Deploys n8n on docker-vm-utilities01 (192.168.40.10)
+#
+# Usage:
+#   ansible-playbook n8n/deploy-n8n.yml -l docker-vm-utilities01 -v
+#
+# Access: http://192.168.40.10:5678 or https://n8n.hrmsmrflrii.xyz (via Traefik)
+
+- name: Deploy n8n Workflow Automation
+  hosts: docker_utilities
+  become: yes
+  vars:
+    n8n_dir: /opt/n8n
+    n8n_port: 5678
+    n8n_webhook_url: "https://n8n.hrmsmrflrii.xyz"
+    n8n_timezone: "America/New_York"
+    # Set to true to use PostgreSQL instead of SQLite
+    use_postgres: false
+    postgres_password: "n8n_secure_password_change_me"
+
+  tasks:
+    - name: Create n8n directory
+      file:
+        path: "{{ n8n_dir }}"
+        state: directory
+        mode: '0755'
+
+    - name: Create n8n data directory
+      file:
+        path: "{{ n8n_dir }}/data"
+        state: directory
+        mode: '0755'
+        owner: '1000'
+        group: '1000'
+
+    - name: Deploy n8n docker-compose.yml (SQLite)
+      copy:
+        dest: "{{ n8n_dir }}/docker-compose.yml"
+        mode: '0644'
+        content: |
+          name: n8n
+
+          services:
+            n8n:
+              container_name: n8n
+              image: n8nio/n8n:latest
+              restart: unless-stopped
+              ports:
+                - "{{ n8n_port }}:5678"
+              environment:
+                - TZ={{ n8n_timezone }}
+                - N8N_HOST=n8n.hrmsmrflrii.xyz
+                - N8N_PROTOCOL=https
+                - WEBHOOK_URL={{ n8n_webhook_url }}
+                - N8N_SECURE_COOKIE=true
+                # Basic auth (optional - uncomment to enable)
+                # - N8N_BASIC_AUTH_ACTIVE=true
+                # - N8N_BASIC_AUTH_USER=admin
+                # - N8N_BASIC_AUTH_PASSWORD=changeme
+              volumes:
+                - {{ n8n_dir }}/data:/home/node/.n8n
+              networks:
+                - n8n-network
+
+          networks:
+            n8n-network:
+              name: n8n-network
+              driver: bridge
+      when: not use_postgres
+
+    - name: Deploy n8n docker-compose.yml (PostgreSQL)
+      copy:
+        dest: "{{ n8n_dir }}/docker-compose.yml"
+        mode: '0644'
+        content: |
+          name: n8n
+
+          services:
+            n8n:
+              container_name: n8n
+              image: n8nio/n8n:latest
+              restart: unless-stopped
+              ports:
+                - "{{ n8n_port }}:5678"
+              environment:
+                - TZ={{ n8n_timezone }}
+                - N8N_HOST=n8n.hrmsmrflrii.xyz
+                - N8N_PROTOCOL=https
+                - WEBHOOK_URL={{ n8n_webhook_url }}
+                - N8N_SECURE_COOKIE=true
+                - DB_TYPE=postgresdb
+                - DB_POSTGRESDB_HOST=n8n-postgres
+                - DB_POSTGRESDB_PORT=5432
+                - DB_POSTGRESDB_DATABASE=n8n
+                - DB_POSTGRESDB_USER=n8n
+                - DB_POSTGRESDB_PASSWORD={{ postgres_password }}
+              volumes:
+                - {{ n8n_dir }}/data:/home/node/.n8n
+              networks:
+                - n8n-network
+              depends_on:
+                - postgres
+
+            postgres:
+              container_name: n8n-postgres
+              image: postgres:16-alpine
+              restart: unless-stopped
+              environment:
+                - POSTGRES_DB=n8n
+                - POSTGRES_USER=n8n
+                - POSTGRES_PASSWORD={{ postgres_password }}
+              volumes:
+                - {{ n8n_dir }}/postgres:/var/lib/postgresql/data
+              networks:
+                - n8n-network
+
+          networks:
+            n8n-network:
+              name: n8n-network
+              driver: bridge
+      when: use_postgres
+
+    - name: Pull n8n Docker images
+      shell: docker compose pull
+      args:
+        chdir: "{{ n8n_dir }}"
+
+    - name: Start n8n containers
+      shell: docker compose up -d
+      args:
+        chdir: "{{ n8n_dir }}"
+
+    - name: Wait for n8n to be ready
+      uri:
+        url: "http://localhost:{{ n8n_port }}/"
+        status_code: 200
+      register: result
+      until: result.status == 200
+      retries: 30
+      delay: 5
+      ignore_errors: yes
+
+    - name: Display n8n access information
+      debug:
+        msg:
+          - "============================================"
+          - "n8n Workflow Automation Deployed!"
+          - "============================================"
+          - "Direct Access: http://{{ ansible_host }}:{{ n8n_port }}"
+          - "Via Traefik:   https://n8n.hrmsmrflrii.xyz"
+          - ""
+          - "First-time setup:"
+          - "  1. Navigate to the URL above"
+          - "  2. Create your admin account"
+          - "  3. Start building workflows!"
+          - ""
+          - "Data location: {{ n8n_dir }}/data"
+          - "============================================"

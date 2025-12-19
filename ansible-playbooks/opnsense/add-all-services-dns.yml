@@ -1,0 +1,137 @@
+---
+# Add All Homelab Services to OPNsense DNS
+# Configures DNS host overrides for all services behind Traefik
+#
+# Prerequisites:
+#   Set OPNSENSE_API_KEY and OPNSENSE_API_SECRET environment variables
+#   Or pass them as extra vars: -e "api_key=xxx api_secret=yyy"
+#
+# Usage:
+#   ansible-playbook opnsense/add-all-services-dns.yml
+
+- name: Add All Homelab Services DNS Records
+  hosts: localhost
+  gather_facts: no
+  vars:
+    opnsense_url: "https://192.168.91.30"
+    domain: "hrmsmrflrii.xyz"
+    api_key: "{{ lookup('env', 'OPNSENSE_API_KEY') | default('') }}"
+    api_secret: "{{ lookup('env', 'OPNSENSE_API_SECRET') | default('') }}"
+    traefik_ip: "192.168.40.20"
+
+    # All services - all point to Traefik for reverse proxy
+    all_services:
+      # Traefik Dashboard
+      - hostname: traefik
+        description: "Traefik Dashboard"
+
+      # Proxmox Cluster
+      - hostname: proxmox
+        description: "Proxmox Cluster (via node02)"
+      - hostname: node01
+        description: "Proxmox Node 01"
+      - hostname: node02
+        description: "Proxmox Node 02"
+      - hostname: node03
+        description: "Proxmox Node 03"
+
+      # Core Services
+      - hostname: auth
+        description: "Authentik SSO"
+      - hostname: photos
+        description: "Immich Photo Management"
+      - hostname: gitlab
+        description: "GitLab CE"
+
+      # Media Services (Arr Stack)
+      - hostname: jellyfin
+        description: "Jellyfin Media Server"
+      - hostname: radarr
+        description: "Radarr Movie Management"
+      - hostname: sonarr
+        description: "Sonarr TV Management"
+      - hostname: lidarr
+        description: "Lidarr Music Management"
+      - hostname: prowlarr
+        description: "Prowlarr Indexer Manager"
+      - hostname: bazarr
+        description: "Bazarr Subtitle Management"
+      - hostname: overseerr
+        description: "Overseerr Media Requests"
+      - hostname: jellyseerr
+        description: "Jellyseerr Media Requests"
+      - hostname: tdarr
+        description: "Tdarr Transcoding"
+      - hostname: autobrr
+        description: "Autobrr Torrent Automation"
+
+      # Utility Services
+      - hostname: paperless
+        description: "Paperless-ngx Document Management"
+      - hostname: glance
+        description: "Glance Dashboard"
+      - hostname: n8n
+        description: "n8n Workflow Automation"
+
+  tasks:
+    - name: Validate API credentials
+      fail:
+        msg: |
+          OPNsense API credentials not set!
+
+          To configure:
+          1. Login to OPNsense (https://192.168.91.30)
+          2. Go to: System > Access > Users
+          3. Edit your user (or create API user)
+          4. Click '+' next to API keys to generate key/secret
+          5. Set environment variables:
+             export OPNSENSE_API_KEY="your-api-key"
+             export OPNSENSE_API_SECRET="your-api-secret"
+      when: api_key == '' or api_secret == ''
+
+    - name: Add DNS host override for each service
+      uri:
+        url: "{{ opnsense_url }}/api/unbound/settings/addHostOverride"
+        method: POST
+        user: "{{ api_key }}"
+        password: "{{ api_secret }}"
+        force_basic_auth: yes
+        validate_certs: no
+        body_format: json
+        body:
+          host:
+            enabled: "1"
+            hostname: "{{ item.hostname }}"
+            domain: "{{ domain }}"
+            rr: "A"
+            server: "{{ traefik_ip }}"
+            description: "{{ item.description }}"
+        status_code: [200, 201]
+      loop: "{{ all_services }}"
+      register: add_results
+      ignore_errors: yes
+
+    - name: Apply Unbound configuration
+      uri:
+        url: "{{ opnsense_url }}/api/unbound/service/reconfigure"
+        method: POST
+        user: "{{ api_key }}"
+        password: "{{ api_secret }}"
+        force_basic_auth: yes
+        validate_certs: no
+        body_format: json
+        body: {}
+        status_code: [200]
+
+    - name: Display summary
+      debug:
+        msg:
+          - "============================================"
+          - "DNS Records Added to OPNsense ({{ all_services | length }} total)"
+          - "============================================"
+          - "All services now resolve to Traefik ({{ traefik_ip }})"
+          - ""
+          - "Verify with:"
+          - "  nslookup traefik.{{ domain }} 192.168.91.30"
+          - "  nslookup n8n.{{ domain }} 192.168.91.30"
+          - "============================================"

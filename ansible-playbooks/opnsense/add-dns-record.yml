@@ -1,0 +1,104 @@
+---
+# OPNsense DNS Host Override Automation
+# Adds DNS records to OPNsense Unbound DNS via API
+#
+# Prerequisites:
+#   1. Create API key in OPNsense: System > Access > Users > [user] > API keys
+#   2. Set api_key and api_secret variables (or use vault)
+#
+# Usage:
+#   # Add single record:
+#   ansible-playbook opnsense/add-dns-record.yml -e "hostname=n8n ip=192.168.40.10"
+#
+#   # Add multiple records:
+#   ansible-playbook opnsense/add-dns-record.yml -e "dns_records=[{hostname: n8n, ip: 192.168.40.10}, {hostname: paperless, ip: 192.168.40.10}]"
+
+- name: Add DNS Host Override to OPNsense
+  hosts: localhost
+  gather_facts: no
+  vars:
+    opnsense_url: "https://192.168.91.30"
+    domain: "hrmsmrflrii.xyz"
+    # API credentials - set these or use ansible-vault
+    api_key: "{{ lookup('env', 'OPNSENSE_API_KEY') | default('') }}"
+    api_secret: "{{ lookup('env', 'OPNSENSE_API_SECRET') | default('') }}"
+    # Single record variables (for simple usage)
+    hostname: ""
+    ip: ""
+    description: "Added via Ansible automation"
+    # Multiple records (for batch usage)
+    dns_records: []
+    # Traefik IP for default routing
+    traefik_ip: "192.168.40.20"
+
+  tasks:
+    - name: Validate API credentials
+      fail:
+        msg: |
+          OPNsense API credentials not set!
+
+          To configure:
+          1. Login to OPNsense (https://192.168.91.30)
+          2. Go to: System > Access > Users
+          3. Edit your user (or create API user)
+          4. Click '+' next to API keys to generate key/secret
+          5. Set environment variables:
+             export OPNSENSE_API_KEY="your-api-key"
+             export OPNSENSE_API_SECRET="your-api-secret"
+
+          Or pass directly:
+             -e "api_key=xxx api_secret=yyy"
+      when: api_key == '' or api_secret == ''
+
+    - name: Build DNS records list from single record
+      set_fact:
+        dns_records_to_add: "{{ dns_records if dns_records | length > 0 else [{'hostname': hostname, 'ip': ip, 'description': description}] }}"
+      when: hostname != '' or dns_records | length > 0
+
+    - name: Add DNS host override for each record
+      uri:
+        url: "{{ opnsense_url }}/api/unbound/settings/addHostOverride"
+        method: POST
+        user: "{{ api_key }}"
+        password: "{{ api_secret }}"
+        force_basic_auth: yes
+        validate_certs: no
+        body_format: json
+        body:
+          host:
+            enabled: "1"
+            hostname: "{{ item.hostname }}"
+            domain: "{{ domain }}"
+            rr: "A"
+            server: "{{ item.ip | default(traefik_ip) }}"
+            description: "{{ item.description | default('Added via Ansible') }}"
+        status_code: [200, 201]
+      loop: "{{ dns_records_to_add }}"
+      register: add_results
+      when: dns_records_to_add is defined
+
+    - name: Apply Unbound configuration
+      uri:
+        url: "{{ opnsense_url }}/api/unbound/service/reconfigure"
+        method: POST
+        user: "{{ api_key }}"
+        password: "{{ api_secret }}"
+        force_basic_auth: yes
+        validate_certs: no
+        body_format: json
+        body: {}
+        status_code: [200]
+      when: add_results is defined and add_results.changed
+
+    - name: Display results
+      debug:
+        msg:
+          - "============================================"
+          - "DNS Records Added to OPNsense"
+          - "============================================"
+          - "Records added:"
+          - "{% for item in dns_records_to_add %}  - {{ item.hostname }}.{{ domain }} -> {{ item.ip | default(traefik_ip) }}{% endfor %}"
+          - ""
+          - "Verify with: nslookup {{ (dns_records_to_add | first).hostname }}.{{ domain }} 192.168.91.30"
+          - "============================================"
+      when: dns_records_to_add is defined
