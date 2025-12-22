@@ -34,6 +34,271 @@
         - "{{ glance_path }}/config"
         - "{{ glance_path }}/assets"
 
+    - name: Create custom themes CSS file
+      copy:
+        dest: "{{ glance_path }}/assets/custom-themes.css"
+        content: |
+          /*
+           * Glance Dashboard Custom Themes CSS
+           * ==================================
+           * This file provides additional styling enhancements for all themes.
+           * Theme colors are controlled via glance.yml presets.
+           * Custom CSS provides layout, animation, and widget-specific styling.
+           *
+           * Available themes (select via picker icon in top-right):
+           * - Midnight Blue: Deep blue professional
+           * - Nord: Arctic cool colors
+           * - Dracula: Popular purple theme
+           * - Monokai: Classic code editor
+           * - Catppuccin Mocha: Soft pastel (default)
+           * - Gruvbox Dark: Warm retro
+           * - Solarized Dark: Classic dark
+           * - Tokyo Night: VSCode inspired
+           * - Cyberpunk: Neon futuristic
+           * - Classic Dark: Original theme
+           */
+
+          /* ========================================
+             Base Enhancements
+             ======================================== */
+
+          /* Smooth theme transitions */
+          * {
+            transition: background-color 0.3s ease, color 0.2s ease, border-color 0.2s ease;
+          }
+
+          /* Enhanced card/widget styling */
+          .widget {
+            border-radius: 12px !important;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+          }
+
+          .widget:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+          }
+
+          /* ========================================
+             Widget-Specific Styling
+             ======================================== */
+
+          /* Clock widget enhancements */
+          .widget-type-clock {
+            text-align: center;
+          }
+
+          .widget-type-clock .time {
+            font-weight: 700;
+            letter-spacing: -0.02em;
+          }
+
+          /* Weather widget */
+          .widget-type-weather {
+            padding: 1rem;
+          }
+
+          /* Bookmarks styling */
+          .widget-type-bookmarks .bookmark-group {
+            margin-bottom: 0.75rem;
+          }
+
+          .widget-type-bookmarks a {
+            border-radius: 6px;
+            padding: 0.5rem 0.75rem;
+            transition: all 0.2s ease;
+          }
+
+          .widget-type-bookmarks a:hover {
+            transform: translateX(4px);
+          }
+
+          /* Monitor widget status indicators */
+          .widget-type-monitor .monitor-site {
+            border-radius: 8px;
+            padding: 0.5rem;
+            margin-bottom: 0.25rem;
+          }
+
+          .widget-type-monitor .status-online {
+            border-left: 3px solid hsl(var(--color-positive));
+          }
+
+          .widget-type-monitor .status-offline {
+            border-left: 3px solid hsl(var(--color-negative));
+          }
+
+          /* Markets widget */
+          .widget-type-markets .market-item {
+            border-radius: 8px;
+            padding: 0.75rem;
+            margin-bottom: 0.5rem;
+          }
+
+          /* RSS feed cards */
+          .widget-type-rss .rss-card {
+            border-radius: 10px;
+            overflow: hidden;
+          }
+
+          .widget-type-rss .rss-card:hover {
+            transform: scale(1.02);
+          }
+
+          /* iFrame widgets */
+          .widget-type-iframe iframe {
+            border-radius: 8px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+          }
+
+          /* ========================================
+             Page Navigation Styling
+             ======================================== */
+
+          /* Tab navigation enhancement */
+          .page-navigation {
+            backdrop-filter: blur(10px);
+            border-radius: 12px;
+            padding: 0.5rem;
+          }
+
+          .page-navigation a {
+            border-radius: 8px;
+            padding: 0.5rem 1rem;
+            transition: all 0.2s ease;
+          }
+
+          .page-navigation a:hover {
+            background: rgba(255, 255, 255, 0.1);
+          }
+
+          .page-navigation a.active {
+            font-weight: 600;
+          }
+
+          /* ========================================
+             Theme Picker Enhancement
+             ======================================== */
+
+          /* Make theme picker more visible */
+          .theme-picker-button {
+            opacity: 0.7;
+            transition: opacity 0.2s ease, transform 0.2s ease;
+          }
+
+          .theme-picker-button:hover {
+            opacity: 1;
+            transform: scale(1.1);
+          }
+
+          .theme-picker-dropdown {
+            border-radius: 12px;
+            backdrop-filter: blur(20px);
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+          }
+
+          .theme-picker-option {
+            border-radius: 8px;
+            padding: 0.75rem 1rem;
+            margin: 0.25rem;
+            transition: all 0.2s ease;
+          }
+
+          .theme-picker-option:hover {
+            background: rgba(255, 255, 255, 0.1);
+          }
+
+          /* ========================================
+             Custom API Widget Styling
+             ======================================== */
+
+          /* Life Progress widget specific */
+          .widget-type-custom-api .progress-bar {
+            border-radius: 4px;
+            overflow: hidden;
+          }
+
+          /* Reddit feed custom styling */
+          .widget-type-custom-api .reddit-post {
+            border-radius: 8px;
+            transition: background 0.2s ease;
+          }
+
+          .widget-type-custom-api .reddit-post:hover {
+            background: rgba(255, 255, 255, 0.05);
+          }
+
+          /* ========================================
+             Responsive Adjustments
+             ======================================== */
+
+          @media (max-width: 768px) {
+            .widget {
+              border-radius: 8px !important;
+            }
+
+            .widget:hover {
+              transform: none;
+            }
+          }
+
+          /* ========================================
+             Animation Classes
+             ======================================== */
+
+          @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+          }
+
+          .widget {
+            animation: fadeIn 0.3s ease-out;
+          }
+
+          /* Stagger animation for multiple widgets */
+          .column > .widget:nth-child(1) { animation-delay: 0.05s; }
+          .column > .widget:nth-child(2) { animation-delay: 0.1s; }
+          .column > .widget:nth-child(3) { animation-delay: 0.15s; }
+          .column > .widget:nth-child(4) { animation-delay: 0.2s; }
+          .column > .widget:nth-child(5) { animation-delay: 0.25s; }
+
+          /* ========================================
+             Scrollbar Styling
+             ======================================== */
+
+          ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+          }
+
+          ::-webkit-scrollbar-track {
+            background: transparent;
+          }
+
+          ::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 4px;
+          }
+
+          ::-webkit-scrollbar-thumb:hover {
+            background: rgba(255, 255, 255, 0.3);
+          }
+
+          /* ========================================
+             Utility Classes
+             ======================================== */
+
+          .glow {
+            box-shadow: 0 0 20px rgba(var(--color-primary), 0.3);
+          }
+
+          .glass {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+          }
+        mode: '0644'
+
     - name: Create Glance configuration
       copy:
         dest: "{{ glance_path }}/config/glance.yml"
@@ -43,11 +308,95 @@
             assets-path: /app/assets
 
           theme:
+            # Default: Catppuccin Mocha - Soft, pastel dark theme
             background-color: 240 21 15
             contrast-multiplier: 1.2
-            primary-color: 217 92 83
+            primary-color: 267 84 81
             positive-color: 115 54 76
-            negative-color: 0 70 70
+            negative-color: 343 81 75
+            custom-css-file: /app/assets/custom-themes.css
+
+            # Theme Presets - Selectable from the theme picker icon (top-right)
+            presets:
+              # Deep blue professional dark theme
+              midnight-blue:
+                background-color: 213 58 10
+                primary-color: 227 95 67
+                positive-color: 162 82 40
+                negative-color: 0 94 65
+                contrast-multiplier: 1.2
+
+              # Arctic, cool blue-gray palette
+              nord:
+                background-color: 220 16 22
+                primary-color: 193 43 67
+                positive-color: 92 28 65
+                negative-color: 354 42 56
+                contrast-multiplier: 1.1
+
+              # Popular purple-based dark theme
+              dracula:
+                background-color: 231 15 18
+                primary-color: 265 89 78
+                positive-color: 135 94 65
+                negative-color: 0 100 67
+                contrast-multiplier: 1.2
+
+              # Classic code editor theme
+              monokai:
+                background-color: 70 8 15
+                primary-color: 338 95 56
+                positive-color: 80 76 53
+                negative-color: 338 95 56
+                contrast-multiplier: 1.3
+
+              # Soft pastel dark theme (Catppuccin Mocha)
+              catppuccin-mocha:
+                background-color: 240 21 15
+                primary-color: 267 84 81
+                positive-color: 115 54 76
+                negative-color: 343 81 75
+                contrast-multiplier: 1.2
+
+              # Warm retro theme
+              gruvbox-dark:
+                background-color: 0 0 16
+                primary-color: 43 95 58
+                positive-color: 61 66 44
+                negative-color: 5 96 59
+                contrast-multiplier: 1.2
+
+              # Ethan Schoonover's classic
+              solarized-dark:
+                background-color: 192 100 11
+                primary-color: 205 69 49
+                positive-color: 68 100 30
+                negative-color: 1 71 52
+                contrast-multiplier: 1.1
+
+              # VSCode-inspired Japanese theme
+              tokyo-night:
+                background-color: 235 21 13
+                primary-color: 218 87 73
+                positive-color: 85 56 61
+                negative-color: 348 86 70
+                contrast-multiplier: 1.2
+
+              # Neon futuristic theme
+              cyberpunk:
+                background-color: 240 33 8
+                primary-color: 300 100 50
+                positive-color: 158 100 50
+                negative-color: 340 100 50
+                contrast-multiplier: 1.4
+
+              # Original default dark theme
+              classic-dark:
+                background-color: 240 8 9
+                primary-color: 43 50 70
+                positive-color: 43 50 70
+                negative-color: 0 70 70
+                contrast-multiplier: 1.0
 
           pages:
             - name: Home
@@ -150,22 +499,22 @@
                           icon: si:proxmox
                           allow-insecure: true
                         - title: Traefik
-                          url: http://192.168.40.20:8080/api/overview
+                          url: http://192.168.40.20:8082/ping
                           icon: si:traefikproxy
                         - title: Jellyfin
                           url: http://192.168.40.11:8096/health
                           icon: si:jellyfin
                         - title: Radarr
-                          url: http://192.168.40.11:7878/api/v3/health
+                          url: http://192.168.40.11:7878/ping
                           icon: si:radarr
                         - title: Sonarr
-                          url: http://192.168.40.11:8989/api/v3/health
+                          url: http://192.168.40.11:8989/ping
                           icon: si:sonarr
                         - title: GitLab
-                          url: http://192.168.40.23/-/health
+                          url: https://gitlab.hrmsmrflrii.xyz/users/sign_in
                           icon: si:gitlab
                         - title: Immich
-                          url: http://192.168.40.22:2283/api/server-info/ping
+                          url: http://192.168.40.22:2283/api/server/ping
                           icon: di:immich
                         - title: Authentik
                           url: http://192.168.40.21:9000/-/health/ready/
@@ -343,8 +692,54 @@
                   widgets:
                     - type: iframe
                       title: Synology NAS Dashboard
-                      source: http://192.168.40.10:3030/d/synology-nas/synology-nas?orgId=1&kiosk&refresh=30s
+                      source: https://grafana.hrmsmrflrii.xyz/d/synology-nas/synology-nas?orgId=1&kiosk&refresh=30s
                       height: 800
+
+            - name: Containers
+              columns:
+                - size: full
+                  widgets:
+                    - type: iframe
+                      title: Container Monitoring
+                      source: https://grafana.hrmsmrflrii.xyz/d/container-monitoring/container-monitoring?orgId=1&kiosk&refresh=30s
+                      height: 800
+
+            - name: Reddit
+              columns:
+                - size: full
+                  widgets:
+                    - type: custom-api
+                      title: Reddit Feed
+                      cache: 5m
+                      url: http://192.168.40.10:5053/api/feed
+                      template: |
+                        <div style="margin-bottom: 15px; text-align: right;">
+                          <a href="http://192.168.40.10:5053" target="_blank" style="color: #ff4500; font-size: 12px; text-decoration: none; padding: 5px 10px; border: 1px solid #ff4500; border-radius: 6px;">
+                            ⚙ Settings
+                          </a>
+                        </div>
+                        {{ "{{" }} range .JSON.Array "groups" {{ "}}" }}
+                        <div style="margin-bottom: 20px;">
+                          <div style="color: #ff4500; font-size: 14px; font-weight: 600; margin-bottom: 10px; padding-bottom: 6px; border-bottom: 1px solid rgba(255,69,0,0.3);">
+                            r/{{ "{{" }} .String "name" {{ "}}" }}
+                          </div>
+                          {{ "{{" }} range .Array "posts" {{ "}}" }}
+                          <div style="display: flex; padding: 8px; margin-bottom: 6px; background: rgba(255,255,255,0.03); border-radius: 6px;">
+                            {{ "{{" }} if .String "thumbnail" {{ "}}" }}
+                            <img src="{{ "{{" }} .String "thumbnail" {{ "}}" }}" style="width: 60px; height: 60px; object-fit: cover; border-radius: 4px; margin-right: 10px; flex-shrink: 0;" onerror="this.style.display='none'">
+                            {{ "{{" }} end {{ "}}" }}
+                            <div style="flex: 1; min-width: 0;">
+                              <a href="{{ "{{" }} .String "url" {{ "}}" }}" target="_blank" style="color: #fff; text-decoration: none; font-size: 12px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;">
+                                {{ "{{" }} .String "title" {{ "}}" }}
+                              </a>
+                              <div style="color: #888; font-size: 10px; margin-top: 3px;">
+                                {{ "{{" }} .Int "score" {{ "}}" }} pts · {{ "{{" }} .Int "comments" {{ "}}" }} comments
+                              </div>
+                            </div>
+                          </div>
+                          {{ "{{" }} end {{ "}}" }}
+                        </div>
+                        {{ "{{" }} end {{ "}}" }}
         mode: '0644'
 
     - name: Create environment file for secrets
@@ -417,7 +812,24 @@
           - Tech News from Reddit
           - Synology NAS Monitoring (Storage page - embedded Grafana)
 
+          Theme Selection:
+          ---------------
+          Click the palette icon (top-right corner) to select themes:
+          - Catppuccin Mocha (Default) - Soft pastel dark
+          - Midnight Blue - Deep blue professional
+          - Nord - Arctic cool colors
+          - Dracula - Popular purple theme
+          - Monokai - Classic code editor
+          - Gruvbox Dark - Warm retro colors
+          - Solarized Dark - Ethan Schoonover's classic
+          - Tokyo Night - VSCode inspired
+          - Cyberpunk - Neon futuristic
+          - Classic Dark - Original minimal theme
+
+          Files:
+          ------
           Configuration: {{ glance_path }}/config/glance.yml
+          Custom CSS: {{ glance_path }}/assets/custom-themes.css
           Secrets: {{ glance_path }}/.env
 
           To customize, edit glance.yml and restart:

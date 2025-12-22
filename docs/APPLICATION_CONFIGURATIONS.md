@@ -22,6 +22,13 @@ This document provides detailed configuration guides for applications in the hom
   - [Glance Widget Configuration](#glance-widget-configuration)
   - [Customization](#life-progress-customization)
   - [Maintenance](#life-progress-maintenance)
+- [Glance Dashboard Theming](#glance-dashboard-theming)
+  - [Theme Overview](#theme-overview)
+  - [How Theming Works](#how-theming-works)
+  - [Using the Theme Picker](#using-the-theme-picker)
+  - [Custom CSS Enhancements](#custom-css-enhancements)
+  - [Adding a New Theme](#adding-a-new-theme)
+  - [Theme Design Reference](#theme-design-reference)
 
 ---
 
@@ -771,6 +778,148 @@ ssh hermes-admin@192.168.40.10 "sudo docker restart life-progress"
 ```bash
 curl http://192.168.40.10:5051/progress | jq
 ```
+
+---
+
+## Glance Dashboard Theming
+
+**Host**: docker-vm-utilities01 (192.168.40.10)
+**Configured**: December 22, 2025
+
+### Theme Overview
+
+Glance dashboard supports multiple color themes with a built-in theme picker. Users can switch between themes using the palette icon in the top-right corner of the dashboard.
+
+**Available Themes**:
+
+| Theme | Description | Primary Color |
+|-------|-------------|---------------|
+| Catppuccin Mocha | Soft pastel dark theme (default) | Purple/Pink |
+| Midnight Blue | Deep blue professional | Blue |
+| Nord | Arctic, cool blue-gray palette | Cyan |
+| Dracula | Popular purple-based dark theme | Purple |
+| Monokai | Classic code editor theme | Pink/Magenta |
+| Gruvbox Dark | Warm retro theme | Yellow/Orange |
+| Solarized Dark | Ethan Schoonover's classic | Blue |
+| Tokyo Night | VSCode-inspired Japanese theme | Blue/Purple |
+| Cyberpunk | Neon futuristic theme | Magenta/Neon |
+| Classic Dark | Original minimal dark theme | Gold |
+
+### How Theming Works
+
+Glance uses HSL (Hue, Saturation, Lightness) color format for theme definitions:
+
+```yaml
+theme:
+  background-color: 240 21 15      # HSL values: Hue Saturation Lightness
+  primary-color: 267 84 81         # Purple accent
+  positive-color: 115 54 76        # Green for success states
+  negative-color: 343 81 75        # Red for error states
+  contrast-multiplier: 1.2         # Text contrast adjustment
+```
+
+**Theme Properties Explained**:
+
+| Property | Purpose | Format |
+|----------|---------|--------|
+| `background-color` | Page and widget background | H S L (space-separated) |
+| `primary-color` | Main accent color | H S L |
+| `positive-color` | Online/success status indicators | H S L |
+| `negative-color` | Error/offline status indicators | H S L |
+| `contrast-multiplier` | Text visibility adjustment (1.0-1.5) | Decimal |
+
+### Using the Theme Picker
+
+1. **Access**: Click the palette icon (🎨) in the top-right corner of any Glance page
+2. **Select**: Click on any theme swatch to apply it instantly
+3. **Persist**: Theme selection is stored in browser localStorage and persists across sessions
+
+### Custom CSS Enhancements
+
+Additional styling is provided via `/opt/glance/assets/custom-themes.css`:
+
+**Features**:
+- Smooth color transitions when switching themes (0.3s ease)
+- Rounded widget corners (12px border-radius)
+- Subtle hover effects on widgets
+- Glassmorphism effects (backdrop-filter: blur)
+- Fade-in animations for widgets
+- Custom scrollbar styling
+- Enhanced theme picker dropdown styling
+
+### Configuration Files
+
+| File | Purpose |
+|------|---------|
+| `/opt/glance/config/glance.yml` | Theme presets and widget configuration |
+| `/opt/glance/assets/custom-themes.css` | Additional CSS styling |
+
+### Adding a New Theme
+
+To add a custom theme preset, edit `/opt/glance/config/glance.yml`:
+
+```yaml
+theme:
+  presets:
+    your-theme-name:
+      background-color: H S L    # Background color in HSL
+      primary-color: H S L       # Accent color
+      positive-color: H S L      # Success/online color
+      negative-color: H S L      # Error/offline color
+      contrast-multiplier: 1.2   # Text contrast (1.0-1.5)
+```
+
+**Converting Colors to HSL**:
+
+1. Use a tool like [HSL Color Picker](https://hslpicker.com/)
+2. Enter your hex color (e.g., `#282a36`)
+3. Note the HSL values (e.g., `231° 15% 18%`)
+4. Format as space-separated: `231 15 18`
+
+**Example - Creating "Ocean" Theme**:
+
+```yaml
+ocean:
+  background-color: 200 50 10    # Deep ocean blue
+  primary-color: 180 80 50      # Teal accent
+  positive-color: 140 60 45     # Sea green
+  negative-color: 0 70 60       # Coral red
+  contrast-multiplier: 1.2
+```
+
+After editing, restart Glance:
+
+```bash
+ssh hermes-admin@192.168.40.10 "cd /opt/glance && sudo docker compose restart"
+```
+
+### Theme Design Reference
+
+**Popular Theme Color Sources**:
+
+| Theme | Source/Inspiration |
+|-------|-------------------|
+| Nord | [nordtheme.com](https://www.nordtheme.com/) |
+| Dracula | [draculatheme.com](https://draculatheme.com/) |
+| Catppuccin | [catppuccin.com](https://catppuccin.com/) |
+| Gruvbox | [github.com/morhetz/gruvbox](https://github.com/morhetz/gruvbox) |
+| Solarized | [ethanschoonover.com/solarized](https://ethanschoonover.com/solarized/) |
+| Tokyo Night | [github.com/enkia/tokyo-night-vscode-theme](https://github.com/enkia/tokyo-night-vscode-theme) |
+
+### Deployment via Ansible
+
+The themes are deployed using the Glance Ansible playbook:
+
+```bash
+cd ~/ansible
+ansible-playbook glance/deploy-glance-dashboard.yml
+```
+
+This playbook:
+1. Creates the config directory structure
+2. Deploys `custom-themes.css` to the assets folder
+3. Deploys `glance.yml` with all theme presets
+4. Restarts the Glance container
 
 ---
 
