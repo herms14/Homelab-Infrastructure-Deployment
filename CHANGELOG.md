@@ -9,12 +9,40 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 - Updated `.claude/settings.local.json`
-- Updated README.md, claude.md, main.tf
-- Modified nul file
 
-### Added
-- ARR_STACK_DEPLOYMENT.md documentation
-- Ansible playbooks for Authentik, Docker, Immich, and Synology NFS
+## [2025-12-23] - Glance Dashboard Home Page Configuration
+
+### Added - Glance Home Page
+- **Comprehensive Home page layout** with 3-column structure:
+  - Left column: Clock, Weather, Calendar, Infrastructure & Services bookmarks
+  - Center column: Life Progress, GitHub Contributions, service health monitors
+  - Right column: Crypto/Stock markets, Tech News RSS
+- **Service health monitoring** for:
+  - Proxmox Cluster (Node 01-03)
+  - Storage (Synology NAS on VLAN 10 & 20)
+  - Core Services (Traefik, Authentik, GitLab, Immich, n8n, Paperless)
+  - Media Services (Jellyfin, Arr stack, Deluge, SABnzbd)
+  - Monitoring Stack (Uptime Kuma, Prometheus, Grafana, Jaeger, Glance, Speedtest)
+  - Kubernetes Control Plane (API server port 6443)
+  - Kubernetes Workers (kubelet port 10248)
+- **GitHub Contribution Graph** with green theme and dark mode support
+- **Home page preservation guidelines** - layout is finalized, changes require explicit permission
+
+### Added - Documentation
+- `docs/GLANCE.md` - Comprehensive Glance dashboard documentation with:
+  - Media Stats API architecture and code
+  - Home page widget configuration reference
+  - Health check endpoint documentation
+  - Deployment instructions
+- `temp-home-fix.py` - Home page configuration management script
+- Updated `CLAUDE.md` with Home page structure and preservation warning
+- Updated wiki `Glance-Dashboard.md` with Home page configuration
+- Updated Obsidian `23 - Glance Dashboard.md` with complete widget reference
+
+### Added - Media Stats API
+- `ansible-playbooks/glance/media-stats-api.py` - API aggregator for Radarr/Sonarr stats
+- `ansible-playbooks/glance/deploy-media-stats-api.yml` - Deployment playbook
+- 3x2 colored tile grid layout (Pi-hole style) for media statistics
 
 ## [2025-12-19] - Service Infrastructure Expansion
 
@@ -297,14 +325,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Version History Summary
 
+- **2025-12-23**: Glance Dashboard Home page configuration and documentation
 - **2025-12-19**: Service infrastructure expansion (Traefik, GitLab, Authentik, Arr Stack)
 - **2025-12-16**: Kubernetes infrastructure (9-node HA cluster) and educational documentation
 - **2025-12-15**: Cloud-init boot fix (UEFI/BIOS) and initial VM deployment
 - **2025-12-14**: Node03 integration, VLAN configuration, and NFS storage architecture
 - **2025-12-14**: Initial repository setup with Terraform modules and documentation
 
-[Unreleased]: https://github.com/yourusername/tf-proxmox/compare/v2025-12-19...HEAD
-[2025-12-19]: https://github.com/yourusername/tf-proxmox/compare/v2025-12-16...v2025-12-19
+[Unreleased]: https://github.com/herms14/Proxmox-TerraformDeployments/compare/v2025-12-23...HEAD
+[2025-12-23]: https://github.com/herms14/Proxmox-TerraformDeployments/compare/v2025-12-19...v2025-12-23
+[2025-12-19]: https://github.com/herms14/Proxmox-TerraformDeployments/compare/v2025-12-16...v2025-12-19
 [2025-12-16]: https://github.com/yourusername/tf-proxmox/compare/v2025-12-15...v2025-12-16
 [2025-12-15]: https://github.com/yourusername/tf-proxmox/compare/v2025-12-14...v2025-12-15
 [2025-12-14]: https://github.com/yourusername/tf-proxmox/releases/tag/v2025-12-14
