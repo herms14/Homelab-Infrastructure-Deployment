@@ -16,6 +16,7 @@ Terraform infrastructure-as-code for deploying VMs and LXC containers on a Proxm
 | **Inventory** | [docs/INVENTORY.md](./docs/INVENTORY.md) - Deployed infrastructure |
 | **Observability** | [docs/OBSERVABILITY.md](./docs/OBSERVABILITY.md) - Tracing, metrics |
 | **Watchtower** | [docs/WATCHTOWER.md](./docs/WATCHTOWER.md) - Interactive container updates |
+| **Glance** | [docs/GLANCE.md](./docs/GLANCE.md) - Dashboard, Media Stats widget |
 | **CI/CD** | [docs/CICD.md](./docs/CICD.md) - Automated service onboarding |
 | **Service Onboarding** | [docs/SERVICE_ONBOARDING.md](./docs/SERVICE_ONBOARDING.md) - Automated status checker |
 | **Troubleshooting** | [docs/TROUBLESHOOTING.md](./docs/TROUBLESHOOTING.md) - Common issues |
@@ -346,6 +347,40 @@ Obsidian vault syncs automatically via OneDrive. No manual push needed.
 - **SSH**: Public key only, password auth disabled
 - **LXC**: Unprivileged by default
 - **Network**: VLAN segmentation
+
+## Glance Dashboard - Home Page Configuration
+
+**IMPORTANT: DO NOT modify the Glance Home page layout without explicit user permission.**
+
+The Home page has been carefully configured with the following structure and should be preserved:
+
+### Left Column (Small)
+- Clock (24h, Asia/Manila)
+- Weather (Manila, metric)
+- Calendar
+- Infrastructure Bookmarks (Authentik, Omada, Proxmox, Traefik, OPNsense, Portainer, Synology NAS)
+- Services Bookmarks (Media, Downloads, Productivity, Monitoring)
+
+### Center Column (Full)
+- Life Progress Widget (custom-api, port 5051)
+- GitHub Contributions (green theme, dark mode)
+- Proxmox Cluster Monitor (Node 01, 02, 03)
+- Storage Monitor (Synology NAS VLAN 10 & 20)
+- Core Services Monitor (Traefik, Authentik, GitLab, Immich, n8n, Paperless)
+- Media Services Monitor (Jellyfin, Radarr, Sonarr, Lidarr, Prowlarr, Bazarr, Jellyseerr, Tdarr, Deluge, SABnzbd)
+- Monitoring Stack Monitor (Uptime Kuma, Prometheus, Grafana, Jaeger, Glance, Speedtest)
+- Kubernetes Control Plane Monitor (Controllers 1-3 via API port 6443)
+- Kubernetes Workers Monitor (Workers 1-6 via kubelet port 10248)
+
+### Right Column (Small)
+- Crypto Markets (BTC, ETH, XRP, BNB, ADA)
+- Stock Markets (MSFT, AAPL, ORCL, NVDA, GOOGL, TSLA, NFLX, AMZN)
+- Tech News RSS (r/homelab, r/selfhosted)
+
+### Configuration Script
+The Home page is managed via `temp-home-fix.py`. Any changes should be documented and require user approval.
+
+See [docs/GLANCE.md](./docs/GLANCE.md) for full dashboard documentation.
 
 ## Notes
 
