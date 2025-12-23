@@ -252,6 +252,60 @@ Three Discord bots manage different aspects of the homelab:
 
 See [docs/SERVICE_ONBOARDING.md](./docs/SERVICE_ONBOARDING.md) for complete onboarding checklist.
 
+## Documentation Update Protocol
+
+**IMPORTANT: When the user says "update documentation", you MUST update ALL of the following:**
+
+### Mandatory Updates
+
+1. **Obsidian Vault** (`C:\Users\herms\OneDrive\Obsidian Vault\Hermes's Life Knowledge Base\07 HomeLab Things\Claude Managed Homelab\`)
+   - Update relevant numbered markdown files
+   - Include callout warnings where appropriate
+   - Add to 00 - Homelab Index.md if new feature
+
+2. **CHANGELOG.md** (Repository root)
+   - Add entry under current date or [Unreleased]
+   - Follow Keep a Changelog format
+   - Update Version History Summary section
+
+3. **GitHub Wiki** (`Proxmox-TerraformDeployments.wiki/`)
+   - Update relevant wiki pages
+   - Update `_Sidebar.md` if new page added
+   - Beginner-friendly explanations
+
+4. **CLAUDE.md** (Repository root)
+   - Update Quick Reference table if new service
+   - Update Service URLs if new endpoint
+   - Add preservation notes if layout is finalized
+
+5. **docs/ folder** - Update relevant documentation:
+   - `SERVICES.md` - New services, ports, URLs
+   - `APPLICATION_CONFIGURATIONS.md` - Detailed setup guides
+   - `SERVICE_ONBOARDING.md` - If onboarding workflow changes
+   - `TROUBLESHOOTING.md` - Any issues encountered and fixes
+   - Service-specific docs (GLANCE.md, OBSERVABILITY.md, etc.)
+
+### Documentation Content Requirements
+
+Each documentation update MUST include:
+
+1. **Code Configuration** - All code with inline comments explaining each section
+2. **Architecture Diagrams** - ASCII diagrams showing component relationships
+3. **Decision Explanations** - Why certain approaches were chosen
+4. **Troubleshooting Steps** - Common issues encountered and their fixes
+5. **Health Check Endpoints** - URLs and expected responses
+6. **Deployment Commands** - Copy-paste ready commands
+7. **File Locations** - Where configs and scripts are stored
+
+### Commit Requirements
+
+After updating documentation:
+1. Stage all changed files
+2. Commit with descriptive message
+3. Push to GitHub (both main repo and wiki if applicable)
+
+---
+
 ## Documentation Sync Guide
 
 Documentation is maintained in **three locations** that must stay synchronized:
