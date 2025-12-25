@@ -1,7 +1,7 @@
 ---
 # Deploy Karakeep - Bookmark Manager (formerly Hoarder)
 # Host: docker-vm-utilities01 (192.168.40.10)
-# Port: 3001 (changed from 3000 to avoid conflicts)
+# Port: 3005 (avoiding 3000=Speedtest, 3001=Uptime Kuma)
 # URL: https://karakeep.hrmsmrflrii.xyz
 
 - name: Deploy Karakeep Bookmark Manager
@@ -9,7 +9,7 @@
   become: yes
   vars:
     service_name: karakeep
-    service_port: 3001
+    service_port: 3005
     install_dir: /opt/karakeep
     nextauth_secret: "{{ lookup('password', '/dev/null length=32 chars=ascii_letters,digits') }}"
     meili_master_key: "{{ lookup('password', '/dev/null length=32 chars=ascii_letters,digits') }}"

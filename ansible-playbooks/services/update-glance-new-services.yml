@@ -33,12 +33,6 @@
                   'url': 'https://karakeep.hrmsmrflrii.xyz',
                   'icon': 'si:bookstack',  # Bookmark icon
                   'description': 'Bookmark Manager'
-              },
-              {
-                  'title': 'Feeds Fun',
-                  'url': 'https://feeds.hrmsmrflrii.xyz',
-                  'icon': 'si:rss',  # RSS icon
-                  'description': 'AI RSS Reader'
               }
           ]
 
@@ -82,11 +76,6 @@
                   'title': 'Wizarr',
                   'url': 'https://wizarr.hrmsmrflrii.xyz',
                   'icon': 'si:jellyfin'
-              },
-              {
-                  'title': 'Feeds Fun',
-                  'url': 'https://feeds.hrmsmrflrii.xyz',
-                  'icon': 'si:rss'
               },
               {
                   'title': 'Tracearr',
@@ -163,5 +152,4 @@
           - Lagident (Photos group)
           - Karakeep (Productivity)
           - Wizarr (Media)
-          - Feeds Fun (Productivity)
           - Tracearr (Media)

@@ -43,15 +43,6 @@
                 tls:
                   certResolver: letsencrypt
 
-              # Feeds Fun - RSS Reader
-              feedsfun:
-                rule: "Host(`feeds.hrmsmrflrii.xyz`)"
-                entryPoints:
-                  - websecure
-                service: feedsfun
-                tls:
-                  certResolver: letsencrypt
-
               # Tracearr - Media Tracking
               tracearr:
                 rule: "Host(`tracearr.hrmsmrflrii.xyz`)"
@@ -70,17 +61,12 @@
               karakeep:
                 loadBalancer:
                   servers:
-                    - url: "http://{{ utilities_host }}:3001"
+                    - url: "http://{{ utilities_host }}:3005"
 
               wizarr:
                 loadBalancer:
                   servers:
                     - url: "http://{{ utilities_host }}:5690"
-
-              feedsfun:
-                loadBalancer:
-                  servers:
-                    - url: "http://{{ utilities_host }}:8001"
 
               tracearr:
                 loadBalancer:
@@ -102,7 +88,6 @@
           Traefik routes configured!
           New services:
           - https://lagident.hrmsmrflrii.xyz -> {{ utilities_host }}:9933
-          - https://karakeep.hrmsmrflrii.xyz -> {{ utilities_host }}:3001
+          - https://karakeep.hrmsmrflrii.xyz -> {{ utilities_host }}:3005
           - https://wizarr.hrmsmrflrii.xyz -> {{ utilities_host }}:5690
-          - https://feeds.hrmsmrflrii.xyz -> {{ utilities_host }}:8001
           - https://tracearr.hrmsmrflrii.xyz -> {{ utilities_host }}:3002
