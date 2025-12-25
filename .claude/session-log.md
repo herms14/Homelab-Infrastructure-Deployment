@@ -5,6 +5,74 @@
 
 ---
 
+## 2025-12-26
+
+### 10:30 - Tailscale Subnet Router Configuration
+**Status**: Completed
+**Request**: Configure Tailscale for remote access to all VMs and containers from MacBook
+
+**Configuration Completed**:
+1. **node01 as Subnet Router**:
+   - Enabled IP forwarding (`/etc/sysctl.d/99-tailscale.conf`)
+   - Advertised routes: `192.168.20.0/24`, `192.168.40.0/24`, `192.168.91.0/24`
+   - Command: `tailscale up --advertise-routes=192.168.20.0/24,192.168.40.0/24,192.168.91.0/24 --accept-routes`
+
+2. **Split DNS Configuration**:
+   - Nameserver: `192.168.91.30` (OPNsense Unbound)
+   - Restricted to domain: `hrmsmrflrii.xyz`
+   - Configured in Tailscale Admin Console → DNS tab
+
+3. **macOS Client Setup**:
+   - CLI path: `/Applications/Tailscale.app/Contents/MacOS/Tailscale`
+   - Accept routes: `tailscale up --accept-routes`
+
+**What Works Remotely**:
+- SSH to any VM/container via local IP (e.g., `ssh 192.168.40.10`)
+- Web services via domain (e.g., `https://grafana.hrmsmrflrii.xyz`)
+- Proxmox Web UI via local or Tailscale IP
+- DNS resolution for `*.hrmsmrflrii.xyz`
+
+**Files Modified**:
+- `docs/NETWORKING.md` - Complete rewrite of Remote Access section with architecture diagram
+
+---
+
+### 11:00 - Comprehensive Omada Network Dashboard
+**Status**: Ready for Deployment (Network Unreachable)
+**Request**: Complete Omada Network dashboard with device health, WiFi signal, switch ports, PoE, and traffic panels
+
+**Dashboard Panels** (in `temp-omada-full-dashboard.json`):
+1. **Overview**: Total/Wired/Wireless clients, Controller uptime, Storage, Upgrade status, WiFi mode pie
+2. **Device Health**: Gateway CPU/Memory gauges, Switch/AP CPU bar gauges, Device uptimes
+3. **WiFi Signal Quality**: Client RSSI and SNR bar gauges (top 15), Signal over time chart
+4. **Switch Port Status**: Port link status (UP/DOWN), Link speeds, Port RX/TX traffic
+5. **PoE Power**: Total power gauge, Remaining power, Per-port power bar gauge
+6. **Traffic Analysis**: Client trend, Top 10 clients, Device download/upload, TX/RX rates
+7. **Client Details**: Full client table (Client, IP, MAC, VLAN, Port, Mode, SSID, AP, Vendor, WiFi, Activity)
+
+**Files Created**:
+- `ansible-playbooks/monitoring/deploy-omada-full-dashboard.yml` - Deploys comprehensive dashboard
+- `ansible-playbooks/monitoring/update-glance-network-tab.yml` - Updates Glance Network tab
+
+**Documentation Updated**:
+- `docs/OMADA_NETWORK_DASHBOARD.md` - Added layout diagram, new playbooks, updated instructions
+
+**Deployment Commands** (when network available):
+```bash
+ssh hermes-admin@192.168.20.30
+export GRAFANA_API_KEY='your_key'
+cd ~/ansible
+ansible-playbook monitoring/deploy-omada-full-dashboard.yml
+ansible-playbook monitoring/update-glance-network-tab.yml
+```
+
+**Configuration**:
+- Grafana UID: `omada-network`
+- Glance iframe height: 1900px
+- Omada exporter: `192.168.20.30:9202`
+
+---
+
 ## 2025-12-25
 
 ### 15:30 - New Services Deployment & Documentation Update

@@ -1,0 +1,83 @@
+---
+# Ansible playbook to deploy Omada Prometheus Exporter
+# Exporter: charlie-haley/omada_exporter
+# Port: 9202
+#
+# Prerequisites:
+#   1. Create a viewer-role user in Omada Controller named 'claude-reader'
+#   2. Set OMADA_PASSWORD environment variable or update vars below
+#
+# Usage:
+#   ansible-playbook ansible-playbooks/monitoring/deploy-omada-exporter.yml
+
+- name: Deploy Omada Prometheus Exporter
+  hosts: docker-vm-utilities01
+  become: yes
+  vars:
+    app_path: /opt/omada-exporter
+    app_port: 9202
+    omada_host: "https://192.168.0.103"
+    omada_user: "claude-reader"
+    # Password should be set via environment variable for security
+    omada_password: "{{ lookup('env', 'OMADA_PASSWORD') | default('CHANGE_ME', true) }}"
+    omada_site: "Default"
+
+  tasks:
+    - name: Create application directory
+      file:
+        path: "{{ app_path }}"
+        state: directory
+        mode: '0755'
+
+    - name: Create Docker Compose file
+      copy:
+        dest: "{{ app_path }}/docker-compose.yml"
+        content: |
+          services:
+            omada-exporter:
+              image: ghcr.io/charlie-haley/omada_exporter:latest
+              container_name: omada-exporter
+              restart: unless-stopped
+              ports:
+                - "{{ app_port }}:9202"
+              environment:
+                OMADA_HOST: "{{ omada_host }}"
+                OMADA_USER: "{{ omada_user }}"
+                OMADA_PASS: "{{ omada_password }}"
+                OMADA_SITE: "{{ omada_site }}"
+                OMADA_INSECURE: "true"
+                LOG_LEVEL: "warn"
+              healthcheck:
+                test: ["CMD", "wget", "--spider", "-q", "http://localhost:9202/metrics"]
+                interval: 30s
+                timeout: 10s
+                retries: 3
+        mode: '0644'
+
+    - name: Pull and deploy Omada exporter container
+      community.docker.docker_compose_v2:
+        project_src: "{{ app_path }}"
+        state: present
+        pull: always
+
+    - name: Wait for exporter to be ready
+      uri:
+        url: "http://localhost:{{ app_port }}/metrics"
+        status_code: [200]
+      register: exporter_status
+      until: exporter_status.status == 200
+      retries: 30
+      delay: 2
+
+    - name: Display success message
+      debug:
+        msg: |
+          Omada Exporter deployed successfully!
+
+          Metrics endpoint: http://192.168.40.10:{{ app_port }}/metrics
+
+          Add this scrape config to Prometheus:
+
+            - job_name: 'omada'
+              static_configs:
+                - targets: ['192.168.40.10:{{ app_port }}']

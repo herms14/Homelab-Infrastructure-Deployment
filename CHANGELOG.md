@@ -7,6 +7,42 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added - Comprehensive Omada Network Dashboard (December 26, 2025)
+- **Dashboard JSON**: `temp-omada-full-dashboard.json` with 7 row sections and 28 panels
+- **Sections**:
+  - **Overview**: Total/Wired/Wireless clients, Controller uptime/storage/upgrades, WiFi mode distribution
+  - **Device Health**: Gateway CPU/Memory gauges, Switch/AP CPU bar gauges, Device uptimes
+  - **WiFi Signal Quality**: Client RSSI (-100 to -20 dBm), SNR (0-60 dB), Signal over time
+  - **Switch Port Status**: Port link status (UP/DOWN), Link speeds (Mbps), RX/TX traffic
+  - **PoE Power Usage**: Total power gauge, Remaining power, Per-port power consumption
+  - **Traffic Analysis**: Client trends, Top 10 clients by traffic, Device download/upload rates
+  - **Client Details**: Full table with Client, IP, MAC, VLAN, Port, Mode, SSID, AP, Vendor, WiFi, Activity
+- **Ansible Playbooks**:
+  - `deploy-omada-full-dashboard.yml` - Deploys comprehensive dashboard from JSON
+  - `update-glance-network-tab.yml` - Updates Glance Network tab with 1900px iframe
+- **Configuration**: UID `omada-network`, iframe height 1900px, Omada exporter at 192.168.20.30:9202
+- **Documentation**: Updated `docs/OMADA_NETWORK_DASHBOARD.md` with layout diagram
+
+### Added - Tailscale Subnet Router for Remote Access (December 26, 2025)
+- **node01 configured as Tailscale subnet router** for full homelab remote access
+- **Advertised subnets**:
+  - `192.168.20.0/24` - Infrastructure VLAN (Proxmox nodes, Ansible, K8s)
+  - `192.168.40.0/24` - Services VLAN (Docker hosts, applications)
+  - `192.168.91.0/24` - Firewall VLAN (OPNsense DNS at 192.168.91.30)
+- **IP forwarding enabled** on node01 (`/etc/sysctl.d/99-tailscale.conf`)
+- **Split DNS configured** in Tailscale Admin Console:
+  - Nameserver: `192.168.91.30` (OPNsense Unbound)
+  - Restricted to domain: `hrmsmrflrii.xyz`
+- **What works remotely via Tailscale**:
+  - SSH to any VM/container using local IPs (e.g., `ssh 192.168.40.10`)
+  - Web services via domain names (e.g., `https://grafana.hrmsmrflrii.xyz`)
+  - Proxmox Web UI via local or Tailscale IP
+  - Full DNS resolution for `*.hrmsmrflrii.xyz`
+- **macOS client configuration**:
+  - CLI path: `/Applications/Tailscale.app/Contents/MacOS/Tailscale`
+  - Accept routes: `tailscale up --accept-routes`
+- Documentation: Updated `docs/NETWORKING.md` with complete subnet router architecture
+
 ### Fixed - Jellyfin SSO Redirect URI Error (December 25, 2025)
 - **Issue**: "Redirect URI Error" when clicking "Sign in with Authentik" on Jellyfin
 - **Root Cause**: Authentik provider had ForwardAuth redirect URIs (`/outpost.goauthentik.io/callback`) instead of SSO-Auth plugin URIs (`/sso/OID/redirect/authentik`)

@@ -1,0 +1,54 @@
+---
+# Ansible playbook to deploy Comprehensive Omada Network Dashboard
+# Dashboard UID: omada-network
+#
+# This deploys the FULL dashboard with all panels:
+#   - Device Health (CPU/Memory for Gateway, Switches, APs)
+#   - WiFi Signal Quality (RSSI, SNR)
+#   - Switch Port Status (Link status, speeds, traffic)
+#   - PoE Power Usage (Total, per-port)
+#   - Traffic Analysis (Client trends, top clients, TX/RX rates)
+#   - Client Details (Full client table)
+#
+# Prerequisites:
+#   1. Omada exporter running on 192.168.20.30:9202
+#   2. Prometheus scraping the exporter
+#   3. Grafana API key
+#
+# Usage:
+#   export GRAFANA_API_KEY='your_api_key'
+#   ansible-playbook ansible-playbooks/monitoring/deploy-omada-full-dashboard.yml
+
+- name: Deploy Comprehensive Omada Network Dashboard to Grafana
+  hosts: localhost
+  gather_facts: false
+  vars:
+    grafana_url: "http://192.168.40.10:3030"
+    grafana_api_key: "{{ lookup('env', 'GRAFANA_API_KEY') }}"
+    dashboard_file: "../../temp-omada-full-dashboard.json"
+
+  tasks:
+    - name: Read dashboard JSON from file
+      set_fact:
+        dashboard_json: "{{ lookup('file', dashboard_file) | from_json }}"
+
+    - name: Deploy dashboard to Grafana
+      uri:
+        url: "{{ grafana_url }}/api/dashboards/db"
+        method: POST
+        headers:
+          Authorization: "Bearer {{ grafana_api_key }}"
+          Content-Type: "application/json"
+        body: "{{ dashboard_json | to_json }}"
+        body_format: json
+        status_code: 200
+        validate_certs: false
+      register: deploy_result
+
+    - name: Display deployment result
+      debug:
+        msg: |
+          Dashboard deployed successfully!
+          UID: omada-network
+          Version: {{ deploy_result.json.version }}
+          URL: https://grafana.hrmsmrflrii.xyz/d/omada-network/omada-network-overview?orgId=1&kiosk&theme=transparent&refresh=30s
