@@ -8,45 +8,46 @@
 ## 2025-12-25
 
 ### 23:45 - New Services Batch Deployment
-**Status**: Playbooks Ready (deployment pending network access)
+**Status**: Completed (4 of 8 deployed)
 **Request**: Deploy 8 services: Lagident, Simple Photo Gallery, Stonks Dashboard, Karakeep, Wizarr, Feeds Fun, Tracearr, Personal Management System
 
-**Services Deployed** (5 of 8):
+**Services Deployed** (4 of 8):
 | Service | Port | URL | Purpose |
 |---------|------|-----|---------|
-| Lagident | 9933 | https://lagident.hrmsmrflrii.xyz | Simple photo gallery |
-| Karakeep | 3001 | https://karakeep.hrmsmrflrii.xyz | AI bookmark manager |
+| Lagident | 9933 | https://lagident.hrmsmrflrii.xyz | Photo gallery |
+| Karakeep | 3005 | https://karakeep.hrmsmrflrii.xyz | AI bookmark manager |
 | Wizarr | 5690 | https://wizarr.hrmsmrflrii.xyz | Jellyfin invitations |
-| Feeds Fun | 8001 | https://feeds.hrmsmrflrii.xyz | AI RSS reader |
 | Tracearr | 3002 | https://tracearr.hrmsmrflrii.xyz | Media tracking |
 
-**Services Skipped** (3 - not suitable):
+**Services Skipped** (4 - not suitable):
 - Simple Photo Gallery: Static site generator, not a service
 - Stonks Dashboard: No official Docker support
 - Personal Management System: Requires separate frontend repo
+- Feeds Fun: No public Docker image (requires building from source)
 
 **Files Created**:
 - `ansible-playbooks/services/deploy-lagident.yml`
 - `ansible-playbooks/services/deploy-karakeep.yml`
 - `ansible-playbooks/services/deploy-wizarr.yml`
-- `ansible-playbooks/services/deploy-feedsfun.yml`
+- `ansible-playbooks/services/deploy-feedsfun.yml` (unused - no public image)
 - `ansible-playbooks/services/deploy-tracearr.yml`
 - `ansible-playbooks/services/deploy-all-new-services.yml` (master)
 - `ansible-playbooks/services/traefik-new-services.yml`
 - `ansible-playbooks/services/update-glance-new-services.yml`
 - `ansible-playbooks/services/configure-dns-new-services.yml`
 
-**Deployment Instructions**:
-```bash
-# From Ansible controller
-cd ~/ansible
-ansible-playbook ansible-playbooks/services/deploy-all-new-services.yml
-```
+**Deployment Completed**:
+- All 4 services deployed to docker-vm-utilities01
+- Traefik routes configured in `/opt/traefik/config/dynamic/new-services.yml`
+- Glance Home page updated with new service bookmarks
 
-**Post-Deployment Tasks**:
-1. Add DNS entries in OPNsense for all new hostnames
-2. Configure Wizarr with Jellyfin API key
-3. Update Glance Home page with new services
+**Pending Manual Tasks**:
+1. Add DNS entries in OPNsense (VLAN 91 not accessible via SSH):
+   - lagident.hrmsmrflrii.xyz → 192.168.40.20
+   - karakeep.hrmsmrflrii.xyz → 192.168.40.20
+   - wizarr.hrmsmrflrii.xyz → 192.168.40.20
+   - tracearr.hrmsmrflrii.xyz → 192.168.40.20
+2. Configure Wizarr with Jellyfin API key (http://192.168.40.11:8096)
 
 ---
 
