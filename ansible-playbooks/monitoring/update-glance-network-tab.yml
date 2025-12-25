@@ -1,0 +1,83 @@
+---
+# Ansible playbook to update Glance Network tab with comprehensive Omada dashboard
+#
+# Updates:
+#   - Replaces existing Network tab iframe with new dashboard
+#   - Sets iframe height to 1900px (comprehensive dashboard is tall)
+#
+# Usage:
+#   ansible-playbook ansible-playbooks/monitoring/update-glance-network-tab.yml
+
+- name: Update Glance Network Tab with Omada Dashboard
+  hosts: docker-vm-utilities01
+  become: true
+  vars:
+    glance_config_path: /opt/glance/config/glance.yml
+    dashboard_url: "https://grafana.hrmsmrflrii.xyz/d/omada-network/omada-network-overview?orgId=1&kiosk&theme=transparent&refresh=30s&from=now-1h&to=now"
+    iframe_height: 1900
+
+  tasks:
+    - name: Backup current Glance config
+      copy:
+        src: "{{ glance_config_path }}"
+        dest: "{{ glance_config_path }}.bak.{{ ansible_date_time.epoch }}"
+        remote_src: yes
+
+    - name: Read current Glance config
+      slurp:
+        src: "{{ glance_config_path }}"
+      register: glance_config_raw
+
+    - name: Parse Glance config
+      set_fact:
+        glance_config: "{{ glance_config_raw.content | b64decode | from_yaml }}"
+
+    - name: Find Network page index
+      set_fact:
+        network_page_index: "{{ idx }}"
+      loop: "{{ glance_config.pages | default([]) }}"
+      loop_control:
+        index_var: idx
+      when: item.name == "Network"
+
+    - name: Update Network page with comprehensive dashboard
+      set_fact:
+        updated_pages: >-
+          {{
+            glance_config.pages[:network_page_index | int] +
+            [{
+              'name': 'Network',
+              'columns': [
+                {
+                  'size': 'full',
+                  'widgets': [
+                    {
+                      'type': 'iframe',
+                      'url': dashboard_url,
+                      'height': iframe_height
+                    }
+                  ]
+                }
+              ]
+            }] +
+            glance_config.pages[network_page_index | int + 1:]
+          }}
+      when: network_page_index is defined
+
+    - name: Update Glance config
+      set_fact:
+        updated_config: "{{ glance_config | combine({'pages': updated_pages}) }}"
+      when: updated_pages is defined
+
+    - name: Write updated Glance config
+      copy:
+        content: "{{ updated_config | to_nice_yaml(indent=2) }}"
+        dest: "{{ glance_config_path }}"
+      when: updated_config is defined
+      notify: Restart Glance
+
+  handlers:
+    - name: Restart Glance
+      community.docker.docker_compose_v2:
+        project_src: /opt/glance
+        state: restarted

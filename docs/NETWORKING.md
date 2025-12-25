@@ -306,50 +306,157 @@ All `*.hrmsmrflrii.xyz` subdomains resolve to `192.168.40.20` (Traefik)
 
 ## Remote Access (Tailscale)
 
-Tailscale provides secure remote access to the homelab from outside the local network. All Proxmox nodes have Tailscale installed.
+Tailscale provides secure remote access to the homelab from outside the local network. All Proxmox nodes have Tailscale installed, with node01 configured as a **subnet router** to enable access to all VMs and containers.
+
+### Architecture
+
+```
+┌─────────────────────────────────────────────────────────────────────┐
+│                         Tailscale Network                            │
+│                                                                      │
+│   ┌──────────────┐         ┌──────────────┐         ┌─────────────┐ │
+│   │   MacBook    │◄───────►│   node01     │◄───────►│   node02    │ │
+│   │ 100.90.207.58│  WireGuard│ 100.89.33.5 │         │100.96.195.27│ │
+│   └──────────────┘         │ SUBNET ROUTER│         └─────────────┘ │
+│                            └──────┬───────┘                         │
+│                                   │                                  │
+└───────────────────────────────────┼──────────────────────────────────┘
+                                    │ Advertises Routes
+                    ┌───────────────┼───────────────┐
+                    │               │               │
+                    ▼               ▼               ▼
+            ┌───────────┐   ┌───────────┐   ┌───────────┐
+            │192.168.20 │   │192.168.40 │   │192.168.91 │
+            │  /24      │   │  /24      │   │  /24      │
+            │ Infra     │   │ Services  │   │ Firewall  │
+            └───────────┘   └───────────┘   └───────────┘
+```
 
 ### Tailscale IP Mapping
 
-| Device | Local IP | Tailscale IP | Status |
-|--------|----------|--------------|--------|
-| node01 | 192.168.20.20 | 100.89.33.5 | Active |
-| node02 | 192.168.20.21 | 100.96.195.27 | Active |
-| node03 | 192.168.20.22 | 100.76.81.39 | Active |
-| Synology NAS | 192.168.20.31 | 100.84.128.43 | Inactive |
-| Kratos PC | - | 100.124.141.17 | User device |
+| Device | Local IP | Tailscale IP | Role |
+|--------|----------|--------------|------|
+| node01 | 192.168.20.20 | 100.89.33.5 | **Subnet Router** |
+| node02 | 192.168.20.21 | 100.96.195.27 | Peer |
+| node03 | 192.168.20.22 | 100.76.81.39 | Peer |
+| Synology NAS | 192.168.20.31 | 100.84.128.43 | Peer (inactive) |
+| MacBook Pro | - | 100.90.207.58 | Client |
+
+### Subnet Router Configuration
+
+node01 is configured as a subnet router, advertising the following networks:
+
+| Network | Purpose | Example Hosts |
+|---------|---------|---------------|
+| 192.168.20.0/24 | Infrastructure VLAN | Proxmox nodes, Ansible, K8s |
+| 192.168.40.0/24 | Services VLAN | Docker hosts, applications |
+| 192.168.91.0/24 | Firewall VLAN | OPNsense DNS (192.168.91.30) |
+
+#### node01 Configuration
+
+```bash
+# IP forwarding (persisted in /etc/sysctl.d/99-tailscale.conf)
+net.ipv4.ip_forward = 1
+net.ipv6.conf.all.forwarding = 1
+
+# Tailscale subnet router command
+tailscale up --advertise-routes=192.168.20.0/24,192.168.40.0/24,192.168.91.0/24 --accept-routes
+```
+
+#### Tailscale Admin Console Settings
+
+Routes must be approved in https://login.tailscale.com/admin/machines:
+1. Find node01 → Edit route settings
+2. Enable all three subnets
+3. Save changes
+
+### Split DNS Configuration
+
+DNS queries for `*.hrmsmrflrii.xyz` are routed to OPNsense Unbound:
+
+| Setting | Value |
+|---------|-------|
+| Nameserver | 192.168.91.30 (OPNsense) |
+| Restrict to domain | hrmsmrflrii.xyz |
+| Override local DNS | Enabled |
+
+Configure in Tailscale Admin Console → DNS tab.
+
+### Client Configuration
+
+#### macOS
+
+```bash
+# CLI path (not in PATH by default)
+/Applications/Tailscale.app/Contents/MacOS/Tailscale
+
+# Accept subnet routes
+/Applications/Tailscale.app/Contents/MacOS/Tailscale up --accept-routes
+
+# Optional: Add alias to ~/.zshrc
+alias tailscale="/Applications/Tailscale.app/Contents/MacOS/Tailscale"
+```
+
+#### Linux/Windows
+
+```bash
+tailscale up --accept-routes
+```
 
 ### Remote Access Commands
 
 ```bash
-# Connect to Tailscale
-tailscale up
-
 # Check Tailscale status
 tailscale status
 
-# SSH via Tailscale
-ssh root@100.89.33.5         # node01
-ssh root@100.96.195.27       # node02
-ssh root@100.76.81.39        # node03
+# SSH via local IPs (through subnet router)
+ssh hermes-admin@192.168.20.30    # Ansible controller
+ssh hermes-admin@192.168.40.10    # Docker utilities
 
-# Access Proxmox Web UI
-# https://100.89.33.5:8006    (node01)
-# https://100.96.195.27:8006  (node02)
-# https://100.76.81.39:8006   (node03)
+# SSH via Tailscale IPs (direct)
+ssh root@100.89.33.5              # node01
+ssh root@100.96.195.27            # node02
+ssh root@100.76.81.39             # node03
+
+# Access services via domain (with split DNS)
+curl https://grafana.hrmsmrflrii.xyz
+curl https://glance.hrmsmrflrii.xyz
 ```
 
-### When to Use Tailscale
+### What Works Remotely
 
-- **Remote locations**: When outside the home network
-- **Backup access**: If local network has issues
-- **Direct SSH**: For Proxmox node management
-- **Secure tunnel**: Point-to-point encrypted connections
+| Access Type | Method | Example |
+|-------------|--------|---------|
+| SSH to any VM/container | Local IP via subnet router | `ssh 192.168.40.10` |
+| Web services | Domain name via split DNS | `https://grafana.hrmsmrflrii.xyz` |
+| Proxmox Web UI | Tailscale IP or local IP | `https://192.168.20.20:8006` |
+| Direct container access | Local IP + port | `http://192.168.40.10:3030` |
 
-### Service URLs vs Tailscale
+### Troubleshooting
 
-- Service URLs (`*.hrmsmrflrii.xyz`) work from anywhere with proper DNS
-- Tailscale IPs are for direct access to Proxmox nodes and infrastructure
-- Use Tailscale when you need SSH access or Proxmox web UI
+```bash
+# Verify routes are accepted
+tailscale status
+
+# Test connectivity to subnets
+ping 192.168.20.1    # VLAN 20 gateway
+ping 192.168.40.1    # VLAN 40 gateway
+ping 192.168.91.30   # OPNsense DNS
+
+# Test DNS resolution
+nslookup grafana.hrmsmrflrii.xyz 192.168.91.30
+
+# Check Tailscale DNS status (macOS)
+/Applications/Tailscale.app/Contents/MacOS/Tailscale dns status
+```
+
+### Security Notes
+
+- **WireGuard encryption**: All traffic is encrypted end-to-end
+- **ACL control**: Access controlled via Tailscale admin console
+- **No port forwarding**: No inbound ports exposed to internet
+- **Device authentication**: Only authorized devices can join the tailnet
+- **Split DNS**: DNS queries stay within the encrypted tunnel
 
 ---
 
