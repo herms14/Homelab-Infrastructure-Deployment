@@ -7,6 +7,84 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added - Chess.com Stats Widget (December 26, 2025)
+- **Chess.com Stats Widget** added to Glance Home page right column
+  - Displays Blitz and Rapid ratings with W/L/D records
+  - Uses Prometheus-style card layout with colored gradients
+  - Blitz: Amber gradient (#f59e0b)
+  - Rapid: Blue gradient (#3b82f6)
+  - API: `https://api.chess.com/pub/player/hrmsmrflrii/stats`
+  - Cache: 30 minutes
+  - Clickable link to Chess.com profile
+
+### Fixed - Network Dashboard Sorting (December 26, 2025)
+- **Changed visualization type** from `bargauge` to `barchart` for proper sorting
+- **Affected panels**:
+  - Top 10 Clients by Traffic
+  - Client TX Rate
+  - Client RX Rate
+- **Transformations added**: `reduce` + `sortBy` (descending by value)
+- Same pattern as Container Status dashboard for consistency
+
+### Fixed - Network Tab Infrastructure Monitors (December 26, 2025)
+- **Removed broken HTTP monitors** for unreachable management VLANs
+  - Network Infrastructure monitor (192.168.0.x, 192.168.90.x)
+  - Wireless APs monitor (192.168.90.x)
+- **Root cause**: Docker VM (VLAN 40) cannot reach management VLANs
+- **Replaced with**: Prometheus-based "Network Device Status" widget
+  - Shows all Omada devices with status and CPU %
+  - Data source: `omada_device_cpu_percentage` metric
+  - Devices shown: Core Router, Core Switch, Morpheus Switch, Atreus Switch, 3 APs
+
+### Added - Glance Home Page Widgets (December 26, 2025)
+- **Chess.com Stats Widget** - Displays Blitz and Rapid ratings with W/L records
+  - Uses Chess.com public API with User-Agent header (required for API access)
+  - Template uses direct JSON path syntax: `{{ .JSON.Int "chess_blitz.last.rating" }}`
+  - Username: hrmsmrflrii
+- **Sunrise/Sunset Widget** - Shows sun times for Manila using sunrise-sunset.org API
+  - Location: Manila, Philippines (14.5995, 120.9842)
+  - Displays sunrise and sunset times in 12-hour format
+- **Obsidian Daily Notes Widget** - Displays today's daily note from Obsidian vault
+  - Requires Obsidian Local REST API plugin on MacBook
+  - Connects via Tailscale (MacBook IP: 100.90.207.58, Port: 27123)
+  - Plugin must bind to 0.0.0.0 (not localhost) for server access
+  - Shows Priorities, Habits, and Energy sections with link to open in Obsidian
+
+### Fixed - Chess.com Widget (December 26, 2025)
+- **Added User-Agent header** - Chess.com API blocks requests without proper User-Agent
+- **Simplified template syntax** - Changed from nested `{{ with .JSON.Object }}` to direct path access
+- **Removed duplicate widget** - Deleted extra "Chess.com Stats" widget from lower right column
+- **Added profile photo** - Uses actual Chess.com avatar from player profile API
+
+### Enhanced - Glance Web & Reddit Pages (December 26, 2025)
+- **Web Page Revamped** as comprehensive tech news aggregator with collapsible sections:
+  - **Tech YouTube**: 7 channels (MKBHD, Linus Tech Tips, Mrwhosetheboss, Dave2D, Austin Evans, JerryRigEverything, Fireship)
+  - **Tech News**: The Verge, XDA, TechCrunch, Ars Technica
+  - **Android & Mobile**: XDA Mobile, Google News Android, r/Android
+  - **AI & Machine Learning**: TechCrunch AI, r/artificial, r/MachineLearning, r/LocalLLaMA, r/ChatGPT
+  - **Cloud & Enterprise**: AWS Blog, r/aws, r/googlecloud, r/azure, r/oracle
+  - **Big Tech**: r/microsoft, r/NVIDIA, r/google, r/apple, r/Meta
+  - **Gaming**: r/gaming, r/pcgaming, r/Games, Ars Gaming
+  - **PC Builds & Hardware**: r/buildapc, r/pcmasterrace, r/hardware, XDA Computing
+  - **Travel**: r/travel, r/solotravel, r/TravelHacks
+  - **Sidebar**: Tech Stocks (8), Crypto (5), Crypto/Stock news, Quick links
+- **Reddit Page Enhanced** with dynamic subreddit aggregation:
+  - Reddit Manager updated with 16 subreddits: homelab, selfhosted, datahoarder, linux, devops, kubernetes, docker, technology, programming, webdev, sysadmin, netsec, gaming, pcmasterrace, buildapc, mechanicalkeyboards
+  - Native Reddit widgets for r/technology, r/programming, r/sysadmin with thumbnails
+  - Grouped view mode enabled for organized display
+  - Thumbnails on all posts where available
+- **YouTube Channel IDs**:
+  - MKBHD: UCBJycsmduvYEL83R_U4JriQ
+  - Linus Tech Tips: UCXuqSBlHAE6Xw-yeJA0Tunw
+  - Mrwhosetheboss: UCMiJRAwDNSNzuYeN2uWa0pA
+  - Dave2D: UCVYamHliCI9rw1tHR1xbkfw
+  - Austin Evans: UCXGgrKt94gR6lmN4aN3mYTg
+  - JerryRigEverything: UCWFKCr40YwOZQx8FHU_ZqqQ
+  - Fireship: UCsBjURrPoezykLs9EqgamOA
+- **Files Created**:
+  - `temp-glance-web-reddit-update.py` - Configuration script
+  - `ansible-playbooks/glance/deploy-web-reddit-update.yml` - Deployment playbook
+
 ### Enhanced - Glance Sports Tab with Injuries & News (December 26, 2025)
 - **New API Endpoints**:
   - `/injuries` - NBA injury report with player headshots from ESPN CDN
