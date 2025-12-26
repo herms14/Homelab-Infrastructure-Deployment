@@ -505,6 +505,50 @@ id
 
 ---
 
+## NAS Monitoring (Grafana Dashboard)
+
+The Synology NAS is monitored via SNMP metrics displayed in a Grafana dashboard.
+
+### Dashboard Details
+
+| Setting | Value |
+|---------|-------|
+| **Dashboard UID** | synology-nas-modern |
+| **URL** | https://grafana.hrmsmrflrii.xyz/d/synology-nas-modern |
+| **Location** | Glance Storage Tab (iframe, 1350px) |
+
+### Memory Metrics (Important)
+
+The memory gauge uses a formula that excludes reclaimable cache and buffers:
+
+```promql
+# Correct formula (shows ~7% actual usage)
+((memTotalReal - memAvailReal - memBuffer - memCached) / memTotalReal) * 100
+```
+
+**Why this matters**: Without excluding cache/buffers, the gauge would incorrectly show ~95% usage because Linux uses free memory for disk caching.
+
+### Memory Chart Series
+
+| Series | Query | Color |
+|--------|-------|-------|
+| Used (Real) | `memTotalReal - memAvailReal - memBuffer - memCached` | Red |
+| Cache/Buffers | `memCached + memBuffer` | Amber |
+| Free | `memAvailReal` | Green |
+
+### SNMP Metrics
+
+| Metric | Description |
+|--------|-------------|
+| `memTotalReal` | Total RAM (KB) |
+| `memAvailReal` | Free RAM (KB) |
+| `memBuffer` | Buffer memory (KB, reclaimable) |
+| `memCached` | Cached memory (KB, reclaimable) |
+| `synologyDiskHealthStatus` | Disk health (1=healthy) |
+| `synologyRaidTotalSize` | Total RAID size (bytes) |
+
+---
+
 ## What's Next?
 
 - **[DNS Configuration](DNS-Configuration)** - Internal DNS with OPNsense

@@ -221,8 +221,17 @@ ssh hermes-admin@192.168.20.30
 - SSDs: Purple when healthy (#8b5cf6)
 - Failed: Red (#ef4444)
 - Storage Timeline: Used (amber #f59e0b), Free (green #22c55e), Total (blue dashed #3b82f6)
+- Memory Chart: Used Real (red #ef4444), Cache/Buffers (amber #f59e0b), Free (green #22c55e)
 
-**Memory Units**: `kbytes` (memTotalReal/memAvailReal are in KB)
+**Memory Metrics** (IMPORTANT):
+- **Memory Usage Gauge**: `((memTotalReal - memAvailReal - memBuffer - memCached) / memTotalReal) * 100`
+  - Excludes cache and buffers (reclaimable memory) from "used" calculation
+  - Shows ~7% actual usage instead of ~95% (which incorrectly included cache)
+- **Memory Over Time Chart**: Shows 3 series:
+  - Used (Real): `memTotalReal - memAvailReal - memBuffer - memCached`
+  - Cache/Buffers: `memCached + memBuffer`
+  - Free: `memAvailReal`
+- **Units**: `kbytes` (memTotalReal/memAvailReal/memBuffer/memCached are in KB)
 
 **Files:**
 - Dashboard JSON: `temp-synology-nas-dashboard.json`
