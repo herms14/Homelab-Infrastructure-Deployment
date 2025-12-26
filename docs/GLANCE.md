@@ -940,9 +940,28 @@ ssh hermes-admin@192.168.40.10 "sudo python3 /tmp/temp-glance-update.py && cd /o
 - SSDs: Purple when healthy (#8b5cf6)
 - Failed: Red (#ef4444)
 - Storage Timeline: Used (amber #f59e0b), Free (green #22c55e), Total (blue dashed #3b82f6)
+- Memory Chart: Used Real (red #ef4444), Cache/Buffers (amber #f59e0b), Free (green #22c55e)
 - Thresholds on gauges: Green < 70%, Amber 70-90%, Red > 90%
 
-**Memory Units**: `kbytes` (memTotalReal/memAvailReal are in KB)
+**Memory Metrics (IMPORTANT):**
+
+The memory gauge uses a corrected formula that excludes reclaimable cache and buffers:
+
+```promql
+# Memory Usage % (correct - excludes cache/buffers)
+((memTotalReal - memAvailReal - memBuffer - memCached) / memTotalReal) * 100
+```
+
+This shows ~7% actual usage instead of ~95% (which incorrectly treated cache as "used").
+
+**Memory Over Time Chart** shows 3 series:
+| Series | Query | Color |
+|--------|-------|-------|
+| Used (Real) | `memTotalReal - memAvailReal - memBuffer - memCached` | Red |
+| Cache/Buffers | `memCached + memBuffer` | Amber |
+| Free | `memAvailReal` | Green |
+
+**Units**: `kbytes` (all memory metrics are in KB)
 
 **Prometheus Metrics (SNMP):**
 | Metric | Description |
@@ -954,7 +973,9 @@ ssh hermes-admin@192.168.40.10 "sudo python3 /tmp/temp-glance-update.py && cd /o
 | `synologySystemTemperature` | System temperature |
 | `hrProcessorLoad` | CPU load per core |
 | `memTotalReal` | Total RAM in KB |
-| `memAvailReal` | Available RAM in KB |
+| `memAvailReal` | Available (free) RAM in KB |
+| `memBuffer` | Buffer memory in KB (reclaimable) |
+| `memCached` | Cached memory in KB (reclaimable) |
 | `sysUpTime` | System uptime in centiseconds |
 
 ### Network Tab

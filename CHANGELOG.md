@@ -50,6 +50,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Accept routes: `tailscale up --accept-routes`
 - Documentation: Updated `docs/NETWORKING.md` with complete subnet router architecture
 
+### Fixed - Synology NAS Memory Metric (December 26, 2025)
+- **Issue**: Memory gauge showed ~95% usage when NAS was actually at ~7%
+- **Root Cause**: Original formula `(1 - memAvailReal/memTotalReal) * 100` counted cache and buffers as "used" memory
+- **Fix**: Updated formula to exclude reclaimable memory:
+  ```promql
+  ((memTotalReal - memAvailReal - memBuffer - memCached) / memTotalReal) * 100
+  ```
+- **Memory Over Time Chart** now shows 3 series:
+  - Used (Real) - red: Actual memory in use by applications
+  - Cache/Buffers - amber: Reclaimable memory used for disk caching
+  - Free - green: Completely unused memory
+- **Dashboard JSON**: `temp-synology-nas-dashboard.json` updated to version 4
+- **Documentation**: Updated `.claude/context.md`, `docs/GLANCE.md` with correct formulas
+
 ### Fixed - Jellyfin SSO Redirect URI Error (December 25, 2025)
 - **Issue**: "Redirect URI Error" when clicking "Sign in with Authentik" on Jellyfin
 - **Root Cause**: Authentik provider had ForwardAuth redirect URIs (`/outpost.goauthentik.io/callback`) instead of SSO-Auth plugin URIs (`/sso/OID/redirect/authentik`)
