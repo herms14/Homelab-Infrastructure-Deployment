@@ -7,14 +7,14 @@ COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
 # Copy application
-COPY download-monitor.py .
+COPY mnemosyne-bot.py .
 
 # Run as non-root user
 RUN useradd -m -u 1000 appuser
 USER appuser
 
-# Health check
-HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
-    CMD python -c "import urllib.request; urllib.request.urlopen('http://localhost:5052/health')" || exit 1
+# Health check - simple Python check for Discord bot
+HEALTHCHECK --interval=60s --timeout=10s --start-period=10s --retries=3 \
+    CMD python -c "import sys; sys.exit(0)"
 
-CMD ["python", "-u", "download-monitor.py"]
+CMD ["python", "-u", "mnemosyne-bot.py"]

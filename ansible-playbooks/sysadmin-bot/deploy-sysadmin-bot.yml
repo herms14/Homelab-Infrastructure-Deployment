@@ -79,6 +79,7 @@
                 - DISCORD_TOKEN={{ discord_token }}
                 - SYSADMIN_CHANNEL_ID={{ sysadmin_channel_id }}
                 - ALERTS_CHANNEL_ID={{ alerts_channel_id }}
+                - ALLOWED_CHANNELS=sysadmin,homelab
                 - PROXMOX_HOST={{ proxmox_host }}
                 - PROXMOX_USER={{ proxmox_user }}
                 - PROXMOX_TOKEN_NAME={{ proxmox_token_name }}

@@ -111,6 +111,7 @@
                 # Discord Configuration
                 - DISCORD_TOKEN={{ discord_token }}
                 - DISCORD_CHANNEL_ID={{ discord_channel_id }}
+                - ALLOWED_CHANNELS=projects
 
                 # GitLab Configuration
                 - GITLAB_URL={{ gitlab_url }}

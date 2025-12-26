@@ -18,8 +18,44 @@ import paramiko
 
 # Configuration
 DISCORD_TOKEN = os.getenv("DISCORD_TOKEN")
-SYSADMIN_CHANNEL_ID = int(os.getenv("SYSADMIN_CHANNEL_ID", "0"))
-ALERTS_CHANNEL_ID = int(os.getenv("ALERTS_CHANNEL_ID", "0"))
+SYSADMIN_CHANNEL_ID = int(os.getenv("SYSADMIN_CHANNEL_ID") or "0")
+ALERTS_CHANNEL_ID = int(os.getenv("ALERTS_CHANNEL_ID") or "0")
+
+# Channel restrictions - commands only work in these channels
+# Supports comma-separated channel IDs or names
+ALLOWED_CHANNELS = os.getenv("ALLOWED_CHANNELS", "sysadmin,homelab")
+
+def parse_allowed_channels(channels_str: str) -> list:
+    """Parse allowed channels from comma-separated string."""
+    channels = []
+    for ch in channels_str.split(","):
+        ch = ch.strip()
+        if ch.isdigit():
+            channels.append(int(ch))
+        else:
+            channels.append(ch.lower())
+    return channels
+
+ALLOWED_CHANNEL_LIST = parse_allowed_channels(ALLOWED_CHANNELS)
+
+
+def is_allowed_channel():
+    """Decorator to restrict commands to allowed channels."""
+    async def predicate(interaction: discord.Interaction) -> bool:
+        channel = interaction.channel
+        # Check by ID or name
+        if channel.id in ALLOWED_CHANNEL_LIST:
+            return True
+        if channel.name.lower() in ALLOWED_CHANNEL_LIST:
+            return True
+        # Not allowed - send ephemeral message
+        await interaction.response.send_message(
+            f"⚠️ This command can only be used in: **{', '.join(str(c) for c in ALLOWED_CHANNEL_LIST)}**",
+            ephemeral=True
+        )
+        return False
+    return app_commands.check(predicate)
+
 
 # SSH Configuration
 SSH_KEY_PATH = os.getenv("SSH_KEY_PATH", "/app/ssh/homelab_ed25519")
@@ -117,6 +153,7 @@ def create_embed(title: str, description: str = None, color: int = 0x00ff00, fie
 # ============== INFRASTRUCTURE COMMANDS ==============
 
 @bot.tree.command(name="status", description="Get cluster and infrastructure status")
+@is_allowed_channel()
 async def status(interaction: discord.Interaction):
     """Get overall infrastructure status."""
     await interaction.response.defer()
@@ -169,6 +206,7 @@ async def status(interaction: discord.Interaction):
 
 
 @bot.tree.command(name="shutdown", description="Shutdown a Proxmox node")
+@is_allowed_channel()
 @app_commands.describe(node="Node to shutdown (node01, node02, node03)")
 @app_commands.choices(node=[
     app_commands.Choice(name="node01", value="node01"),
@@ -232,6 +270,7 @@ async def shutdown(interaction: discord.Interaction, node: str):
 
 
 @bot.tree.command(name="reboot", description="Reboot a VM or Proxmox node")
+@is_allowed_channel()
 @app_commands.describe(target="VM name or node (e.g., docker-utilities, node01)")
 async def reboot(interaction: discord.Interaction, target: str):
     """Reboot a VM or node."""
@@ -277,6 +316,7 @@ async def reboot(interaction: discord.Interaction, target: str):
 
 
 @bot.tree.command(name="start", description="Start a VM")
+@is_allowed_channel()
 @app_commands.describe(vm="VM name to start")
 async def start_vm(interaction: discord.Interaction, vm: str):
     """Start a VM."""
@@ -310,6 +350,7 @@ async def start_vm(interaction: discord.Interaction, vm: str):
 
 
 @bot.tree.command(name="stop", description="Stop a VM")
+@is_allowed_channel()
 @app_commands.describe(vm="VM name to stop")
 async def stop_vm(interaction: discord.Interaction, vm: str):
     """Stop a VM."""
@@ -343,6 +384,7 @@ async def stop_vm(interaction: discord.Interaction, vm: str):
 
 
 @bot.tree.command(name="vms", description="List all VMs and their status")
+@is_allowed_channel()
 async def list_vms(interaction: discord.Interaction):
     """List all VMs."""
     await interaction.response.defer()
@@ -382,6 +424,7 @@ async def list_vms(interaction: discord.Interaction):
 # ============== CONTAINER COMMANDS ==============
 
 @bot.tree.command(name="restart", description="Restart a Docker container")
+@is_allowed_channel()
 @app_commands.describe(container="Container name", host="Docker host (utilities or media)")
 @app_commands.choices(host=[
     app_commands.Choice(name="utilities", value="utilities"),
@@ -412,6 +455,7 @@ async def restart_container(interaction: discord.Interaction, container: str, ho
 
 
 @bot.tree.command(name="logs", description="Get recent container logs")
+@is_allowed_channel()
 @app_commands.describe(container="Container name", host="Docker host", lines="Number of lines (default 20)")
 @app_commands.choices(host=[
     app_commands.Choice(name="utilities", value="utilities"),
@@ -441,6 +485,7 @@ async def logs(interaction: discord.Interaction, container: str, host: str = "ut
 
 
 @bot.tree.command(name="containers", description="List running containers")
+@is_allowed_channel()
 @app_commands.describe(host="Docker host (utilities, media, or all)")
 @app_commands.choices(host=[
     app_commands.Choice(name="all", value="all"),
@@ -475,6 +520,7 @@ async def containers(interaction: discord.Interaction, host: str = "all"):
 
 
 @bot.tree.command(name="deploy", description="Run an Ansible playbook")
+@is_allowed_channel()
 @app_commands.describe(playbook="Playbook name")
 @app_commands.choices(playbook=[
     app_commands.Choice(name="traefik", value="traefik/deploy-traefik.yml"),
@@ -517,6 +563,7 @@ async def deploy(interaction: discord.Interaction, playbook: str):
 # ============== MONITORING COMMANDS ==============
 
 @bot.tree.command(name="health", description="Quick infrastructure health check")
+@is_allowed_channel()
 async def health(interaction: discord.Interaction):
     """Quick health check of all services."""
     await interaction.response.defer()
@@ -564,6 +611,7 @@ async def health(interaction: discord.Interaction):
 
 
 @bot.tree.command(name="disk", description="Check disk usage across hosts")
+@is_allowed_channel()
 async def disk(interaction: discord.Interaction):
     """Check disk usage."""
     await interaction.response.defer()
@@ -601,6 +649,7 @@ async def disk(interaction: discord.Interaction):
 
 
 @bot.tree.command(name="top", description="Show top resource consumers")
+@is_allowed_channel()
 async def top_resources(interaction: discord.Interaction):
     """Show top resource consuming containers."""
     await interaction.response.defer()
@@ -627,6 +676,7 @@ async def top_resources(interaction: discord.Interaction):
 
 
 @bot.tree.command(name="uptime", description="Show uptime for all hosts")
+@is_allowed_channel()
 async def uptime_cmd(interaction: discord.Interaction):
     """Show uptime for all hosts."""
     await interaction.response.defer()
@@ -654,6 +704,7 @@ async def uptime_cmd(interaction: discord.Interaction):
 # ============== MEDIA COMMANDS ==============
 
 @bot.tree.command(name="request", description="Request a movie or TV show")
+@is_allowed_channel()
 @app_commands.describe(title="Movie or show title", media_type="Movie or TV Show")
 @app_commands.choices(media_type=[
     app_commands.Choice(name="Movie", value="movie"),
@@ -770,6 +821,7 @@ async def request_media(interaction: discord.Interaction, title: str, media_type
 
 
 @bot.tree.command(name="media", description="Get media library statistics")
+@is_allowed_channel()
 async def media_stats(interaction: discord.Interaction):
     """Get media library stats."""
     await interaction.response.defer()
@@ -876,20 +928,54 @@ async def on_ready():
     if not check_services.is_running():
         check_services.start()
 
-    if SYSADMIN_CHANNEL_ID:
-        channel = bot.get_channel(SYSADMIN_CHANNEL_ID)
+    # Send welcome message to all allowed channels
+    for channel_ref in ALLOWED_CHANNEL_LIST:
+        channel = None
+        if isinstance(channel_ref, int):
+            channel = bot.get_channel(channel_ref)
+        else:
+            # Find channel by name
+            for guild in bot.guilds:
+                channel = discord.utils.get(guild.channels, name=channel_ref)
+                if channel:
+                    break
+
         if channel:
-            await channel.send(
-                embed=create_embed(
-                    "🛡️ Argus Online",
-                    "Hey Master Hermes, I'm ready to guard your homelab!\n\n"
-                    "Type `/` to see available commands.",
-                    color=0x00ff00
-                )
+            embed = create_embed(
+                "Argus Online",
+                "Hey Master Hermes, I'm ready to guard your homelab!",
+                color=0x00ff00
             )
+            embed.add_field(
+                name="Infrastructure",
+                value="`/status` `/vms` `/health` `/uptime`\n`/start` `/stop` `/reboot` `/shutdown`",
+                inline=True
+            )
+            embed.add_field(
+                name="Containers",
+                value="`/containers` `/restart` `/logs`\n`/deploy`",
+                inline=True
+            )
+            embed.add_field(
+                name="Monitoring",
+                value="`/disk` `/top`",
+                inline=True
+            )
+            embed.add_field(
+                name="Media",
+                value="`/request` `/media`",
+                inline=True
+            )
+            embed.add_field(
+                name="Help",
+                value="`/help` - Full command list",
+                inline=True
+            )
+            await channel.send(embed=embed)
 
 
 @bot.tree.command(name="help", description="Show available commands")
+@is_allowed_channel()
 async def help_command(interaction: discord.Interaction):
     """Show help message."""
     embed = create_embed("🛡️ Argus Commands", "Your homelab guardian", color=0x0099ff)

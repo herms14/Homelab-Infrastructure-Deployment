@@ -47,6 +47,8 @@ logger = logging.getLogger('project-bot')
 # === Environment Configuration ===
 DISCORD_TOKEN = os.getenv('DISCORD_TOKEN')
 DISCORD_CHANNEL_ID = int(os.getenv('DISCORD_CHANNEL_ID', '0'))
+# Channel restrictions - commands only work in these channels
+ALLOWED_CHANNELS = os.getenv("ALLOWED_CHANNELS", "projects")
 GITLAB_URL = os.getenv('GITLAB_URL', 'https://gitlab.hrmsmrflrii.xyz')
 GITLAB_TOKEN = os.getenv('GITLAB_TOKEN')
 GITLAB_PROJECT_ID = os.getenv('GITLAB_PROJECT_ID')
@@ -54,6 +56,40 @@ WEBHOOK_PORT = int(os.getenv('WEBHOOK_PORT', '5055'))
 WEBHOOK_SECRET = os.getenv('WEBHOOK_SECRET', '')
 DAILY_DIGEST_HOUR = int(os.getenv('DAILY_DIGEST_HOUR', '9'))
 TZ = os.getenv('TZ', 'Asia/Manila')
+
+
+def parse_allowed_channels(channels_str: str) -> list:
+    """Parse allowed channels from comma-separated string."""
+    channels = []
+    for ch in channels_str.split(","):
+        ch = ch.strip()
+        if ch.isdigit():
+            channels.append(int(ch))
+        else:
+            channels.append(ch.lower())
+    return channels
+
+
+ALLOWED_CHANNEL_LIST = parse_allowed_channels(ALLOWED_CHANNELS)
+
+
+def is_allowed_channel():
+    """Decorator to restrict commands to allowed channels."""
+    async def predicate(interaction: discord.Interaction) -> bool:
+        channel = interaction.channel
+        # Check by ID or name
+        if channel.id in ALLOWED_CHANNEL_LIST:
+            return True
+        if channel.name.lower() in ALLOWED_CHANNEL_LIST:
+            return True
+        # Not allowed - send ephemeral message
+        await interaction.response.send_message(
+            f"⚠️ This command can only be used in: **{', '.join(str(c) for c in ALLOWED_CHANNEL_LIST)}**",
+            ephemeral=True
+        )
+        return False
+    return app_commands.check(predicate)
+
 
 # === Label Configuration ===
 COLUMN_LABELS = {
@@ -349,18 +385,21 @@ bot_initiated_changes = set()
 
 # === Discord Slash Commands ===
 @bot.tree.command(name="todo", description="Create a new task in the To Do column")
+@is_allowed_channel()
 @app_commands.describe(task="Task description (supports [priority], [category], @due)")
 async def todo_command(interaction: discord.Interaction, task: str):
     """Create a task in To Do column."""
     await create_task_command(interaction, task, 'todo')
 
 @bot.tree.command(name="idea", description="Create a new idea in the Backlog column")
+@is_allowed_channel()
 @app_commands.describe(task="Idea description (supports [priority], [category], @due)")
 async def idea_command(interaction: discord.Interaction, task: str):
     """Create a task in Backlog column."""
     await create_task_command(interaction, task, 'backlog')
 
 @bot.tree.command(name="doing", description="Create a task and start working on it")
+@is_allowed_channel()
 @app_commands.describe(task="Task description (supports [priority], [category], @due)")
 async def doing_command(interaction: discord.Interaction, task: str):
     """Create a task in In Progress column."""
@@ -368,6 +407,7 @@ async def doing_command(interaction: discord.Interaction, task: str):
 
 
 @bot.tree.command(name="review", description="Move a task to In Review")
+@is_allowed_channel()
 @app_commands.describe(issue_id="Issue number (e.g., 5 or #5)")
 async def review_command(interaction: discord.Interaction, issue_id: str):
     """Move an issue to In Review column."""
@@ -392,6 +432,7 @@ async def review_command(interaction: discord.Interaction, issue_id: str):
 
 
 @bot.tree.command(name="testing", description="Move a task to Testing")
+@is_allowed_channel()
 @app_commands.describe(issue_id="Issue number (e.g., 5 or #5)")
 async def testing_command(interaction: discord.Interaction, issue_id: str):
     """Move an issue to Testing column."""
@@ -416,6 +457,7 @@ async def testing_command(interaction: discord.Interaction, issue_id: str):
 
 
 @bot.tree.command(name="block", description="Mark a task as blocked")
+@is_allowed_channel()
 @app_commands.describe(issue_id="Issue number (e.g., 5 or #5)", reason="Reason for blocking (optional)")
 async def block_command(interaction: discord.Interaction, issue_id: str, reason: str = None):
     """Move an issue to Blocked column."""
@@ -442,6 +484,7 @@ async def block_command(interaction: discord.Interaction, issue_id: str, reason:
 
 
 @bot.tree.command(name="unblock", description="Unblock a task and move it back to In Progress")
+@is_allowed_channel()
 @app_commands.describe(issue_id="Issue number (e.g., 5 or #5)")
 async def unblock_command(interaction: discord.Interaction, issue_id: str):
     """Move a blocked issue back to In Progress."""
@@ -511,6 +554,7 @@ async def create_task_command(interaction: discord.Interaction, task: str, colum
         await interaction.followup.send("Failed to create task. Check GitLab connection.", ephemeral=True)
 
 @bot.tree.command(name="done", description="Mark a task as done")
+@is_allowed_channel()
 @app_commands.describe(issue_id="Issue number (e.g., 5 or #5)")
 async def done_command(interaction: discord.Interaction, issue_id: str):
     """Close an issue and mark it as done."""
@@ -541,6 +585,7 @@ async def done_command(interaction: discord.Interaction, issue_id: str):
         await interaction.followup.send(f"Failed to close issue #{iid}.", ephemeral=True)
 
 @bot.tree.command(name="move", description="Move a task to a different column")
+@is_allowed_channel()
 @app_commands.describe(
     issue_id="Issue number (e.g., 5 or #5)",
     column="Target column"
@@ -587,6 +632,7 @@ async def move_command(interaction: discord.Interaction, issue_id: str, column: 
         await interaction.followup.send(f"Failed to move issue #{iid}.", ephemeral=True)
 
 @bot.tree.command(name="list", description="List tasks (optionally by column)")
+@is_allowed_channel()
 @app_commands.describe(column="Filter by column (optional)")
 @app_commands.choices(column=[
     app_commands.Choice(name="All", value="all"),
@@ -657,6 +703,7 @@ async def list_command(interaction: discord.Interaction, column: app_commands.Ch
     await interaction.followup.send(embed=embed)
 
 @bot.tree.command(name="board", description="Show board summary")
+@is_allowed_channel()
 async def board_command(interaction: discord.Interaction):
     """Show summary of issues per column."""
     await interaction.response.defer()
@@ -693,6 +740,7 @@ async def board_command(interaction: discord.Interaction):
     await interaction.followup.send(embed=embed)
 
 @bot.tree.command(name="search", description="Search for tasks")
+@is_allowed_channel()
 @app_commands.describe(query="Search query")
 async def search_command(interaction: discord.Interaction, query: str):
     """Search issues by title or description."""
@@ -732,6 +780,7 @@ async def search_command(interaction: discord.Interaction, query: str):
 
 
 @bot.tree.command(name="details", description="Show detailed information about a task")
+@is_allowed_channel()
 @app_commands.describe(issue_id="Issue number (e.g., 5 or #5)")
 async def details_command(interaction: discord.Interaction, issue_id: str):
     """Show detailed task info including activity log."""
@@ -1147,42 +1196,53 @@ async def on_ready():
         stale_task_monitor.start()
         logger.info(f"Started stale task monitor ({STALE_DAYS_THRESHOLD} days threshold, every 12h)")
 
-    # Send startup message
-    channel = bot.get_channel(DISCORD_CHANNEL_ID)
-    if channel:
-        embed = discord.Embed(
-            title="Project Bot Online",
-            description="Ready to manage your homelab tasks!",
-            color=0x28a745
-        )
-        embed.add_field(
-            name="Create Tasks",
-            value="`/todo` `/idea` `/doing`",
-            inline=True
-        )
-        embed.add_field(
-            name="Workflow",
-            value="`/review` `/testing` `/done`",
-            inline=True
-        )
-        embed.add_field(
-            name="Manage",
-            value="`/move` `/block` `/unblock`",
-            inline=True
-        )
-        embed.add_field(
-            name="View",
-            value="`/list` `/board` `/search` `/details`",
-            inline=False
-        )
-        embed.add_field(
-            name="Notifications",
-            value=f"• Due date reminder: {REMINDER_DAYS_BEFORE} days before\n• Stale task alert: {STALE_DAYS_THRESHOLD}+ days inactive\n• Daily digest: {DAILY_DIGEST_HOUR}:00",
-            inline=False
-        )
-        if project:
-            embed.add_field(name="GitLab Project", value=project.name, inline=True)
-        await channel.send(embed=embed)
+    # Send startup message to all allowed channels
+    for channel_ref in ALLOWED_CHANNEL_LIST:
+        channel = None
+        if isinstance(channel_ref, int):
+            channel = bot.get_channel(channel_ref)
+        else:
+            for guild in bot.guilds:
+                channel = discord.utils.get(guild.channels, name=channel_ref)
+                if channel:
+                    break
+
+        if channel:
+            embed = discord.Embed(
+                title="Project Bot Online",
+                description="Ready to manage your homelab tasks!",
+                color=0x28a745,
+                timestamp=datetime.utcnow()
+            )
+            embed.set_footer(text="Project Bot - Task Manager")
+            embed.add_field(
+                name="Create Tasks",
+                value="`/todo` `/idea` `/doing`",
+                inline=True
+            )
+            embed.add_field(
+                name="Workflow",
+                value="`/review` `/testing` `/done`",
+                inline=True
+            )
+            embed.add_field(
+                name="Manage",
+                value="`/move` `/block` `/unblock`",
+                inline=True
+            )
+            embed.add_field(
+                name="View",
+                value="`/list` `/board` `/search` `/details`",
+                inline=False
+            )
+            embed.add_field(
+                name="Notifications",
+                value=f"Due reminders: {REMINDER_DAYS_BEFORE} days | Stale alerts: {STALE_DAYS_THRESHOLD}+ days | Daily digest: {DAILY_DIGEST_HOUR}:00",
+                inline=False
+            )
+            if project:
+                embed.add_field(name="GitLab Project", value=project.name, inline=True)
+            await channel.send(embed=embed)
 
 # === Main Entry Point ===
 def main():

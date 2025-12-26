@@ -600,13 +600,13 @@ The Home page has been carefully configured and should be preserved as-is.
 ┌──────────────────┬──────────────────────────────────────────┬──────────────────┐
 │   LEFT (small)   │              CENTER (full)                │  RIGHT (small)   │
 ├──────────────────┼──────────────────────────────────────────┼──────────────────┤
-│ Clock            │ Life Progress Widget                      │ Crypto Markets   │
-│ Weather          │ GitHub Contributions (green, dark mode)   │ Stock Markets    │
-│ Calendar         │ Proxmox Cluster Monitor                   │ Tech News RSS    │
-│ Infrastructure   │ Storage Monitor                           │                  │
-│ Services         │ Core Services Monitor                     │                  │
-│                  │ Media Services Monitor                    │                  │
-│                  │ Monitoring Stack Monitor                  │                  │
+│ Clock            │ Life Progress Widget                      │ Chess.com Stats  │
+│ Weather          │ GitHub Contributions (green, dark mode)   │ Crypto Markets   │
+│ Sun Times        │ Proxmox Cluster Monitor                   │ Stock Markets    │
+│ Calendar         │ Storage Monitor                           │ Tech News RSS    │
+│ Daily Note       │ Core Services Monitor                     │                  │
+│ Infrastructure   │ Media Services Monitor                    │                  │
+│ Services         │ Monitoring Stack Monitor                  │                  │
 │                  │ Kubernetes Control Plane Monitor          │                  │
 │                  │ Kubernetes Workers Monitor                │                  │
 └──────────────────┴──────────────────────────────────────────┴──────────────────┘
@@ -619,9 +619,18 @@ The Home page has been carefully configured and should be preserved as-is.
 |--------|---------------|
 | Clock | 24h format, Asia/Manila timezone |
 | Weather | Manila, Philippines, metric units |
+| Sun Times | sunrise-sunset.org API, Manila coords (14.5995, 120.9842) |
 | Calendar | Monday first day |
+| Daily Note | Obsidian Local REST API via Tailscale (100.90.207.58:27123) |
 | Infrastructure Bookmarks | Authentik, Omada Cloud, Proxmox, Traefik, OPNsense, Portainer, Synology NAS |
 | Services Bookmarks | Media (8 services), Downloads (2), Productivity (4), Monitoring (5) |
+
+##### Obsidian Daily Notes Widget
+- **Requires**: Obsidian running on MacBook with Local REST API plugin
+- **Plugin setting**: Must bind to `0.0.0.0` (not localhost)
+- **Connection**: Via Tailscale (MacBook IP: 100.90.207.58)
+- **Daily note path**: `05 Periodic Notes/00 Daily/YYYY-MM-DD.md`
+- **Displays**: Link to open note in Obsidian app
 
 #### Center Column (Full)
 | Widget | Type | Endpoint |
@@ -639,9 +648,17 @@ The Home page has been carefully configured and should be preserved as-is.
 #### Right Column (Small)
 | Widget | Configuration |
 |--------|---------------|
+| Chess.com Stats | custom-api, username: hrmsmrflrii, Blitz & Rapid ratings |
 | Crypto Markets | BTC-USD, ETH-USD, XRP-USD, BNB-USD, ADA-USD |
 | Stock Markets | MSFT, AAPL, ORCL, NVDA, GOOGL, TSLA, NFLX, AMZN |
 | Tech News RSS | r/homelab, r/selfhosted (horizontal cards, limit 5) |
+
+##### Chess.com Stats Widget (Right Column)
+- **API**: `https://api.chess.com/pub/player/hrmsmrflrii/stats`
+- **Cache**: 30 minutes
+- **Displays**: Blitz rating, Rapid rating, W/L/D records
+- **Colors**: Blitz (amber #f59e0b), Rapid (blue #3b82f6)
+- **Template**: Uses `.JSON.Array "data.result"` to iterate Prometheus-style response
 
 ### GitHub Contribution Graph
 
@@ -981,11 +998,147 @@ This shows ~7% actual usage instead of ~95% (which incorrectly treated cache as 
 
 ### Network Tab
 
-**Grafana Dashboard**: `network-overview` (UID)
-- URL: `https://grafana.hrmsmrflrii.xyz/d/network-overview/network-overview?kiosk&refresh=30s`
-- Iframe Height: 750px
+**Layout (2 columns)**:
+```
+┌───────────────────────────────────────────────────────┬──────────────────┐
+│                    MAIN (full)                         │  SIDEBAR (small) │
+├───────────────────────────────────────────────────────┼──────────────────┤
+│ Omada Network Dashboard (Grafana iframe, h=2200)      │ Network Device   │
+│ - Overview: Clients, Controller, WiFi modes           │ Status (custom)  │
+│ - Device Health: CPU/Memory gauges                    │                  │
+│ - WiFi Signal Quality: RSSI, SNR                      │ Latest Speedtest │
+│ - Switch Port Status: Table                           │ (Download/Upload │
+│ - PoE Power Usage                                     │  Ping/Jitter)    │
+│ - Traffic Analysis: Top 10 clients (barchart)         │                  │
+│ - Client Details: Full table                          │                  │
+└───────────────────────────────────────────────────────┴──────────────────┘
+```
 
-**Speedtest Widget**: Custom API showing Download/Upload/Ping from Speedtest Tracker
+**Grafana Dashboard**: `omada-network` (UID)
+- URL: `https://grafana.hrmsmrflrii.xyz/d/omada-network/omada-network-overview?orgId=1&kiosk&theme=transparent&refresh=30s`
+- Iframe Height: 2200px
+
+**Traffic Panels** (converted from bargauge to barchart for proper sorting):
+| Panel | Type | Query | Sorting |
+|-------|------|-------|---------|
+| Top 10 Clients by Traffic | barchart | `topk(10, omada_client_traffic_down_bytes + omada_client_traffic_up_bytes)` | Descending |
+| Client TX Rate | barchart | `topk(10, omada_client_tx_rate * 1000000)` | Descending |
+| Client RX Rate | barchart | `topk(10, omada_client_rx_rate * 1000000)` | Descending |
+
+**Transformations** (same as Container dashboard):
+```yaml
+transformations:
+  - id: reduce
+    options:
+      reducers: [lastNotNull]
+  - id: sortBy
+    options:
+      sort:
+        - field: "Last *"
+          desc: true
+```
+
+**Network Device Status Widget** (Sidebar):
+- Type: `custom-api`
+- URL: `http://192.168.40.10:9090/api/v1/query?query=omada_device_cpu_percentage`
+- Shows all Omada devices with status indicator and CPU %
+- Replaced broken HTTP monitors (management VLANs unreachable from VLAN 40)
+
+**Speedtest Widget** (Sidebar):
+- Type: `custom-api`
+- URL: `http://192.168.40.10:3000/api/speedtest/latest`
+- Shows Download/Upload speeds, Ping, Jitter
+
+### Web Tab
+
+Comprehensive tech news aggregator with collapsible sections for all categories.
+
+**Layout (2 columns)**:
+```
+┌───────────────────────────────────────────────────────┬──────────────────┐
+│                    MAIN (full)                         │  SIDEBAR (small) │
+├───────────────────────────────────────────────────────┼──────────────────┤
+│ Tech YouTube (7 channels, horizontal-cards)           │ Tech Stocks (8)  │
+│ Tech News (The Verge, XDA, TechCrunch, Ars Technica) │ Crypto (5)       │
+│ Android & Mobile (XDA Mobile, Google News, r/Android) │ Crypto News      │
+│ AI & Machine Learning (TechCrunch AI, Reddit feeds)   │ Stock Market     │
+│ Cloud & Enterprise (AWS, Azure, GCP, Oracle)          │ Quick Links      │
+│ Big Tech (Microsoft, NVIDIA, Google, Apple, Meta)     │                  │
+│ Gaming (r/gaming, r/pcgaming, Ars Gaming)             │                  │
+│ PC Builds & Hardware (r/buildapc, r/pcmasterrace)     │                  │
+│ Travel (r/travel, r/solotravel, r/TravelHacks)        │                  │
+└───────────────────────────────────────────────────────┴──────────────────┘
+```
+
+**YouTube Channels** (Glance `videos` widget):
+| Channel | Channel ID |
+|---------|------------|
+| MKBHD | UCBJycsmduvYEL83R_U4JriQ |
+| Linus Tech Tips | UCXuqSBlHAE6Xw-yeJA0Tunw |
+| Mrwhosetheboss | UCMiJRAwDNSNzuYeN2uWa0pA |
+| Dave2D | UCVYamHliCI9rw1tHR1xbkfw |
+| Austin Evans | UCXGgrKt94gR6lmN4aN3mYTg |
+| JerryRigEverything | UCWFKCr40YwOZQx8FHU_ZqqQ |
+| Fireship | UCsBjURrPoezykLs9EqgamOA |
+
+**News Sources**:
+| Category | Sources |
+|----------|---------|
+| Tech News | The Verge, XDA, TechCrunch, Ars Technica |
+| AI/ML | TechCrunch AI, r/artificial, r/MachineLearning, r/LocalLLaMA, r/ChatGPT |
+| Cloud | AWS Blog, r/aws, r/googlecloud, r/azure, r/oracle |
+| Big Tech | r/microsoft, r/NVIDIA, r/google, r/apple, r/Meta |
+| Gaming | r/gaming, r/pcgaming, r/Games, Ars Gaming |
+| PC Builds | r/buildapc, r/pcmasterrace, r/hardware, XDA Computing |
+| Travel | r/travel, r/solotravel, r/TravelHacks |
+
+**Markets (Sidebar)**:
+| Type | Symbols |
+|------|---------|
+| Tech Stocks | MSFT, NVDA, ORCL, AMZN, GOOGL, META, AAPL, BABA |
+| Crypto | BTC-USD, ETH-USD, XRP-USD, SOL-USD, DOGE-USD |
+
+**Configuration Script**: `temp-glance-web-reddit-update.py`
+
+### Reddit Tab
+
+Dynamic Reddit feed aggregator with thumbnails and native Reddit widgets.
+
+**Layout (2 columns)**:
+```
+┌───────────────────────────────────────────────────────┬──────────────────┐
+│                    MAIN (full)                         │  SIDEBAR (small) │
+├───────────────────────────────────────────────────────┼──────────────────┤
+│ Reddit Manager Dynamic Feed (16 subreddits)           │ r/technology     │
+│ - Posts grouped by subreddit                          │ r/programming    │
+│ - Thumbnails on posts                                 │ r/sysadmin       │
+│ - Score and comment counts                            │ Subreddit Links  │
+│ - Manage subreddits link                              │                  │
+└───────────────────────────────────────────────────────┴──────────────────┘
+```
+
+**Reddit Manager API**: http://192.168.40.10:5053
+- **Manage Subreddits**: http://192.168.40.10:5053 (Web UI)
+- **API Endpoint**: http://192.168.40.10:5053/api/feed
+
+**Configured Subreddits** (16 total):
+| Category | Subreddits |
+|----------|------------|
+| Homelab | homelab, selfhosted, datahoarder |
+| DevOps | linux, devops, kubernetes, docker |
+| Tech | technology, programming, webdev, sysadmin, netsec |
+| Hobby | gaming, pcmasterrace, buildapc, mechanicalkeyboards |
+
+**Settings**:
+- Sort: `hot` (options: hot, new, top)
+- View: `grouped` (options: grouped, combined)
+
+**Native Reddit Widgets** (Sidebar):
+- r/technology (hot, thumbnails, limit 8)
+- r/programming (hot, thumbnails, limit 6)
+- r/sysadmin (hot, thumbnails, limit 6)
+
+**Deployment Playbook**: `ansible-playbooks/glance/deploy-web-reddit-update.yml`
 
 ### Sports Tab (PROTECTED)
 
