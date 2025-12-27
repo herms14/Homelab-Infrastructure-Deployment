@@ -13,6 +13,122 @@
 
 ## Recently Completed (Last 24 Hours)
 
+## Grafana Dashboards & API Fixes
+**Completed**: 2025-12-27 ~17:00 UTC+8
+**Session**: MacBook via Tailscale
+**Changes**:
+- Imported Proxmox Cluster Overview dashboard to Grafana (UID: `proxmox-compute`)
+- All 4 Grafana dashboards now working: containers-modern, omada-network, proxmox-compute, synology-nas-modern
+- Verified all APIs working: Media Stats (5054), Reddit (5053), NBA Stats (5060)
+- Fixed broken RSS feeds in Glance (XDA and Google News)
+- All 10 Prometheus targets UP: cadvisor, cadvisor-media, docker-stats-media, omada, prometheus, proxmox (3), synology, traefik
+**Grafana Dashboards**:
+| Dashboard | UID | URL |
+|-----------|-----|-----|
+| Container Monitoring | containers-modern | /d/containers-modern/container-monitoring |
+| Omada Network | omada-network | /d/omada-network/omada-network-overview |
+| Proxmox Cluster | proxmox-compute | /d/proxmox-compute/proxmox-cluster-overview |
+| Synology NAS | synology-nas-modern | /d/synology-nas-modern/synology-nas-storage |
+**API Verification**:
+| API | URL | Status |
+|-----|-----|--------|
+| Media Stats | localhost:5054/api/stats | Working |
+| Reddit | localhost:5053/api/feed | Working |
+| NBA Stats | localhost:5060/games | Working |
+| Injuries | localhost:5060/injuries | Working |
+| News | localhost:5060/news | Working |
+
+## Discord Bots Migration to LXC
+**Completed**: 2025-12-27 ~21:00 UTC+8
+**Session**: MacBook via Tailscale
+**Changes**:
+- Created LXC 201 (`docker-lxc-bots`) on node01 at 192.168.40.14
+- Deployed Argus bot (container updates, Watchtower webhooks)
+- Deployed Chronos bot (GitLab project management)
+- Redeployed Mnemosyne bot on docker-media (192.168.40.11)
+- Created comprehensive deployment tutorial: `docs/DISCORD_BOT_DEPLOYMENT_TUTORIAL.md`
+- Updated DISCORD_BOTS.md with new architecture and IPs
+- Updated context.md with new LXC and bot locations
+**LXC 201 Configuration**:
+- 2GB RAM, 2 vCPU, 8GB disk
+- Features: nesting=1, fuse=1, keyctl=1
+- Docker with `--security-opt apparmor=unconfined`
+**Bots Deployed**:
+| Bot | Host | Port | Channel |
+|-----|------|------|---------|
+| Argus | LXC 201 (192.168.40.14) | 5050 | #container-updates |
+| Chronos | LXC 201 (192.168.40.14) | - | #project-management |
+| Mnemosyne | docker-media (192.168.40.11) | - | #media-downloads |
+**Files Created**:
+- docs/DISCORD_BOT_DEPLOYMENT_TUTORIAL.md (complete tutorial)
+- /opt/argus-bot/* (on LXC 201)
+- /opt/chronos-bot/* (on LXC 201)
+
+## Full Monitoring Stack Deployment + Glance Fixes
+**Completed**: 2025-12-27 ~10:00 UTC+8
+**Session**: MacBook via Tailscale
+**Changes**:
+- Fixed Prometheus with all required exporters (synology, omada, traefik, docker-stats-media, cadvisor, proxmox)
+- Fixed Traefik metrics port (8082→8083)
+- Deployed PVE Exporter with new token (terraform-deployment-user@pve!tf01)
+- Deployed Life Progress API on core-utilities VM (192.168.40.13:5051)
+- Deployed n8n workflow automation (192.168.40.13:5678)
+- Deployed Jaeger tracing (192.168.40.13:16686)
+- Imported 3 Grafana dashboards: synology-nas-modern, omada-network, containers-modern
+- Updated Glance iframes to use direct Grafana IP (http://192.168.40.13:3030)
+- Updated Traefik routes to point to new VM (192.168.40.10 -> 192.168.40.13)
+- Ran initial Speedtest (498 Mbps down, 288 Mbps up)
+**Current Running Services on 192.168.40.13**:
+- Prometheus (9090), Grafana (3030), Uptime Kuma (3001)
+- Speedtest Tracker (3000), cAdvisor (8081)
+- SNMP Exporter (9116), PVE Exporter (9221), Life Progress API (5051)
+- n8n (5678), Jaeger (16686)
+**Prometheus Targets Status - ALL UP**:
+- cadvisor, cadvisor-media, docker-stats-media, omada, prometheus, synology, traefik, proxmox (3/3)
+**Still Not Deployed**:
+- Paperless (document management)
+- Lagident, Karakeep, Wizarr, Tracearr (will show as down in monitors)
+
+## New Core Utilities VM + Glance Infrastructure Rebuild
+**Completed**: 2025-12-27 ~20:30
+**Session**: MacBook via Tailscale
+**Changes**:
+- Replaced broken docker-utilities VM (192.168.40.10) with new docker-vm-core-utilities (192.168.40.13)
+- New VM on node01 with 4 cores, 12GB RAM, 40GB disk
+- Deployed core monitoring stack: Grafana, Prometheus, Uptime Kuma, Speedtest, cAdvisor
+- Updated Glance config to point to new IP (192.168.40.13)
+- Updated Traefik routes for monitoring services
+- DNS set to OPNsense (192.168.91.30)
+**Current Infrastructure**:
+- LXC 200 (192.168.40.12): Glance + Media Stats API + Reddit Manager + NBA Stats API
+- VM 107 (192.168.40.13): Core monitoring stack (Grafana, Prometheus, Uptime Kuma, Speedtest)
+**Pending Deployments** (on 192.168.40.13):
+- n8n, Jaeger, Paperless, Lagident, Karakeep, Wizarr, Tracearr
+- Reactive Resume, Bentopdf, Edgeshark, Open Notebook
+- Discord bots (Argus, Chronos)
+- Prometheus exporters (SNMP, PVE, OPNsense, Omada)
+
+## Glance Dashboard LXC Migration
+**Completed**: 2025-12-27 ~19:30
+**Session**: MacBook via Tailscale
+**Changes**:
+- Created LXC container 200 (`docker-lxc-glance`) on node01 at 192.168.40.12
+- Migrated Glance + 3 custom APIs from docker-utilities VM to LXC
+- Worked around AppArmor issues with `--security-opt apparmor=unconfined`
+- Used pre-built Python images with volume mounts (Docker builds fail in LXC)
+- Added Sports page with localhost:5060 references
+- Updated Traefik routing from 192.168.40.10 to 192.168.40.12
+**Services Migrated**:
+- Glance dashboard (port 8080)
+- Media Stats API (port 5054)
+- Reddit Manager (port 5053)
+- NBA Stats API (port 5060)
+**Files on LXC**:
+- /opt/glance/config/glance.yml
+- /opt/media-stats-api/media-stats-api.py
+- /opt/reddit-manager/reddit-manager.py
+- /opt/nba-stats-api/nba-stats-api.py
+
 ## Discord Bot Fixes
 **Completed**: 2025-12-27 ~10:30
 **Session**: MacBook via Tailscale
@@ -181,3 +297,10 @@ Leave notes here for future sessions:
 - Glance Home, Media, Compute, Storage, Network, and Sports pages are protected - don't modify without permission
 - Synology NAS Storage dashboard is protected - UID: `synology-nas-modern`, height: 1350px
 - Yahoo Fantasy OAuth token stored at `/opt/nba-stats-api/data/yahoo_token.json` - auto-refreshes
+- **NEW**: Glance now runs on LXC container 200 (192.168.40.12) instead of docker-utilities
+- **NEW**: Discord bots (Argus, Chronos) now run on LXC 201 (192.168.40.14)
+- **NEW**: Mnemosyne stays on docker-media (192.168.40.11) - needs localhost access to Radarr/Sonarr
+- **NEW**: Created docs/DISCORD_BOT_DEPLOYMENT_TUTORIAL.md - comprehensive tutorial on Discord bot deployment
+- docker-utilities VM (192.168.40.10) has been decommissioned
+- Docker in LXC requires `--security-opt apparmor=unconfined` flag
+- Docker builds fail in LXC - use pre-built images with volume mounts instead

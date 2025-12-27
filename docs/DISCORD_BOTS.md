@@ -6,11 +6,13 @@ This document describes the Discord bots deployed in the homelab for automation 
 
 | Bot | Channel | Host | Purpose |
 |-----|---------|------|---------|
-| **Argus** | `#container-updates` | docker-utilities (192.168.40.10) | Container update management |
+| **Argus** | `#container-updates` | docker-lxc-bots (192.168.40.14) | Container update management |
 | **Mnemosyne** | `#media-downloads` | docker-media (192.168.40.11) | Media download tracking |
-| **Chronos** | `#project-management` | docker-utilities (192.168.40.10) | GitLab task management |
+| **Chronos** | `#project-management` | docker-lxc-bots (192.168.40.14) | GitLab task management |
 
 Each bot is channel-restricted and will only respond to commands in its designated channel.
+
+> **Note**: Argus and Chronos run on a dedicated LXC container (LXC 201) for resource efficiency. Mnemosyne runs on docker-media VM because it needs localhost access to Radarr/Sonarr APIs.
 
 ---
 
@@ -44,8 +46,10 @@ Configure Watchtower on each host to send notifications:
 ```yaml
 # In docker-compose.yml for Watchtower
 environment:
-  - WATCHTOWER_NOTIFICATION_URL=generic+http://192.168.40.10:5050/webhook
+  - WATCHTOWER_NOTIFICATION_URL=generic+http://192.168.40.14:5050/webhook
 ```
+
+> **Note**: The webhook URL points to the LXC container (192.168.40.14), not the old VM.
 
 ### Deployment
 
@@ -163,13 +167,33 @@ ansible-playbook project-management/deploy-chronos-bot.yml
 
 ```
 Discord Server
-├── #container-updates ──► Argus (192.168.40.10:5050)
-│                              └── Watchtower webhooks
-├── #media-downloads ───► Mnemosyne (192.168.40.11)
+│
+├── #container-updates ──► Argus (LXC 201 - 192.168.40.14:5050)
+│                              ├── Watchtower webhooks
+│                              └── SSH to all Docker hosts
+│
+├── #media-downloads ───► Mnemosyne (VM - 192.168.40.11)
 │                              ├── Radarr API (localhost:7878)
 │                              └── Sonarr API (localhost:8989)
-└── #project-management ► Chronos (192.168.40.10)
+│
+└── #project-management ► Chronos (LXC 201 - 192.168.40.14)
                                └── GitLab API (gitlab.hrmsmrflrii.xyz)
+
+Infrastructure:
+┌─────────────────────────────────────────────────────────────────┐
+│  LXC 201: docker-lxc-bots (192.168.40.14)                      │
+│  ┌─────────────┐  ┌─────────────┐                              │
+│  │  Argus Bot  │  │ Chronos Bot │                              │
+│  └─────────────┘  └─────────────┘                              │
+│  2GB RAM | 2 vCPU | 8GB Disk                                   │
+└─────────────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────────┐
+│  VM: docker-vm-media01 (192.168.40.11)                         │
+│  ┌───────────────┐  ┌─────────┐  ┌─────────┐                   │
+│  │ Mnemosyne Bot │  │ Radarr  │  │ Sonarr  │  ...              │
+│  └───────────────┘  └─────────┘  └─────────┘                   │
+└─────────────────────────────────────────────────────────────────┘
 ```
 
 ## File Locations
@@ -214,5 +238,12 @@ If you see "Improper token" errors:
 
 ---
 
-*Created: December 26, 2025*
+## Related Documentation
+
+- **[DISCORD_BOT_DEPLOYMENT_TUTORIAL.md](./DISCORD_BOT_DEPLOYMENT_TUTORIAL.md)** - Complete tutorial on creating and deploying Discord bots in Docker/LXC
+
+---
+
+*Last Updated: December 2024*
 *Bots: Argus, Mnemosyne, Chronos*
+*Deployment: LXC 201 (Argus, Chronos), docker-media VM (Mnemosyne)*
