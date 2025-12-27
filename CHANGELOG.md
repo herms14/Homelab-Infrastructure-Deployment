@@ -7,6 +7,43 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed - Monitoring Stack Rebuild (December 27, 2025)
+- **Rebuilt Prometheus configuration** on new core-utilities VM (192.168.40.13)
+  - Added targets: cadvisor, cadvisor-media, docker-stats-media, traefik, omada, synology, proxmox
+  - Created SNMP exporter config for Synology NAS monitoring
+  - Deployed PVE Exporter for Proxmox metrics (token: tf01)
+  - Fixed Traefik metrics port (8082→8083)
+  - **All 10 targets now UP**: cadvisor, cadvisor-media, docker-stats-media, omada, prometheus, synology, traefik, proxmox (3/3)
+
+- **Imported Grafana dashboards** to new instance
+  - synology-nas-modern: Synology NAS Storage monitoring
+  - omada-network: Omada Network Overview
+  - containers-modern: Container Monitoring
+  - proxmox-compute: Proxmox Cluster Overview (added 2025-12-27)
+
+- **Fixed broken RSS feeds in Glance**
+  - Replaced broken XDA category feeds with main feed (https://www.xda-developers.com/feed/)
+  - Updated Google News RSS URL format
+
+- **Deployed services on 192.168.40.13**:
+  - Life Progress API (port 5051)
+  - n8n workflow automation (port 5678)
+  - Jaeger tracing (port 16686)
+  - PVE Exporter (port 9221)
+  - SNMP Exporter (port 9116)
+
+- **Updated Traefik routes** from 192.168.40.10 to 192.168.40.13
+  - Affected services: Grafana, Prometheus, Uptime Kuma, Speedtest, n8n, Paperless, Jaeger
+
+- **Updated Glance configuration**
+  - Fixed dashboard iframe URLs to use direct IP (http://192.168.40.13:3030)
+  - Changed container-status to containers-modern dashboard
+  - Bypasses Authentik authentication for iframe loading
+
+- **Updated documentation**
+  - context.md: New infrastructure layout with LXC 200 and VM 107
+  - active-tasks.md: Session completion record
+
 ### Added - Discord Bot Reorganization (December 26, 2025)
 - **Argus Bot** - Container Update Guardian (`#container-updates`)
   - Watchtower webhook integration for update notifications
