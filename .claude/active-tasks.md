@@ -13,6 +13,97 @@
 
 ## Recently Completed (Last 24 Hours)
 
+## Immich + Authentik SSO Integration
+**Completed**: 2025-12-27 ~20:25 UTC+8
+**Session**: MacBook via Tailscale
+**Changes**:
+- Configured Immich OAuth with Authentik as identity provider
+- Created OAuth2/OIDC provider in Authentik for Immich
+- Configured Immich via PostgreSQL database update (direct SQL)
+- Added Immich icon to Authentik application dashboard
+- Created comprehensive tutorial: `docs/IMMICH_AUTHENTIK_SSO_TUTORIAL.md`
+**OAuth Configuration**:
+| Setting | Value |
+|---------|-------|
+| Client ID | `immich-oauth-client` |
+| Issuer URL | `https://auth.hrmsmrflrii.xyz/application/o/immich/` |
+| Scopes | `openid email profile` |
+| Button Text | `Login with Authentik` |
+| Auto Register | Enabled |
+**Files Created/Modified**:
+- `docs/IMMICH_AUTHENTIK_SSO_TUTORIAL.md` (new tutorial)
+- `docs/APPLICATION_CONFIGURATIONS.md` (added OAuth section)
+- Obsidian: `11 - Credentials.md` (added OAuth credentials)
+- `/opt/authentik/media/application-icons/immich.png` (icon)
+**Verification**:
+- OAuth enabled: `curl http://192.168.40.22:2283/api/server/features | jq '.oauth'` → `true`
+- Button text: `curl http://192.168.40.22:2283/api/server/config | jq '.oauthButtonText'` → `"Login with Authentik"`
+
+## Container Monitoring & Compute Page Fixes
+**Completed**: 2025-12-27 ~18:45 UTC+8
+**Session**: MacBook via Tailscale
+**Changes**:
+- Fixed cAdvisor on docker-media (192.168.40.11) - upgraded from v0.49.1 to v0.55.1 to fix Docker API compatibility
+- Updated Container Monitoring dashboard to use cAdvisor metrics for both Core Utilities and Media VM
+- Fixed Proxmox dashboard VM/LXC uptime queries (join needed `on(id, instance, job)` not just `on(id)`)
+- Added LXC monitoring panels (uptime, CPU, memory) to Proxmox dashboard
+- Fixed duplicate entries in uptime panels using `max by(name, node)`
+- Fixed duplicate entries in VM/LXC CPU and Memory panels using `max by(name)`
+- Expanded VM CPU/Memory panel heights from h=8 to h=14
+- Expanded LXC CPU/Memory panel heights from h=8 to h=10
+- Updated Glance iframe height from 2800 to 3100
+- Prometheus now preserving `name` and `image` labels from cAdvisor
+**Root Causes**:
+- cAdvisor v0.49.1 incompatible with Docker API 1.44+ (required 1.41, docker-media has 1.44)
+- Prometheus join queries needed all labels (id, instance, job) not just id
+- Each Proxmox node reports metrics for all VMs/LXCs - needed `max by(name)` to deduplicate
+**Container Dashboard Queries Updated**:
+- Total Containers: `count(container_memory_usage_bytes{job=~"cadvisor.*", name=~".+"})`
+- Memory/CPU panels now use cAdvisor metrics from both `cadvisor` and `cadvisor-media` jobs
+**Proxmox Dashboard Queries Fixed**:
+- VM CPU: `max by(name) (pve_cpu_usage_ratio{id=~"qemu/.*"} * on(...) group_left(name) ...) * 100`
+- VM Memory: `max by(name) ((pve_memory_usage_bytes / pve_memory_size_bytes) * on(...) ...) * 100`
+- LXC CPU/Memory: Same pattern with `max by(name)`
+**Files Modified**:
+- `/opt/cadvisor/docker-compose.yml` (docker-media @ 192.168.40.11)
+- `/opt/monitoring/grafana/dashboards/container-status.json` (core-utilities @ 192.168.40.13)
+- `/opt/monitoring/grafana/dashboards/proxmox-dashboard.json` (core-utilities @ 192.168.40.13)
+- `/opt/glance/config/glance.yml` (LXC 200 @ 192.168.40.12)
+
+## Athena Bot - Claude Task Queue System
+**Completed**: 2025-12-27 ~18:10 UTC+8
+**Session**: MacBook via Tailscale
+**Changes**:
+- Created Athena bot for Claude task queue management
+- Deployed to LXC 201 (192.168.40.14:5051)
+- Features: Discord commands + REST API + SQLite database
+- Multi-instance support for concurrent Claude sessions
+- Fixed channel matching for emoji channel names (🤖claude-tasks)
+- Fixed Immich VM (192.168.40.22) that was unresponsive - hard reset fixed it
+**Discord Commands**:
+| Command | Description |
+|---------|-------------|
+| `/task` | Submit new task to queue |
+| `/queue` | View pending tasks |
+| `/status` | Show Claude instance status |
+| `/done` | View completed tasks |
+| `/priority` | Change task priority |
+| `/cancel` | Cancel pending task |
+| `/athena` | Help information |
+**REST API Endpoints** (port 5051):
+- GET /api/tasks - List tasks
+- POST /api/tasks - Create task
+- POST /api/tasks/<id>/claim - Claim task
+- POST /api/tasks/<id>/complete - Complete task
+- GET /api/stats - Queue statistics
+**Files Created**:
+- `ansible-playbooks/claude-tasks/athena-bot.py`
+- `ansible-playbooks/claude-tasks/claude-task-client.py`
+- `ansible-playbooks/claude-tasks/deploy-athena-bot.yml`
+- `docs/CLAUDE_TASK_QUEUE.md`
+- `docs/ATHENA_BOT_TUTORIAL.md`
+- `/opt/athena-bot/*` (on LXC 201)
+
 ## Grafana Iframe Fix for Glance Dashboard
 **Completed**: 2025-12-27 ~17:40 UTC+8
 **Session**: MacBook via Tailscale
@@ -320,3 +411,9 @@ Leave notes here for future sessions:
 - Docker builds fail in LXC - use pre-built images with volume mounts instead
 - **NEW**: Grafana has no Authentik protection (allows anonymous read-only access for iframe embedding)
 - **NEW**: Grafana uses HTTPS via grafana.hrmsmrflrii.xyz for iframe embedding in Glance
+- **NEW**: Athena bot deployed for Claude task queue (LXC 201, port 5051)
+- **NEW**: Claude task client at `ansible-playbooks/claude-tasks/claude-task-client.py`
+- **NEW**: API Key for Athena: `athena-homelab-key`
+- **NEW**: Discord channel for tasks: `#🤖claude-tasks` (uses partial matching)
+- **NEW**: Immich OAuth configured with Authentik - see `docs/IMMICH_AUTHENTIK_SSO_TUTORIAL.md`
+- **NEW**: Immich OAuth credentials in Obsidian `11 - Credentials.md`

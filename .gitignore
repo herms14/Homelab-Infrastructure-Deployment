@@ -45,3 +45,20 @@ docs/legacy/2026-Omada-Network-Configuration.md
 
 # Obsidian vault (internal documentation with credentials)
 # The Obsidian vault is stored separately and should not be committed
+
+# Test files that may contain credentials
+test_*.py
+configure_*.py
+
+# Backup directories that may contain secrets
+glance-backup/
+
+# Temp files - often contain hardcoded values during development
+temp-*.py
+temp-*.json
+temp-*.yml
+
+# Keep specific temp dashboards that are committed intentionally
+!temp-omada-full-dashboard.json
+!temp-synology-nas-dashboard.json
+!temp-container-status-fixed.json

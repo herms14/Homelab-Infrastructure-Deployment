@@ -458,6 +458,61 @@ Then reload: `source ~/.zshrc`
 
 ---
 
+## Obsidian Daily Notes Integration
+
+The Glance Home page includes an Obsidian Daily Notes widget that displays today's note from your MacBook's Obsidian vault. This requires specific setup to work.
+
+### Requirements
+
+| Component | Details |
+|-----------|---------|
+| **Obsidian Plugin** | Local REST API (Community Plugin) |
+| **MacBook Tailscale IP** | 100.90.207.58 |
+| **API Port** | 27123 |
+| **API Key** | Stored in Obsidian vault (11 - Credentials.md) |
+
+### Setup Checklist (Local Network)
+
+When connected to the local network and want the Obsidian Daily Notes widget to work:
+
+1. **MacBook Requirements**:
+   - [ ] Obsidian must be running
+   - [ ] Local REST API plugin enabled and running
+   - [ ] Plugin must bind to `0.0.0.0` (not localhost) - Settings > Local REST API > Network Interface
+   - [ ] MacBook connected to Tailscale
+
+2. **Server Requirements** (docker-utilities):
+   - [ ] Tailscale installed and authenticated (already done)
+   - [ ] Can reach MacBook via Tailscale IP (100.90.207.58)
+
+### Verify Connectivity
+
+```bash
+# From docker-utilities server
+ssh docker-utilities "curl -s -H 'Authorization: Bearer YOUR_API_KEY' http://100.90.207.58:27123/vault/"
+
+# Test from MacBook (should work locally)
+curl -s -H 'Authorization: Bearer YOUR_API_KEY' http://localhost:27123/vault/
+```
+
+### Troubleshooting
+
+| Issue | Solution |
+|-------|----------|
+| Widget shows "Create today's note" | Obsidian not running or today's note doesn't exist |
+| Widget shows error | Check API key, verify Obsidian plugin is running |
+| Connection refused | Plugin bound to localhost; change to 0.0.0.0 |
+| Server can't reach MacBook | Verify both devices on Tailscale |
+
+### Configuration
+
+The widget is configured in Glance at `/opt/glance/config/glance.yml`:
+- API URL: `http://100.90.207.58:27123/vault/05%20Periodic%20Notes/00%20Daily/{DATE}.md`
+- Cache: 5 minutes
+- Daily note path: `05 Periodic Notes/00 Daily/YYYY-MM-DD.md`
+
+---
+
 ## Adding New Services
 
 Quick checklist (full details in `.claude/conventions.md`):
@@ -469,3 +524,61 @@ Quick checklist (full details in `.claude/conventions.md`):
 5. Add Authentik protection (if needed)
 6. Update Discord bots
 7. Update ALL documentation locations
+
+---
+
+## Tutorial Creation Standards
+
+When asked to create a tutorial, follow the comprehensive format established in `docs/DISCORD_BOT_DEPLOYMENT_TUTORIAL.md`.
+
+### Required Tutorial Structure
+
+1. **Title & Introduction**
+   - Clear title describing what the tutorial covers
+   - Brief overview of what will be built/learned
+
+2. **Table of Contents**
+   - Numbered sections with anchor links
+   - Logical progression from basics to advanced
+
+3. **Architecture Overview**
+   - ASCII diagram showing the system architecture
+   - Key concepts table with Term → Definition format
+   - "Why" explanations for technology choices
+
+4. **Prerequisites**
+   - Infrastructure requirements
+   - Software/accounts needed
+   - Network requirements table
+
+5. **Step-by-Step Parts**
+   - Number each major section (Part 1, Part 2, etc.)
+   - Sub-steps with clear numbering (Step 1.1, Step 1.2)
+   - Code blocks with comments explaining each line
+   - Tables explaining command parameters/options
+   - "Line-by-Line Explanation" sections for complex code
+
+6. **Command Reference Tables**
+   - Format: `| Command | Purpose |`
+   - Group by category (Docker, SSH, Proxmox, etc.)
+
+7. **Troubleshooting Section**
+   - Common issues with solutions
+   - Error messages and fixes
+
+8. **Appendix (if needed)**
+   - Configuration examples
+   - Environment-specific settings
+
+### Formatting Guidelines
+
+- Use tables liberally for structured information
+- Include ASCII diagrams for architecture
+- Every code block should have context/explanation
+- Use `> **Note:**` callouts for important information
+- Include "Key Concepts Explained" tables after complex sections
+- End with a Summary section recapping what was learned
+
+### Example Reference
+
+See `docs/DISCORD_BOT_DEPLOYMENT_TUTORIAL.md` for the gold standard format (~500 lines, comprehensive coverage from basics to production deployment).

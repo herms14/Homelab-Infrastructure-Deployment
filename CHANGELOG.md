@@ -7,6 +7,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed - Glance Docker Networking (December 27, 2025)
+- **Fixed Glance API connectivity** - Glance container couldn't reach local APIs (Media Stats, Reddit, NBA Stats)
+- **Root Cause**: Glance config used `localhost` URLs, but Docker containers have isolated network namespaces
+- **Fix**: Updated all API URLs from `localhost` to `172.17.0.1` (Docker bridge gateway)
+  - `http://localhost:5054` → `http://172.17.0.1:5054` (Media Stats API)
+  - `http://localhost:5053` → `http://172.17.0.1:5053` (Reddit Manager)
+  - `http://localhost:5060` → `http://172.17.0.1:5060` (NBA Stats API)
+- **Deployed Network Dashboard Sorting** - Updated `omada-network.json` with sort transformations
+  - Top 10 Clients by Traffic: Now sorted descending by value
+  - Client TX Rate: Now sorted descending by value
+  - Client RX Rate: Now sorted descending by value
+
+### Added - Immich OAuth/SSO Integration (December 27, 2025)
+- **Integrated Immich with Authentik** for Single Sign-On authentication
+- **Created OAuth2/OIDC provider** in Authentik for Immich application
+- **Configured Immich OAuth settings** via PostgreSQL database update
+- **Added Immich icon** to Authentik application dashboard
+- **New tutorial**: `docs/IMMICH_AUTHENTIK_SSO_TUTORIAL.md` - comprehensive guide
+- **Updated documentation**:
+  - `docs/APPLICATION_CONFIGURATIONS.md` - added OAuth section
+  - Obsidian `11 - Credentials.md` - added OAuth credentials
+
 ### Fixed - Grafana Iframe Embedding (December 27, 2025)
 - **Fixed Traefik services.yml structure** - middlewares were incorrectly placed under serversTransports
 - **Removed Authentik auth from Grafana route** - allows anonymous read-only access for iframe embedding

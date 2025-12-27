@@ -1,7 +1,7 @@
 # Infrastructure Context
 
 > Core infrastructure reference. This file contains stable information that rarely changes.
-> Last updated: 2025-12-25
+> Last updated: 2025-12-27
 
 ## Proxmox Cluster
 
@@ -44,12 +44,24 @@ ssh root@100.76.81.39        # node03
 
 ## Deployed Infrastructure
 
-**18 VMs Total**: 1 Ansible + 9 Kubernetes + 8 Services
+**Current Infrastructure** (December 2025):
+
+| Host | IP | Type | Services |
+|------|-----|------|----------|
+| docker-lxc-glance | 192.168.40.12 | LXC 200 | Glance, Media Stats API, Reddit Manager, NBA Stats API |
+| docker-lxc-bots | 192.168.40.14 | LXC 201 | Argus Bot, Chronos Bot |
+| docker-vm-core-utilities | 192.168.40.13 | VM 107 | Grafana, Prometheus, Uptime Kuma, Speedtest, cAdvisor, SNMP Exporter, Life Progress API |
+| docker-media | 192.168.40.11 | VM | Jellyfin, *arr stack, downloads, Mnemosyne Bot |
+| traefik | 192.168.40.20 | VM | Reverse proxy |
+| authentik | 192.168.40.21 | VM | SSO/Authentication |
+
+**Note**: docker-utilities (192.168.40.10) has been decommissioned. All monitoring services now run on 192.168.40.13.
 
 | Category | Hosts | Details |
 |----------|-------|---------|
 | Kubernetes | 9 VMs | 3 controllers + 6 workers (v1.28.15) |
-| Services | 8 VMs | Traefik, Authentik, Immich, GitLab, GitLab Runner, Arr Stack, n8n |
+| Services | 8 VMs | Traefik, Authentik, Immich, GitLab, GitLab Runner, Arr Stack |
+| LXC Containers | 2 LXC | Glance (200), Discord Bots (201) |
 | Ansible | 1 VM | Configuration management controller |
 
 ---
@@ -116,12 +128,22 @@ ssh hermes-admin@192.168.20.30
 
 ## Discord Bot Ecosystem
 
-| Bot | Channel | Purpose | Config Location |
-|-----|---------|---------|-----------------|
-| **Update Manager** | #update-manager | Container updates, onboarding | `/opt/update-manager/` |
-| **Argus SysAdmin** | #argus-assistant | VM/container control | `/opt/sysadmin-bot/` |
-| **Download Monitor** | #media-downloads | Radarr/Sonarr notifications | `/opt/download-monitor/` |
-| **Project Bot** | #project-management | GitLab Kanban task management | `/opt/project-bot/` |
+| Bot | Channel | Host | Config Location |
+|-----|---------|------|-----------------|
+| **Argus** | #container-updates | LXC 201 (192.168.40.14) | `/opt/argus-bot/` |
+| **Chronos** | #project-management | LXC 201 (192.168.40.14) | `/opt/chronos-bot/` |
+| **Mnemosyne** | #media-downloads | docker-media (192.168.40.11) | `/opt/mnemosyne-bot/` |
+
+**Bot Purposes:**
+- **Argus**: Container update notifications, Watchtower webhook integration, SSH-based container management
+- **Chronos**: GitLab task management, issue creation/tracking via slash commands
+- **Mnemosyne**: Media download tracking, Radarr/Sonarr integration, download progress notifications
+
+**Deployment Notes:**
+- Argus and Chronos run on dedicated LXC 201 for resource efficiency
+- Mnemosyne runs on docker-media VM because it needs localhost access to Radarr/Sonarr APIs
+- Docker in LXC requires `--security-opt apparmor=unconfined`
+- See `docs/DISCORD_BOT_DEPLOYMENT_TUTORIAL.md` for full deployment guide
 
 ---
 
@@ -295,14 +317,35 @@ Home | Compute | Storage | Network | Media | Web | Reddit
 
 ## Key File Locations
 
+**On LXC 200 (192.168.40.12)**:
+| Purpose | Path |
+|---------|------|
+| Glance Config | `/opt/glance/config/glance.yml` |
+| Media Stats API | `/opt/media-stats-api/media-stats-api.py` |
+| Reddit Manager | `/opt/reddit-manager/reddit-manager.py` |
+| NBA Stats API | `/opt/nba-stats-api/nba-stats-api.py` |
+
+**On LXC 201 (192.168.40.14)**:
+| Purpose | Path |
+|---------|------|
+| Argus Bot | `/opt/argus-bot/argus-bot.py` |
+| Chronos Bot | `/opt/chronos-bot/chronos-bot.py` |
+| SSH Keys (for Argus) | `/root/.ssh/homelab_ed25519` |
+
+**On VM 107 (192.168.40.13)**:
+| Purpose | Path |
+|---------|------|
+| Monitoring Stack | `/opt/monitoring/` |
+| Prometheus Config | `/opt/monitoring/prometheus/prometheus.yml` |
+| Grafana Dashboards | `/opt/monitoring/grafana/dashboards/` |
+| Life Progress API | `/opt/life-progress/app.py` |
+| SNMP Exporter | `/opt/monitoring/snmp-exporter/snmp.yml` |
+
+**On Traefik VM (192.168.40.20)**:
 | Purpose | Path |
 |---------|------|
 | Traefik Config | `/opt/traefik/config/` |
 | Traefik Dynamic | `/opt/traefik/config/dynamic/services.yml` |
-| Glance Config | `/opt/glance/config/glance.yml` |
-| Media Stats API | `/opt/media-stats-api/media-stats-api.py` |
-| Monitoring Stack | `/opt/monitoring/` |
-| Grafana Dashboards | `/opt/monitoring/grafana/dashboards/` |
 
 ---
 
@@ -312,8 +355,10 @@ Home | Compute | Storage | Network | Media | Web | Reddit
 - VMs use UEFI boot mode (ovmf)
 - LXC containers use Ubuntu 22.04 or Debian 12
 - Auto-start enabled on production infrastructure
-- Proxmox node02 dedicated to service VMs
+- Proxmox node01 hosts LXC 200 and VM 107 (core services)
 - Glance v0.7.0+ requires config directory mount (`./config:/app/config`)
+- Docker in LXC requires `--security-opt apparmor=unconfined` flag
 - Traefik uses ping entrypoint on port 8082 for health checks
 - Kubelet healthz endpoint binds to 0.0.0.0:10248 on all workers
-- Life Progress API runs on docker-vm-utilities01:5051
+- Life Progress API runs on docker-vm-core-utilities (192.168.40.13:5051)
+- Prometheus targets: cadvisor, docker-stats-media, traefik, omada, synology
