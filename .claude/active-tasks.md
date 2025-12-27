@@ -13,6 +13,39 @@
 
 ## Recently Completed (Last 24 Hours)
 
+## Homelab Blog Deployment
+**Completed**: 2025-12-27 ~21:30 UTC+8
+**Session**: MacBook via Tailscale
+**Changes**:
+- Deployed Hugo blog on GitHub Pages: https://herms14.github.io/Clustered-Thoughts/
+- Installed PaperMod theme with dark/light mode toggle
+- Published first post: "My Accidental Journey Into Homelabbing"
+- Configured GitHub Actions for automatic deployment
+- Added search, archives, tags, and navigation
+**Blog Location**:
+| Resource | URL |
+|----------|-----|
+| Blog URL | https://herms14.github.io/Clustered-Thoughts/ |
+| GitHub Repo | https://github.com/herms14/Clustered-Thoughts |
+| Source Posts | Obsidian: `07 HomeLab Things/Homelab Blog Posts/` |
+
+## Chronos Bot GitLab Permission Fix
+**Completed**: 2025-12-27 ~21:00 UTC+8
+**Session**: MacBook via Tailscale
+**Changes**:
+- Fixed `/done` command returning 403 Forbidden
+- Added `herms14` as Maintainer to GitLab project 2
+- Used GitLab rails console on 192.168.40.23
+
+## Security Audit & .gitignore Update
+**Completed**: 2025-12-27 ~19:30 UTC+8
+**Session**: MacBook via Tailscale
+**Changes**:
+- Removed 9 untracked files containing hardcoded secrets
+- Updated .gitignore to prevent future secret commits
+- Added patterns: `test_*.py`, `configure_*.py`, `glance-backup/`, `temp-*.py`
+**Note**: No secrets were ever committed to git - all removed files were untracked
+
 ## Immich + Authentik SSO Integration
 **Completed**: 2025-12-27 ~20:25 UTC+8
 **Session**: MacBook via Tailscale
