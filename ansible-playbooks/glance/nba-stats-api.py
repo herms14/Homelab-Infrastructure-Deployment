@@ -42,7 +42,7 @@ YAHOO_TOKEN_PATH = os.getenv('YAHOO_TOKEN_PATH', '/data/yahoo_token.json')
 
 # ESPN API endpoints (free, no auth required)
 ESPN_SCOREBOARD = "https://site.api.espn.com/apis/site/v2/sports/basketball/nba/scoreboard"
-ESPN_STANDINGS = "https://site.api.espn.com/apis/site/v2/sports/basketball/nba/standings"
+ESPN_STANDINGS = "https://site.api.espn.com/apis/v2/sports/basketball/nba/standings"
 
 # Timezone
 TIMEZONE = os.getenv('TIMEZONE', 'Asia/Manila')
@@ -345,6 +345,6 @@ def refresh_fantasy():
 
 
 if __name__ == '__main__':
-    port = int(os.getenv('PORT', 5055))
+    port = int(os.getenv('PORT', 5060))
     debug = os.getenv('DEBUG', 'false').lower() == 'true'
     app.run(host='0.0.0.0', port=port, debug=debug)

@@ -655,6 +655,45 @@ cd ~/ansible
 ansible-playbook immich/deploy-immich.yml -l immich-vm01 -v
 ```
 
+### Immich OAuth/SSO Integration
+
+Immich is integrated with Authentik for Single Sign-On (SSO) authentication.
+
+#### OAuth Configuration
+
+| Setting | Value |
+|---------|-------|
+| **Issuer URL** | `https://auth.hrmsmrflrii.xyz/application/o/immich/` |
+| **Client ID** | `immich-oauth-client` |
+| **Client Secret** | Stored in Authentik provider settings |
+| **Scopes** | `openid email profile` |
+| **Button Text** | `Login with Authentik` |
+| **Auto Register** | Enabled (creates user on first login) |
+
+#### Authentik Provider Settings
+
+| Setting | Value |
+|---------|-------|
+| **Provider Name** | Immich OAuth Provider |
+| **Client Type** | Confidential |
+| **Signing Key** | authentik Self-signed Certificate |
+| **Subject Mode** | Based on User's Email |
+| **Redirect URIs** | `https://photos.hrmsmrflrii.xyz/auth/login`, `https://photos.hrmsmrflrii.xyz/user-settings`, `app.immich:/` |
+
+#### Verify OAuth is Working
+
+```bash
+# Check OAuth is enabled
+curl -s http://192.168.40.22:2283/api/server/features | jq '.oauth'
+# Should return: true
+
+# Check button text
+curl -s http://192.168.40.22:2283/api/server/config | jq '.oauthButtonText'
+# Should return: "Login with Authentik"
+```
+
+See [IMMICH_AUTHENTIK_SSO_TUTORIAL.md](./IMMICH_AUTHENTIK_SSO_TUTORIAL.md) for detailed setup instructions.
+
 ---
 
 ## Life Progress Widget (Glance)

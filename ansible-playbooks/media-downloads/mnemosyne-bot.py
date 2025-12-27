@@ -82,20 +82,21 @@ def is_allowed_channel():
         channel_name = getattr(channel, 'name', '').lower()
         channel_id = getattr(channel, 'id', 0)
 
-        # Debug logging
-        logger.info(f"Channel check - name: '{channel_name}', id: {channel_id}, allowed: {ALLOWED_CHANNEL_LIST}")
-
         # Check by ID first
         if channel_id in ALLOWED_CHANNEL_LIST:
+            logger.info(f"Channel check PASSED (by ID) - {channel_name}")
             return True
         # Check by name (case-insensitive)
         if channel_name in ALLOWED_CHANNEL_LIST:
+            logger.info(f"Channel check PASSED (by name) - {channel_name}")
             return True
-        # Check if name contains the allowed channel (for threads)
+        # Check if name contains the allowed channel (for threads or emoji prefixes)
         for allowed in ALLOWED_CHANNEL_LIST:
             if isinstance(allowed, str) and allowed in channel_name:
+                logger.info(f"Channel check PASSED (substring) - '{allowed}' in '{channel_name}'")
                 return True
 
+        logger.warning(f"Channel check FAILED - name: '{channel_name}', allowed: {ALLOWED_CHANNEL_LIST}")
         await interaction.response.send_message(
             f"This command can only be used in: **#{', #'.join(str(c) for c in ALLOWED_CHANNEL_LIST)}**",
             ephemeral=True
@@ -1137,6 +1138,38 @@ async def on_ready():
                 inline=True
             )
             await channel.send(embed=embed)
+
+
+@bot.tree.error
+async def on_app_command_error(interaction: discord.Interaction, error: app_commands.AppCommandError):
+    """Global error handler for slash commands."""
+    logger.error(f"Command error: {error}")
+    logger.error(f"Command: {interaction.command.name if interaction.command else 'Unknown'}")
+    logger.error(f"User: {interaction.user}")
+
+    # Unwrap the error
+    if isinstance(error, app_commands.CheckFailure):
+        # Already handled by the check
+        return
+
+    error_msg = str(error)
+    if hasattr(error, 'original'):
+        error_msg = str(error.original)
+        logger.error(f"Original error: {error.original}", exc_info=error.original)
+
+    try:
+        if interaction.response.is_done():
+            await interaction.followup.send(
+                embed=create_embed("Error", f"An error occurred: {error_msg}", color=0xff0000),
+                ephemeral=True
+            )
+        else:
+            await interaction.response.send_message(
+                embed=create_embed("Error", f"An error occurred: {error_msg}", color=0xff0000),
+                ephemeral=True
+            )
+    except Exception as e:
+        logger.error(f"Failed to send error message: {e}")
 
 
 def main():

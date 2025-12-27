@@ -6,13 +6,83 @@ This document describes the Discord bots deployed in the homelab for automation 
 
 | Bot | Channel | Host | Purpose |
 |-----|---------|------|---------|
-| **Argus** | `#container-updates` | docker-lxc-bots (192.168.40.14) | Container update management |
-| **Mnemosyne** | `#media-downloads` | docker-media (192.168.40.11) | Media download tracking |
+| **Athena** | `#claude-tasks` | docker-lxc-bots (192.168.40.14:5051) | Claude task queue orchestrator |
+| **Argus** | `#container-updates` | docker-lxc-bots (192.168.40.14:5050) | Container update management |
 | **Chronos** | `#project-management` | docker-lxc-bots (192.168.40.14) | GitLab task management |
+| **Mnemosyne** | `#media-downloads` | docker-media (192.168.40.11) | Media download tracking |
 
 Each bot is channel-restricted and will only respond to commands in its designated channel.
 
-> **Note**: Argus and Chronos run on a dedicated LXC container (LXC 201) for resource efficiency. Mnemosyne runs on docker-media VM because it needs localhost access to Radarr/Sonarr APIs.
+> **Note**: Athena, Argus, and Chronos run on a dedicated LXC container (LXC 201) for resource efficiency. Mnemosyne runs on docker-media VM because it needs localhost access to Radarr/Sonarr APIs.
+
+---
+
+## Athena - Claude Task Queue Orchestrator
+
+**Location**: `/opt/athena-bot/`
+**Container**: `athena-bot`
+**API Port**: 5051
+
+### Features
+- Task queue management for Claude Code instances
+- REST API for programmatic access
+- SQLite database for persistent storage
+- Multi-instance support with task locking
+- Real-time notifications on task completion
+
+### Discord Commands
+
+| Command | Description |
+|---------|-------------|
+| `/task` | Submit a new task for Claude to process |
+| `/queue` | View all pending tasks in the queue |
+| `/status` | Show Claude instance status and queue stats |
+| `/done` | View recently completed tasks |
+| `/priority` | Change task priority (high/medium/low) |
+| `/cancel` | Cancel a pending task |
+| `/athena` | Display help and bot info |
+
+### REST API
+
+Base URL: `http://192.168.40.14:5051`
+
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/health` | GET | Health check |
+| `/api/tasks` | GET | List pending tasks |
+| `/api/tasks` | POST | Create new task |
+| `/api/tasks/next` | GET | Get next available task |
+| `/api/tasks/<id>/claim` | POST | Claim a task |
+| `/api/tasks/<id>/complete` | POST | Mark task complete |
+| `/api/stats` | GET | Queue statistics |
+
+### CLI Client
+
+A Python CLI client is available for Claude instances:
+
+```bash
+# Check for pending tasks
+python claude-task-client.py check
+
+# Claim a task
+python claude-task-client.py claim 5
+
+# Complete a task
+python claude-task-client.py complete 5 -n "Completed successfully"
+```
+
+### Deployment
+
+```bash
+# Set environment variable
+export ATHENA_DISCORD_TOKEN=your_token
+
+# Deploy via Ansible
+cd ~/ansible
+ansible-playbook claude-tasks/deploy-athena-bot.yml
+```
+
+See [CLAUDE_TASK_QUEUE.md](./CLAUDE_TASK_QUEUE.md) for detailed documentation and [ATHENA_BOT_TUTORIAL.md](./ATHENA_BOT_TUTORIAL.md) for the complete tutorial.
 
 ---
 
@@ -168,6 +238,10 @@ ansible-playbook project-management/deploy-chronos-bot.yml
 ```
 Discord Server
 │
+├── #claude-tasks ──────► Athena (LXC 201 - 192.168.40.14:5051)
+│                              ├── REST API for Claude instances
+│                              └── SQLite task database
+│
 ├── #container-updates ──► Argus (LXC 201 - 192.168.40.14:5050)
 │                              ├── Watchtower webhooks
 │                              └── SSH to all Docker hosts
@@ -182,9 +256,10 @@ Discord Server
 Infrastructure:
 ┌─────────────────────────────────────────────────────────────────┐
 │  LXC 201: docker-lxc-bots (192.168.40.14)                      │
-│  ┌─────────────┐  ┌─────────────┐                              │
-│  │  Argus Bot  │  │ Chronos Bot │                              │
-│  └─────────────┘  └─────────────┘                              │
+│  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐             │
+│  │ Athena Bot  │  │  Argus Bot  │  │ Chronos Bot │             │
+│  │   :5051     │  │    :5050    │  │             │             │
+│  └─────────────┘  └─────────────┘  └─────────────┘             │
 │  2GB RAM | 2 vCPU | 8GB Disk                                   │
 └─────────────────────────────────────────────────────────────────┘
 

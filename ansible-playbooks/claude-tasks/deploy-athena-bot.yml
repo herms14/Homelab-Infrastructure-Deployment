@@ -1,0 +1,119 @@
+---
+# Deploy Athena Bot - Claude Task Queue Orchestrator
+# This playbook deploys the Athena Discord bot to LXC 201
+#
+# Usage:
+#   ansible-playbook claude-tasks/deploy-athena-bot.yml
+#
+# Environment Variables Required:
+#   ATHENA_DISCORD_TOKEN - Discord bot token
+#   ATHENA_API_KEY - API key for REST endpoints (optional, has default)
+
+- name: Deploy Athena Bot
+  hosts: 192.168.40.14
+  become: yes
+  gather_facts: no
+  vars:
+    ansible_user: root
+    ansible_ssh_private_key_file: ~/.ssh/homelab_ed25519
+    athena_dir: /opt/athena-bot
+    discord_token: "{{ lookup('env', 'ATHENA_DISCORD_TOKEN') }}"
+    api_key: "{{ lookup('env', 'ATHENA_API_KEY') | default('athena-homelab-key', true) }}"
+
+  tasks:
+    - name: Verify Discord token is set
+      fail:
+        msg: "ATHENA_DISCORD_TOKEN environment variable must be set"
+      when: discord_token == ""
+
+    - name: Create Athena bot directory
+      file:
+        path: "{{ athena_dir }}"
+        state: directory
+        mode: '0755'
+
+    - name: Create data directory for SQLite
+      file:
+        path: "{{ athena_dir }}/data"
+        state: directory
+        mode: '0755'
+
+    - name: Copy Athena bot script
+      copy:
+        src: athena-bot.py
+        dest: "{{ athena_dir }}/athena-bot.py"
+        mode: '0644'
+
+    - name: Create docker-compose.yml
+      copy:
+        dest: "{{ athena_dir }}/docker-compose.yml"
+        mode: '0644'
+        content: |
+          services:
+            athena-bot:
+              image: python:3.12-slim
+              container_name: athena-bot
+              restart: unless-stopped
+              working_dir: /app
+              command: >
+                bash -c "pip install --no-cache-dir discord.py flask aiohttp && python -u athena-bot.py"
+              ports:
+                - "5051:5051"
+              environment:
+                - DISCORD_TOKEN={{ discord_token }}
+                - API_PORT=5051
+                - API_KEY={{ api_key }}
+                - DB_PATH=/app/data/tasks.db
+                - ALLOWED_CHANNELS=claude-tasks
+                - NOTIFICATION_CHANNEL=claude-tasks
+                - TZ=Asia/Manila
+              volumes:
+                - ./athena-bot.py:/app/athena-bot.py:ro
+                - ./data:/app/data
+              security_opt:
+                - apparmor=unconfined
+
+    - name: Stop existing container if running
+      shell: docker compose down
+      args:
+        chdir: "{{ athena_dir }}"
+      ignore_errors: yes
+
+    - name: Start Athena bot
+      shell: docker compose up -d
+      args:
+        chdir: "{{ athena_dir }}"
+
+    - name: Wait for container to start
+      pause:
+        seconds: 10
+
+    - name: Check container status
+      shell: docker ps --filter "name=athena-bot" --format "{{ '{{' }}.Status{{ '}}' }}"
+      register: container_status
+
+    - name: Display container status
+      debug:
+        msg: "Athena bot container status: {{ container_status.stdout }}"
+
+    - name: Check container logs
+      shell: docker logs athena-bot --tail 20
+      register: container_logs
+
+    - name: Display container logs
+      debug:
+        msg: "{{ container_logs.stdout_lines }}"
+
+    - name: Test API health endpoint
+      uri:
+        url: "http://localhost:5051/health"
+        method: GET
+        return_content: yes
+      register: health_check
+      retries: 3
+      delay: 5
+      until: health_check.status == 200
+
+    - name: Display health check result
+      debug:
+        msg: "API Health: {{ health_check.json }}"

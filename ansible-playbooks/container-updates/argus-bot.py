@@ -1,21 +1,30 @@
 #!/usr/bin/env python3
 """
-Argus - Container Update Guardian Bot
+Argus - Container & VM Update Guardian Bot
 Location: /opt/argus-bot/argus-bot.py
 
 Features:
 - Watchtower webhook integration for update notifications
 - Button-based approval for container updates
+- VM/LXC package update management
+- Custom container rebuild support
 - Slash commands for checking and managing updates
-- Container status monitoring
 - Channel-restricted to container-updates
 
-Commands:
+Container Commands:
 - /check - Check all containers for available updates
 - /update <container> - Update a specific container
 - /updateall - Update all containers with pending updates
 - /containers - List all monitored containers
 - /status - Show container running status
+- /rebuild <container> - Rebuild a custom container
+
+VM/LXC Commands:
+- /vmcheck - Check all VMs for package updates
+- /vmupdate <host> - Update packages on a specific VM
+- /vmupdateall - Update packages on all VMs
+
+Info:
 - /argus - Show help and bot info
 """
 
@@ -76,6 +85,28 @@ CONTAINER_HOSTS = {
     "immich-server": "192.168.40.22",
     "immich-ml": "192.168.40.22",
     "gitlab": "192.168.40.23",
+}
+
+# VM/LXC hosts for package updates
+VM_HOSTS = {
+    "docker-utilities": "192.168.40.10",
+    "docker-media": "192.168.40.11",
+    "traefik": "192.168.40.20",
+    "authentik": "192.168.40.21",
+    "immich": "192.168.40.22",
+    "gitlab": "192.168.40.23",
+    "ansible": "192.168.20.30",
+}
+
+# Custom containers that can be rebuilt (not from Docker Hub)
+CUSTOM_CONTAINERS = {
+    "life-progress": {"host": "192.168.40.10", "path": "/opt/life-progress"},
+    "media-stats-api": {"host": "192.168.40.10", "path": "/opt/media-stats-api"},
+    "nba-stats-api": {"host": "192.168.40.10", "path": "/opt/nba-stats-api"},
+    "reddit-manager": {"host": "192.168.40.10", "path": "/opt/reddit-manager"},
+    "argus-bot": {"host": "192.168.40.10", "path": "/opt/argus-bot"},
+    "mnemosyne-bot": {"host": "192.168.40.11", "path": "/opt/mnemosyne-bot"},
+    "chronos-bot": {"host": "192.168.40.10", "path": "/opt/chronos-bot"},
 }
 
 # Pending updates storage
@@ -365,6 +396,84 @@ def update_container(host_ip: str, container_name: str) -> tuple:
         return None, str(e)
 
 
+def check_vm_updates(host_ip: str) -> dict:
+    """Check for package updates on a VM."""
+    try:
+        # Update apt cache and check for upgrades
+        cmd = (
+            f"ssh -i {SSH_KEY_PATH} -o StrictHostKeyChecking=no -o ConnectTimeout=10 "
+            f"hermes-admin@{host_ip} "
+            f"\"sudo apt update -qq 2>/dev/null && apt list --upgradable 2>/dev/null | grep -v Listing | wc -l\""
+        )
+        result = subprocess.run(cmd, shell=True, capture_output=True, text=True, timeout=60)
+        count = int(result.stdout.strip()) if result.stdout.strip().isdigit() else 0
+
+        # Get list of upgradable packages
+        packages = []
+        if count > 0:
+            cmd_list = (
+                f"ssh -i {SSH_KEY_PATH} -o StrictHostKeyChecking=no "
+                f"hermes-admin@{host_ip} "
+                f"\"apt list --upgradable 2>/dev/null | grep -v Listing | head -10\""
+            )
+            result_list = subprocess.run(cmd_list, shell=True, capture_output=True, text=True, timeout=30)
+            packages = result_list.stdout.strip().split('\n') if result_list.stdout.strip() else []
+
+        return {
+            'count': count,
+            'packages': packages,
+            'error': None
+        }
+    except Exception as e:
+        return {'count': 0, 'packages': [], 'error': str(e)}
+
+
+def apply_vm_updates(host_ip: str) -> tuple:
+    """Apply package updates on a VM. Returns (success, message)."""
+    try:
+        cmd = (
+            f"ssh -i {SSH_KEY_PATH} -o StrictHostKeyChecking=no "
+            f"hermes-admin@{host_ip} "
+            f"\"sudo apt update -qq && sudo DEBIAN_FRONTEND=noninteractive apt upgrade -y -qq\""
+        )
+        result = subprocess.run(cmd, shell=True, capture_output=True, text=True, timeout=600)
+
+        if result.returncode == 0:
+            # Check if reboot required
+            cmd_reboot = (
+                f"ssh -i {SSH_KEY_PATH} -o StrictHostKeyChecking=no "
+                f"hermes-admin@{host_ip} \"test -f /var/run/reboot-required && echo 'reboot' || echo 'ok'\""
+            )
+            reboot_result = subprocess.run(cmd_reboot, shell=True, capture_output=True, text=True, timeout=10)
+            needs_reboot = 'reboot' in reboot_result.stdout
+
+            return True, "Reboot required" if needs_reboot else "Complete"
+        else:
+            return False, result.stderr[:200]
+    except Exception as e:
+        return False, str(e)
+
+
+def rebuild_container(host_ip: str, container_path: str) -> tuple:
+    """Rebuild a custom container. Returns (success, message)."""
+    try:
+        cmd = (
+            f"ssh -i {SSH_KEY_PATH} -o StrictHostKeyChecking=no "
+            f"hermes-admin@{host_ip} "
+            f"\"cd {container_path} && sudo docker compose down && "
+            f"sudo docker compose build --no-cache && "
+            f"sudo docker compose up -d\""
+        )
+        result = subprocess.run(cmd, shell=True, capture_output=True, text=True, timeout=300)
+
+        if result.returncode == 0:
+            return True, "Rebuilt successfully"
+        else:
+            return False, result.stderr[:200]
+    except Exception as e:
+        return False, str(e)
+
+
 # ============================================================================
 # Slash Commands
 # ============================================================================
@@ -374,17 +483,28 @@ def update_container(host_ip: str, container_name: str) -> tuple:
 async def argus_help(interaction: discord.Interaction):
     """Show help information."""
     embed = discord.Embed(
-        title=" Argus - Container Update Guardian",
-        description="I monitor your containers and notify you when updates are available.",
+        title=" Argus - Container & VM Update Guardian",
+        description="I monitor your containers and VMs, notifying you when updates are available.",
         color=0x00ff00
     )
 
     embed.add_field(
-        name=" Check & Update",
+        name=" Container Updates",
         value=(
-            "`/check` - Scan all containers for updates\n"
+            "`/check` - Scan all containers for image updates\n"
             "`/update <name>` - Update a specific container\n"
-            "`/updateall` - Update all pending containers"
+            "`/updateall` - Update all pending containers\n"
+            "`/rebuild <name>` - Rebuild a custom container"
+        ),
+        inline=False
+    )
+
+    embed.add_field(
+        name=" VM Package Updates",
+        value=(
+            "`/vmcheck` - Check all VMs for package updates\n"
+            "`/vmupdate <host>` - Update packages on a VM\n"
+            "`/vmupdateall` - Update all VMs"
         ),
         inline=False
     )
@@ -405,7 +525,7 @@ async def argus_help(interaction: discord.Interaction):
         inline=False
     )
 
-    embed.set_footer(text=f"Monitoring {len(CONTAINER_HOSTS)} containers across 6 hosts")
+    embed.set_footer(text=f"Monitoring {len(CONTAINER_HOSTS)} containers + {len(VM_HOSTS)} VMs")
 
     await interaction.response.send_message(embed=embed)
 
@@ -659,6 +779,233 @@ async def container_status(interaction: discord.Interaction):
     embed.set_footer(text=f"Total: {len(CONTAINER_HOSTS)} containers")
 
     await interaction.followup.send(embed=embed)
+
+
+# ============================================================================
+# VM Package Update Commands
+# ============================================================================
+
+@bot.tree.command(name="vmcheck", description="Check all VMs for package updates")
+@is_allowed_channel()
+async def vm_check(interaction: discord.Interaction):
+    """Check all VMs for available package updates."""
+    await interaction.response.defer()
+
+    results = []
+    total_updates = 0
+
+    for vm_name, host_ip in VM_HOSTS.items():
+        update_info = await asyncio.get_event_loop().run_in_executor(
+            None, check_vm_updates, host_ip
+        )
+
+        results.append({
+            'name': vm_name,
+            'ip': host_ip,
+            'count': update_info['count'],
+            'packages': update_info['packages'],
+            'error': update_info['error']
+        })
+        total_updates += update_info['count']
+
+    # Build response
+    embed = discord.Embed(
+        title=" VM Package Update Check",
+        color=0xf59e0b if total_updates > 0 else 0x22c55e
+    )
+
+    if total_updates > 0:
+        embed.description = f"**{total_updates} packages** need updating across {len([r for r in results if r['count'] > 0])} VMs"
+
+        for result in results:
+            if result['count'] > 0:
+                packages_preview = "\n".join(result['packages'][:3])
+                if result['count'] > 3:
+                    packages_preview += f"\n... +{result['count'] - 3} more"
+                embed.add_field(
+                    name=f" {result['name']} ({result['count']})",
+                    value=f"```{packages_preview}```" if packages_preview else "Updates available",
+                    inline=False
+                )
+    else:
+        embed.description = " All VMs are up to date!"
+
+        # Show status of all VMs
+        status_text = ""
+        for result in results:
+            status = "" if result['error'] else ""
+            status_text += f"{status} {result['name']}\n"
+        embed.add_field(name="VM Status", value=status_text, inline=False)
+
+    embed.set_footer(text=f"Checked {len(VM_HOSTS)} VMs | Use /vmupdate <host> or /vmupdateall")
+
+    await interaction.followup.send(embed=embed)
+
+
+@bot.tree.command(name="vmupdate", description="Update packages on a specific VM")
+@app_commands.describe(host="The VM hostname to update (e.g., docker-utilities)")
+@is_allowed_channel()
+async def vm_update(interaction: discord.Interaction, host: str):
+    """Update packages on a specific VM."""
+    # Find the host
+    matched_name = None
+    host_ip = None
+
+    for name, ip in VM_HOSTS.items():
+        if name.lower() == host.lower():
+            matched_name = name
+            host_ip = ip
+            break
+        elif host.lower() in name.lower():
+            matched_name = name
+            host_ip = ip
+
+    if not matched_name:
+        hosts_list = ", ".join(VM_HOSTS.keys())
+        await interaction.response.send_message(
+            f" Host **{host}** not found.\nAvailable: `{hosts_list}`",
+            ephemeral=True
+        )
+        return
+
+    await interaction.response.defer()
+
+    # Check for updates first
+    update_info = await asyncio.get_event_loop().run_in_executor(
+        None, check_vm_updates, host_ip
+    )
+
+    if update_info['count'] == 0:
+        await interaction.followup.send(f" **{matched_name}** is already up to date!")
+        return
+
+    await interaction.followup.send(
+        f" Updating **{matched_name}** ({update_info['count']} packages)... This may take a few minutes."
+    )
+
+    # Apply updates
+    success, message = await asyncio.get_event_loop().run_in_executor(
+        None, apply_vm_updates, host_ip
+    )
+
+    if success:
+        emoji = "" if message == "Complete" else ""
+        await interaction.followup.send(
+            f"{emoji} **{matched_name}** updated successfully!\n"
+            f"Status: {message}"
+        )
+    else:
+        await interaction.followup.send(
+            f" Update failed for **{matched_name}**\n```{message}```"
+        )
+
+
+@bot.tree.command(name="vmupdateall", description="Update packages on all VMs")
+@is_allowed_channel()
+async def vm_update_all(interaction: discord.Interaction):
+    """Update packages on all VMs."""
+    await interaction.response.defer()
+
+    # First check which VMs need updates
+    vms_with_updates = []
+    for vm_name, host_ip in VM_HOSTS.items():
+        update_info = await asyncio.get_event_loop().run_in_executor(
+            None, check_vm_updates, host_ip
+        )
+        if update_info['count'] > 0:
+            vms_with_updates.append({
+                'name': vm_name,
+                'ip': host_ip,
+                'count': update_info['count']
+            })
+
+    if not vms_with_updates:
+        await interaction.followup.send(" All VMs are already up to date!")
+        return
+
+    # Show what will be updated
+    total_packages = sum(vm['count'] for vm in vms_with_updates)
+    vm_list = "\n".join([f" {vm['name']} ({vm['count']} packages)" for vm in vms_with_updates])
+
+    await interaction.followup.send(
+        f" Updating **{len(vms_with_updates)} VMs** ({total_packages} packages total)...\n{vm_list}"
+    )
+
+    # Update each VM
+    success_count = 0
+    reboot_needed = []
+    failed = []
+
+    for vm in vms_with_updates:
+        success, message = await asyncio.get_event_loop().run_in_executor(
+            None, apply_vm_updates, vm['ip']
+        )
+
+        if success:
+            success_count += 1
+            if "Reboot" in message:
+                reboot_needed.append(vm['name'])
+        else:
+            failed.append(f"{vm['name']}: {message[:50]}")
+
+    # Summary
+    summary = f"**VM Update Complete**\n\n"
+    summary += f" Updated: {success_count}/{len(vms_with_updates)}\n"
+
+    if reboot_needed:
+        summary += f" Reboot required: {', '.join(reboot_needed)}\n"
+
+    if failed:
+        summary += f" Failed:\n```{chr(10).join(failed)}```"
+
+    await interaction.followup.send(summary)
+
+
+@bot.tree.command(name="rebuild", description="Rebuild a custom container (pull base + rebuild)")
+@app_commands.describe(container="The custom container to rebuild")
+@is_allowed_channel()
+async def rebuild(interaction: discord.Interaction, container: str):
+    """Rebuild a custom container."""
+    # Find the container
+    matched_name = None
+    container_info = None
+
+    for name, info in CUSTOM_CONTAINERS.items():
+        if name.lower() == container.lower():
+            matched_name = name
+            container_info = info
+            break
+        elif container.lower() in name.lower():
+            matched_name = name
+            container_info = info
+
+    if not matched_name:
+        containers_list = ", ".join(CUSTOM_CONTAINERS.keys())
+        await interaction.response.send_message(
+            f" Container **{container}** not found or not a custom container.\n"
+            f"Available: `{containers_list}`",
+            ephemeral=True
+        )
+        return
+
+    await interaction.response.defer()
+
+    await interaction.followup.send(
+        f" Rebuilding **{matched_name}**... This will update base image and rebuild."
+    )
+
+    success, message = await asyncio.get_event_loop().run_in_executor(
+        None, rebuild_container, container_info['host'], container_info['path']
+    )
+
+    if success:
+        await interaction.followup.send(
+            f" **{matched_name}** rebuilt successfully!"
+        )
+    else:
+        await interaction.followup.send(
+            f" Rebuild failed for **{matched_name}**\n```{message}```"
+        )
 
 
 # ============================================================================
