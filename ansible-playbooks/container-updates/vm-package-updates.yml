@@ -1,0 +1,85 @@
+---
+# VM/LXC Package Update Playbook
+# Updates all packages on specified hosts
+#
+# Usage:
+#   ansible-playbook -i inventory.ini container-updates/vm-package-updates.yml
+#   ansible-playbook -i inventory.ini container-updates/vm-package-updates.yml -e target_hosts=docker_hosts
+#   ansible-playbook -i inventory.ini container-updates/vm-package-updates.yml -e "check_only=true"
+
+- name: Update VM/LXC Packages
+  hosts: "{{ target_hosts | default('all') }}"
+  become: yes
+  gather_facts: yes
+  vars:
+    check_only: false
+    reboot_if_required: false
+
+  tasks:
+    - name: Update apt cache
+      apt:
+        update_cache: yes
+        cache_valid_time: 3600
+      when: ansible_os_family == "Debian"
+
+    - name: Check for available updates
+      shell: apt list --upgradable 2>/dev/null | grep -v "Listing" | wc -l
+      register: update_count
+      changed_when: false
+      when: ansible_os_family == "Debian"
+
+    - name: List available updates
+      shell: apt list --upgradable 2>/dev/null | grep -v "Listing"
+      register: available_updates
+      changed_when: false
+      when: ansible_os_family == "Debian" and update_count.stdout | int > 0
+
+    - name: Display available updates
+      debug:
+        msg: |
+          Host: {{ inventory_hostname }}
+          Updates Available: {{ update_count.stdout }}
+          {% if available_updates.stdout is defined %}
+          Packages:
+          {{ available_updates.stdout }}
+          {% endif %}
+      when: update_count.stdout | int > 0
+
+    - name: Upgrade all packages
+      apt:
+        upgrade: dist
+        autoremove: yes
+        autoclean: yes
+      register: upgrade_result
+      when:
+        - ansible_os_family == "Debian"
+        - not check_only | bool
+        - update_count.stdout | int > 0
+
+    - name: Check if reboot is required
+      stat:
+        path: /var/run/reboot-required
+      register: reboot_required
+      when: ansible_os_family == "Debian"
+
+    - name: Display reboot status
+      debug:
+        msg: "{{ inventory_hostname }} requires a reboot!"
+      when: reboot_required.stat.exists | default(false)
+
+    - name: Reboot if required and allowed
+      reboot:
+        msg: "Rebooting for package updates"
+        reboot_timeout: 300
+      when:
+        - reboot_required.stat.exists | default(false)
+        - reboot_if_required | bool
+
+  post_tasks:
+    - name: Create summary
+      set_fact:
+        update_summary:
+          host: "{{ inventory_hostname }}"
+          updates_available: "{{ update_count.stdout | default('0') }}"
+          updates_applied: "{{ 'yes' if upgrade_result.changed | default(false) else 'no' }}"
+          reboot_required: "{{ 'yes' if reboot_required.stat.exists | default(false) else 'no' }}"
