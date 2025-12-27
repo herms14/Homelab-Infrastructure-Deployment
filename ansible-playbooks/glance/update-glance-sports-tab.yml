@@ -17,7 +17,7 @@
   become: yes
   vars:
     glance_path: /opt/glance
-    nba_api_url: "http://192.168.40.10:5055"
+    nba_api_url: "http://192.168.40.10:5060"
 
   tasks:
     - name: Read current Glance config

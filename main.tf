@@ -73,25 +73,28 @@ locals {
       nameserver    = "192.168.20.1"
     }
 
-    docker-vm-utilities = {
+    # NOTE: docker-vm-utilities (192.168.40.10) replaced due to boot issues
+    # New VM on node01 at 192.168.40.13
+    docker-vm-core-utilities = {
       count         = 1
-      starting_ip   = "192.168.40.10"
-      target_node   = "node02"
+      starting_ip   = "192.168.40.13"
+      target_node   = "node01"
       template      = "tpl-ubuntu-shared-v1"
-      cores         = 2
+      cores         = 4
       sockets       = 1
       memory        = 12288  # 12GB
-      disk_size     = "20G"
+      disk_size     = "40G"
       storage       = "VMDisks"
       vlan_tag      = 40     # VLAN 40
       gateway       = "192.168.40.1"
-      nameserver    = "192.168.20.1"
+      nameserver    = "192.168.91.30"  # OPNsense DNS
     }
 
+    # Media VM moved to node01
     docker-vm-media = {
       count         = 1
       starting_ip   = "192.168.40.11"
-      target_node   = "node02"
+      target_node   = "node01"
       template      = "tpl-ubuntu-shared-v1"
       cores         = 2
       sockets       = 1
@@ -100,8 +103,11 @@ locals {
       storage       = "VMDisks"
       vlan_tag      = 40     # VLAN 40
       gateway       = "192.168.40.1"
-      nameserver    = "192.168.20.1"
+      nameserver    = "192.168.91.30"  # OPNsense DNS
     }
+
+    # NOTE: Glance dashboard runs as LXC container (ID 200) on node01
+    # Created manually: docker-lxc-glance at 192.168.40.12
 
     traefik-vm = {
       count         = 1
