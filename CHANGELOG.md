@@ -7,6 +7,31 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added - Homelab Blog (December 27, 2025)
+- **Deployed Hugo blog** on GitHub Pages: https://herms14.github.io/Clustered-Thoughts/
+- **Theme**: PaperMod with dark/light mode toggle
+- **First post**: "My Accidental Journey Into Homelabbing: From Trip Photos to Full-Blown Infrastructure"
+- **Features**: Reading time, word count, table of contents, search, archives, tags
+- **Auto-deployment**: GitHub Actions workflow on push to main branch
+- **Source**: Blog posts drafted in Obsidian at `07 HomeLab Things/Homelab Blog Posts/`
+
+### Fixed - Chronos Bot GitLab Permissions (December 27, 2025)
+- **Issue**: Chronos bot `/done` command returned `403 Forbidden` when closing GitLab issues
+- **Root Cause**: GitLab token (user `herms14`) was not a member of project ID 2
+- **Fix**: Added `herms14` as Maintainer to Homelab Project via GitLab rails console
+- **Command used**: `project.add_member(user, :maintainer)` on GitLab VM (192.168.40.23)
+
+### Security - Updated .gitignore (December 27, 2025)
+- **Removed untracked files** with hardcoded secrets (never committed to git):
+  - `configure_uptime_kuma.py`, `test_*.py` - Uptime Kuma passwords
+  - `glance-backup/` - Yahoo OAuth secrets, Obsidian API keys
+  - `temp-media-fix.py`, `temp-media-update.py` - Radarr/Sonarr API keys
+- **Added .gitignore patterns** to prevent future accidental commits:
+  - `test_*.py`, `configure_*.py` - Test/config files
+  - `glance-backup/` - Backup directories
+  - `temp-*.py`, `temp-*.json`, `temp-*.yml` - Temp files
+- **Whitelisted**: Essential temp dashboards (omada, synology, container-status)
+
 ### Fixed - Glance Docker Networking (December 27, 2025)
 - **Fixed Glance API connectivity** - Glance container couldn't reach local APIs (Media Stats, Reddit, NBA Stats)
 - **Root Cause**: Glance config used `localhost` URLs, but Docker containers have isolated network namespaces

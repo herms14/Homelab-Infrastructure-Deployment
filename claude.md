@@ -188,6 +188,41 @@ Full service list in `.claude/context.md`.
 
 ---
 
+## Homelab Blog
+
+Personal blog documenting the homelab journey, hosted on GitHub Pages using Hugo.
+
+| Resource | URL |
+|----------|-----|
+| **Blog URL** | https://herms14.github.io/Clustered-Thoughts/ |
+| **GitHub Repo** | https://github.com/herms14/Clustered-Thoughts |
+| **Theme** | PaperMod |
+| **Deployment** | GitHub Actions (automatic on push to main) |
+
+### Adding New Blog Posts
+
+1. Create a new `.md` file in `content/posts/`
+2. Use this front matter:
+```yaml
+---
+title: "Your Post Title"
+date: 2025-12-27
+draft: false
+tags: ["homelab", "networking"]
+categories: ["homelab"]
+---
+```
+3. Commit and push - auto-deploys via GitHub Actions
+
+### Blog Post Source (Obsidian)
+
+Blog posts are drafted in Obsidian before publishing:
+```
+~/Library/CloudStorage/OneDrive-Personal/Obsidian Vault/Hermes's Life Knowledge Base/07 HomeLab Things/Homelab Blog Posts/
+```
+
+---
+
 ## Authentication
 
 | Access | Details |

@@ -5,6 +5,83 @@
 
 ---
 
+## 2025-12-27
+
+### 21:30 - Homelab Blog Deployment
+**Status**: Completed
+**Request**: Deploy Hugo blog on GitHub Pages with first blog post from Obsidian
+
+**Blog Setup**:
+- **URL**: https://herms14.github.io/Clustered-Thoughts/
+- **Repo**: https://github.com/herms14/Clustered-Thoughts
+- **Theme**: PaperMod (dark/light mode toggle)
+- **First Post**: "My Accidental Journey Into Homelabbing: From Trip Photos to Full-Blown Infrastructure"
+
+**Features Configured**:
+- Reading time & word count display
+- Table of contents (auto-generated)
+- Search functionality
+- Archives page
+- Tags & categories
+- Social links (GitHub, LinkedIn)
+- GitHub Actions auto-deployment
+
+**Files Created** (in Clustered-Thoughts repo):
+- `hugo.toml` - Site configuration
+- `.github/workflows/hugo.yml` - Auto-deploy workflow
+- `content/posts/my-accidental-journey-into-homelabbing.md` - First blog post
+- `content/archives.md`, `content/search.md` - Special pages
+
+---
+
+### 21:00 - Chronos Bot GitLab Permission Fix
+**Status**: Completed
+**Request**: Fix Chronos bot error when closing GitLab issues
+
+**Issue**: `/done` command returned `403 Forbidden`
+**Root Cause**: GitLab token belongs to user `herms14` (ID 34), but project 2 only had `hrmsmrflrii` (ID 35) as member
+**Fix**: Added `herms14` as Maintainer via GitLab rails console
+
+**Command Used**:
+```bash
+ssh hermes-admin@192.168.40.23 "docker exec -i gitlab gitlab-rails runner \"
+user = User.find_by(username: 'herms14')
+project = Project.find(2)
+project.add_member(user, :maintainer)
+\""
+```
+
+---
+
+### 19:30 - Security Audit & .gitignore Update
+**Status**: Completed
+**Request**: Check for API tokens/secrets in codebase and remove them
+
+**Files with Secrets Found & Removed** (all were untracked):
+| File | Secret Type |
+|------|-------------|
+| `configure_uptime_kuma.py` | Uptime Kuma password |
+| `test_uptime_kuma.py` | Uptime Kuma password |
+| `test_setup.py` | Uptime Kuma password |
+| `test_raw_socketio.py` | Uptime Kuma password |
+| `glance-backup/yahoo_fantasy.py` | Yahoo OAuth client secret |
+| `glance-backup/glance.yml` | Obsidian API key |
+| `temp-add-obsidian-widget.py` | Obsidian API key |
+| `temp-media-fix.py` | Radarr API key |
+| `temp-media-update.py` | Radarr/Sonarr API keys |
+
+**Important**: None of these files were tracked by git - secrets were never pushed to GitHub.
+
+**.gitignore Updated**:
+- Added `test_*.py`, `configure_*.py`
+- Added `glance-backup/`
+- Added `temp-*.py`, `temp-*.json`, `temp-*.yml`
+- Whitelisted essential temp dashboards
+
+**Commit**: `5769140` - Security: Update .gitignore to prevent secret commits
+
+---
+
 ## 2025-12-26
 
 ### 22:00 - Discord Bot Reorganization
