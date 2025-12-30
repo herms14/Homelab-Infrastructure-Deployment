@@ -1,6 +1,36 @@
 # Homelab Architecture Diagrams
 
-This document contains Mermaid diagrams that render in Obsidian, GitHub, and most Markdown viewers.
+This directory contains architecture diagrams for the homelab infrastructure.
+
+## Generated Diagrams (PNG)
+
+These diagrams are auto-generated using the Python `diagrams` library:
+
+| Diagram | Description |
+|---------|-------------|
+| ![Infrastructure](homelab-infrastructure.png) | Complete infrastructure overview |
+| ![Services](homelab-services.png) | Application services and their relationships |
+| ![Network](homelab-network.png) | Network topology and VLAN architecture |
+
+**Generator Script:** `scripts/generate-infrastructure-diagram.py`
+
+**Requirements:**
+- Python 3.x
+- `diagrams` library (`pip install diagrams`)
+- `graphviz` system package
+
+**To regenerate:**
+```bash
+ssh ansible
+cd ~/diagrams
+python3 generate-infrastructure-diagram.py
+```
+
+---
+
+## Mermaid Diagrams
+
+The following Mermaid diagrams render in Obsidian, GitHub, and most Markdown viewers.
 
 ## Complete Infrastructure Overview
 

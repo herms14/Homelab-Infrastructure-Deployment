@@ -7,6 +7,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added - Infrastructure Diagram Generation (December 30, 2025)
+- **Created diagram generator** `scripts/generate-infrastructure-diagram.py`
+  - Uses Python `diagrams` library for infrastructure-as-code diagrams
+  - Generates 3 PNG diagrams: infrastructure, services, network
+- **Installed dependencies on Ansible Controller**
+  - `graphviz` system package
+  - `diagrams` Python library v0.25.1
+- **Generated diagrams** in `docs/diagrams/`:
+  - `homelab-infrastructure.png` - Complete infrastructure overview
+  - `homelab-services.png` - Application services and relationships
+  - `homelab-network.png` - Network topology and VLANs
+- **Updated documentation** `docs/diagrams/HOMELAB_ARCHITECTURE.md`
+  - Added PNG diagram references
+  - Kept existing Mermaid diagrams for GitHub/Obsidian
+
 ### Added - HashiCorp Packer Installation (December 30, 2025)
 - **Installed Packer v1.14.3** on Ansible Controller (192.168.20.30)
   - Used for creating Proxmox VM templates with cloud-init support
