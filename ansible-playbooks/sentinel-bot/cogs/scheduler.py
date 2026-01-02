@@ -440,32 +440,72 @@ class SchedulerCog(commands.Cog, name="Scheduler"):
 
             from .onboarding import EXPECTED_SERVICES
 
-            issues = []
-            for service in EXPECTED_SERVICES:
-                checks = await onboarding_cog.check_service(service)
-                required = ['dns', 'traefik', 'ssl']
-                failed = [c for c in required if not checks.get(c)]
-                if failed:
-                    issues.append(f"**{service}**: Missing {', '.join(failed)}")
+            # Run all checks in parallel for speed
+            tasks = [onboarding_cog.check_service_fast(service) for service in EXPECTED_SERVICES]
+            results = await asyncio.gather(*tasks, return_exceptions=True)
 
-            if not issues:
-                # All good, no need to notify
-                logger.info("All services properly onboarded")
-                return
+            # Build table data with check results
+            table_rows = []
+            issues_count = 0
+            passed_count = 0
+
+            for service, checks in zip(EXPECTED_SERVICES, results):
+                # Handle exceptions
+                if isinstance(checks, Exception):
+                    checks = {'dns': False, 'traefik': False, 'ssl': False}
+
+                # Get status for each required check
+                dns_ok = checks.get('dns', False)
+                traefik_ok = checks.get('traefik', False)
+                ssl_ok = checks.get('ssl', False)
+
+                # Use colored circles
+                dns_icon = "🟢" if dns_ok else "🔴"
+                traefik_icon = "🟢" if traefik_ok else "🔴"
+                ssl_icon = "🟢" if ssl_ok else "🔴"
+
+                # Track counts
+                if dns_ok and traefik_ok and ssl_ok:
+                    passed_count += 1
+                else:
+                    issues_count += 1
+
+                table_rows.append(f"`{service:15}` {dns_icon} {traefik_icon} {ssl_icon}")
+
+            # Determine embed color based on issues
+            if issues_count == 0:
+                color = discord.Color.green()
+                title = ":white_check_mark: All Services Configured"
+            elif issues_count <= 5:
+                color = discord.Color.yellow()
+                title = ":warning: Onboarding Issues Detected"
+            else:
+                color = discord.Color.red()
+                title = ":x: Multiple Onboarding Issues"
 
             embed = discord.Embed(
-                title=":warning: Onboarding Issues Detected",
-                description=f"Found {len(issues)} service(s) with configuration issues",
-                color=discord.Color.yellow()
+                title=title,
+                description=f"**{passed_count}** configured | **{issues_count}** need attention",
+                color=color
             )
 
-            # Split if too many
-            issues_text = "\n".join(issues[:15])
-            if len(issues) > 15:
-                issues_text += f"\n... and {len(issues) - 15} more"
+            # Add header row
+            header = "`Service         ` DNS TRF SSL"
+            embed.add_field(name=header, value="\u200b", inline=False)
 
-            embed.add_field(name="Services", value=issues_text, inline=False)
-            embed.set_footer(text="Use /onboard <service> for details")
+            # Split services into chunks for embed field limits
+            chunk_size = 12
+            for i in range(0, len(table_rows), chunk_size):
+                chunk = table_rows[i:i + chunk_size]
+                # Use zero-width space for field name after first
+                field_name = f"Page {i // chunk_size + 1}" if i > 0 else "\u200b"
+                embed.add_field(
+                    name=field_name,
+                    value="\n".join(chunk),
+                    inline=False
+                )
+
+            embed.set_footer(text="🟢 Configured | 🔴 Missing | Use /onboard <service> for details")
 
             if self.bot.channel_router:
                 await self.bot.channel_router.send('onboarding', embed=embed)

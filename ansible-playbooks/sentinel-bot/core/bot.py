@@ -74,33 +74,26 @@ class SentinelBot(commands.Bot):
         # Load cogs
         await self._load_cogs()
 
-        # Clear ALL existing commands first (removes old Chronos/Argus/etc commands)
-        if self.config.discord.guild_id:
-            guild = discord.Object(id=self.config.discord.guild_id)
-            # Clear guild commands
-            self.tree.clear_commands(guild=guild)
-            await self.tree.sync(guild=guild)
-            logger.info(f"Cleared old guild commands")
-
-            # Now copy and sync our commands
-            self.tree.copy_global_to(guild=guild)
-            await self.tree.sync(guild=guild)
-            logger.info(f"Commands synced to guild {self.config.discord.guild_id}")
+        # Skip command sync on normal restarts - commands are already registered
+        # Only sync if SYNC_COMMANDS env var is set to "true"
+        import os
+        if os.environ.get('SYNC_COMMANDS', '').lower() == 'true':
+            if self.config.discord.guild_id:
+                guild = discord.Object(id=self.config.discord.guild_id)
+                try:
+                    self.tree.copy_global_to(guild=guild)
+                    await self.tree.sync(guild=guild)
+                    logger.info(f"Commands synced to guild {self.config.discord.guild_id}")
+                except discord.HTTPException as e:
+                    logger.warning(f"Failed to sync commands: {e}")
+            else:
+                try:
+                    await self.tree.sync()
+                    logger.info("Commands synced globally")
+                except discord.HTTPException as e:
+                    logger.warning(f"Failed to sync commands: {e}")
         else:
-            # Clear global commands first
-            self.tree.clear_commands(guild=None)
-            await self.tree.sync()
-            logger.info("Cleared old global commands")
-
-            # Load cogs again after clearing to re-register commands
-            for cog_name in list(self.cogs.keys()):
-                cog = self.get_cog(cog_name)
-                if cog:
-                    for cmd in cog.walk_app_commands():
-                        self.tree.add_command(cmd)
-
-            await self.tree.sync()
-            logger.info("Commands synced globally")
+            logger.info("Skipping command sync (set SYNC_COMMANDS=true to sync)")
 
     async def _load_cogs(self) -> None:
         """Load all cogs."""

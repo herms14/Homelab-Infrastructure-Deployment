@@ -5,6 +5,51 @@
 
 ---
 
+## 2026-01-02
+
+### 11:20 - Sentinel Bot Onboarding Report Table Format & Fixes
+**Status**: Completed
+**Request**: Change onboarding report from list to table format with green/red circles, fix DNS check and SSH issues
+
+**Changes Made**:
+1. **Onboarding Report Table Format**:
+   - Changed `/onboard-all` command output from list to table format
+   - Added colored circles: 🟢 for configured, 🔴 for missing
+   - Header row: `Service | DNS | TRF | SSL`
+   - Summary shows count of configured vs needs attention
+   - Parallel checks for speed (~10 seconds for all 27 services)
+
+2. **Fixed DNS Check** (onboarding.py):
+   - Changed DNS server from 192.168.91.30 (wrong) to 192.168.90.53 (Pi-hole)
+   - Line 53: `nslookup {domain} 192.168.90.53`
+
+3. **Fixed SSH Key Permissions**:
+   - SSH key ownership was `ubuntu:ubuntu` instead of `sentinel:sentinel` (UID 1000)
+   - Fixed with: `sudo chown 1000:1000 /opt/sentinel-bot/ssh/homelab_ed25519`
+
+4. **Fixed Command Sync Rate Limiting**:
+   - Bot was syncing commands twice on every restart, causing rate limits
+   - Changed to skip sync by default (set `SYNC_COMMANDS=true` to force)
+   - Bot now starts immediately without waiting for sync
+
+5. **Added Parallel Checks** (`check_service_fast` method):
+   - Runs DNS, Traefik, SSL checks concurrently
+   - 10-second timeout per service
+   - Much faster than sequential checks
+
+**Files Modified**:
+- `ansible-playbooks/sentinel-bot/cogs/onboarding.py` - Table format, DNS fix, parallel checks
+- `ansible-playbooks/sentinel-bot/cogs/scheduler.py` - Daily report uses parallel checks
+- `ansible-playbooks/sentinel-bot/core/bot.py` - Skip command sync by default
+- `docs/DISCORD_BOTS.md` - Updated onboarding section, troubleshooting
+
+**Technical Details**:
+- Container runs as `sentinel` user (UID 1000)
+- SSH key mounted from `/opt/sentinel-bot/ssh/` to `/home/sentinel/.ssh/`
+- Pi-hole DNS at 192.168.90.53 (VLAN 90)
+
+---
+
 ## 2025-12-30
 
 ### 22:55 - HashiCorp Packer Installation

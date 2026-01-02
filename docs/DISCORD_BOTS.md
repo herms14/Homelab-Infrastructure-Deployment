@@ -177,15 +177,28 @@ Infrastructure:
 | Command | Description |
 |---------|-------------|
 | `/onboard <service>` | Check single service (DNS, Traefik, SSL, Authentik, Docs) |
-| `/onboard-all` | Check all 27 tracked services |
+| `/onboard-all` | Check all 27 tracked services (parallel checks, table format) |
 | `/onboard-services` | List known services by category |
 
 **Checks Performed**:
-- **DNS**: Resolves `service.hrmsmrflrii.xyz` via OPNsense DNS
+- **DNS**: Resolves `service.hrmsmrflrii.xyz` via Pi-hole (192.168.90.53)
 - **Traefik**: Route exists in `/opt/traefik/config/dynamic/`
 - **SSL**: Valid certificate (openssl verify)
 - **Authentik**: Provider exists (optional)
 - **Docs**: Mentioned in `docs/` directory (optional)
+
+**Table Format Output** (as of January 2026):
+```
+Service          DNS TRF SSL
+grafana          🟢  🟢  🟢
+prometheus       🟢  🟢  🟢
+uptime-kuma      🟢  🟢  🟢
+...
+```
+- 🟢 = Configured/passing
+- 🔴 = Missing/failing
+- Parallel checks for speed (~10 seconds for all 27 services)
+- Color-coded embed border (green=all good, yellow=few issues, red=many issues)
 
 ---
 
@@ -499,10 +512,18 @@ ssh docker-vm-core-utilities01 "cd /opt/sentinel-bot && sudo docker compose logs
 
 ### Commands not appearing
 
-Discord slash commands can take up to 1 hour to propagate globally. For immediate sync:
-1. Restart the container
-2. Check logs for "Commands synced globally"
-3. Re-invite bot with `applications.commands` scope
+Discord slash commands can take up to 1 hour to propagate globally. Command sync is now **skipped by default** on restart to avoid rate limits. To force sync:
+
+1. Set environment variable: `SYNC_COMMANDS=true`
+2. Restart the container
+3. Check logs for "Commands synced to guild"
+
+```bash
+# Force command sync
+ssh docker-vm-core-utilities01 "cd /opt/sentinel-bot && sudo docker compose down && sudo SYNC_COMMANDS=true docker compose up -d"
+```
+
+If commands still don't appear, re-invite bot with `applications.commands` scope.
 
 ### Token issues
 
@@ -514,17 +535,26 @@ If you see "Improper token" errors:
 
 ### SSH connection failures
 
-1. Verify SSH key exists in container:
+1. Verify SSH key exists and has correct ownership:
    ```bash
-   docker exec sentinel-bot ls -la /app/.ssh/
+   docker exec sentinel-bot ls -la /home/sentinel/.ssh/
    ```
-2. Check key permissions:
+   Key should be owned by `sentinel:sentinel` (UID 1000).
+
+2. Fix key ownership on host (if owned by root):
    ```bash
-   docker exec sentinel-bot chmod 600 /app/.ssh/homelab_ed25519
+   sudo chown 1000:1000 /opt/sentinel-bot/ssh/homelab_ed25519
+   sudo chown 1000:1000 /opt/sentinel-bot/ssh/known_hosts
    ```
+
 3. Test SSH from container:
    ```bash
-   docker exec sentinel-bot ssh -i /app/.ssh/homelab_ed25519 hermes-admin@192.168.40.20 "echo ok"
+   docker exec sentinel-bot ssh -i /home/sentinel/.ssh/homelab_ed25519 -o StrictHostKeyChecking=no hermes-admin@192.168.40.13 "echo ok"
+   ```
+
+4. Restart container to clear cached connections:
+   ```bash
+   cd /opt/sentinel-bot && sudo docker compose restart
    ```
 
 ### Download notifications spam

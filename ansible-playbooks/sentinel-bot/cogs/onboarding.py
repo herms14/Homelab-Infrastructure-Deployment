@@ -50,7 +50,7 @@ class OnboardingCog(commands.Cog, name="Onboarding"):
         # Check via SSH to a host that can resolve
         result = await self.ssh.run(
             self.config.ssh.docker_utilities_ip,
-            f"nslookup {domain} 192.168.91.30 2>/dev/null | grep -q 'Address:' && echo 'ok'"
+            f"nslookup {domain} 192.168.90.53 2>/dev/null | grep -q 'Address:' && echo 'ok'"
         )
         return 'ok' in result.output
 
@@ -104,6 +104,26 @@ class OnboardingCog(commands.Cog, name="Onboarding"):
             'docs': await self._check_docs(service),
         }
         return checks
+
+    async def check_service_fast(self, service: str) -> Dict[str, bool]:
+        """Run only required checks in parallel for speed."""
+        import asyncio
+        dns_task = asyncio.create_task(self._check_dns(service))
+        traefik_task = asyncio.create_task(self._check_traefik(service))
+        ssl_task = asyncio.create_task(self._check_ssl(service))
+
+        try:
+            dns, traefik, ssl = await asyncio.wait_for(
+                asyncio.gather(dns_task, traefik_task, ssl_task, return_exceptions=True),
+                timeout=10.0  # 10 second timeout per service
+            )
+            return {
+                'dns': dns if isinstance(dns, bool) else False,
+                'traefik': traefik if isinstance(traefik, bool) else False,
+                'ssl': ssl if isinstance(ssl, bool) else False,
+            }
+        except asyncio.TimeoutError:
+            return {'dns': False, 'traefik': False, 'ssl': False}
 
     # ==================== Commands ====================
 
@@ -175,59 +195,82 @@ class OnboardingCog(commands.Cog, name="Onboarding"):
         """Check onboarding status for all known services."""
         await interaction.response.defer()
 
-        # Service categories (same as /onboard-services)
-        categories = {
-            "Monitoring": ['grafana', 'prometheus', 'uptime-kuma', 'jaeger', 'speedtest'],
-            "Media": ['jellyfin', 'radarr', 'sonarr', 'prowlarr', 'bazarr', 'jellyseerr', 'tdarr', 'deluge', 'sabnzbd', 'autobrr'],
-            "Infrastructure": ['traefik', 'authentik', 'gitlab'],
-            "Utilities": ['glance', 'n8n', 'immich', 'paperless'],
-            "New Services": ['lagident', 'karakeep', 'wizarr', 'tracearr'],
-        }
-
         total_services = len(EXPECTED_SERVICES)
-        progress = ProgressEmbed(":clipboard: Checking All Services...", total_services)
-        status_msg = await interaction.followup.send(embed=progress.embed)
 
-        # Store results by service
-        service_results = {}
-        checked = 0
+        # Send initial message
+        embed = discord.Embed(
+            title=":hourglass: Checking All Services...",
+            description=f"Scanning {total_services} services in parallel...",
+            color=discord.Color.blue()
+        )
+        status_msg = await interaction.followup.send(embed=embed)
+
+        # Run all checks in parallel for speed
+        import asyncio
+        tasks = [self.check_service_fast(service) for service in EXPECTED_SERVICES]
+        results = await asyncio.gather(*tasks, return_exceptions=True)
+
+        # Build table data with check results
+        table_rows = []
         fully_onboarded = 0
+        issues_count = 0
 
-        for service in EXPECTED_SERVICES:
-            progress.update(checked, f":hourglass: Checking **{service}**...")
-            await status_msg.edit(embed=progress.embed)
+        for service, checks in zip(EXPECTED_SERVICES, results):
+            # Handle exceptions
+            if isinstance(checks, Exception):
+                checks = {'dns': False, 'traefik': False, 'ssl': False}
 
-            checks = await self.check_service(service)
-            required = ['dns', 'traefik', 'ssl']
-            passed = sum(1 for c in required if checks.get(c))
-            total = len(required)
+            # Get status for each required check
+            dns_ok = checks.get('dns', False)
+            traefik_ok = checks.get('traefik', False)
+            ssl_ok = checks.get('ssl', False)
 
-            if passed == total:
-                status = ":white_check_mark:"
+            # Use colored circles
+            dns_icon = "🟢" if dns_ok else "🔴"
+            traefik_icon = "🟢" if traefik_ok else "🔴"
+            ssl_icon = "🟢" if ssl_ok else "🔴"
+
+            # Track counts
+            if dns_ok and traefik_ok and ssl_ok:
                 fully_onboarded += 1
-            elif passed > 0:
-                status = ":yellow_circle:"
             else:
-                status = ":red_circle:"
+                issues_count += 1
 
-            service_results[service] = f"{status} {service}"
-            checked += 1
+            table_rows.append(f"`{service:15}` {dns_icon} {traefik_icon} {ssl_icon}")
 
-        # Build categorized embed
-        color = discord.Color.green() if fully_onboarded == total_services else discord.Color.yellow()
-        embed = progress.complete(":clipboard: Service Onboarding Status", f"Checked {total_services} services", color)
-        embed.clear_fields()
+        # Determine embed color based on issues
+        if issues_count == 0:
+            color = discord.Color.green()
+            title = ":white_check_mark: All Services Configured"
+        elif issues_count <= 5:
+            color = discord.Color.yellow()
+            title = ":warning: Some Services Need Attention"
+        else:
+            color = discord.Color.red()
+            title = ":clipboard: Service Onboarding Status"
 
-        for category, services in categories.items():
-            matching = [service_results[s] for s in services if s in service_results]
-            if matching:
-                embed.add_field(
-                    name=category,
-                    value=", ".join(matching),
-                    inline=False
-                )
+        embed = discord.Embed(
+            title=title,
+            description=f"**{fully_onboarded}** configured | **{issues_count}** need attention",
+            color=color
+        )
 
-        embed.set_footer(text=f"Fully Onboarded: {fully_onboarded}/{len(EXPECTED_SERVICES)}")
+        # Add header row
+        header = "`Service         ` DNS TRF SSL"
+        embed.add_field(name=header, value="\u200b", inline=False)
+
+        # Split services into chunks for embed field limits
+        chunk_size = 12
+        for i in range(0, len(table_rows), chunk_size):
+            chunk = table_rows[i:i + chunk_size]
+            field_name = f"Page {i // chunk_size + 1}" if i > 0 else "\u200b"
+            embed.add_field(
+                name=field_name,
+                value="\n".join(chunk),
+                inline=False
+            )
+
+        embed.set_footer(text=f"🟢 Configured | 🔴 Missing | Fully Onboarded: {fully_onboarded}/{total_services}")
 
         await status_msg.edit(embed=embed)
 
