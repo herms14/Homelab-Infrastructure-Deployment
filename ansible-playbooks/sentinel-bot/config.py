@@ -199,7 +199,6 @@ CONTAINER_HOSTS = {
     'autobrr': '192.168.40.11',
     'deluge': '192.168.40.11',
     'sabnzbd': '192.168.40.11',
-    'mnemosyne-bot': '192.168.40.11',
 
     # docker-lxc-glance (192.168.40.12)
     'glance': '192.168.40.12',
@@ -207,10 +206,6 @@ CONTAINER_HOSTS = {
     'reddit-manager': '192.168.40.12',
     'nba-stats-api': '192.168.40.12',
     'pihole-stats-api': '192.168.40.12',
-
-    # docker-lxc-bots (192.168.40.14)
-    'argus-bot': '192.168.40.14',
-    'chronos-bot': '192.168.40.14',
 
     # traefik-vm01 (192.168.40.20)
     'traefik': '192.168.40.20',

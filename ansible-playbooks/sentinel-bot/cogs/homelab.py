@@ -28,6 +28,80 @@ class HomelabCog(commands.Cog, name="Homelab"):
     def ssh(self):
         return self.bot.ssh
 
+    # ==================== Help Command ====================
+
+    @app_commands.command(name="help", description="Show all Sentinel bot commands")
+    async def help_command(self, interaction: discord.Interaction):
+        """Display the welcome message with all commands."""
+        embed = discord.Embed(
+            title="Welcome to Hermes HomeLab!",
+            description="Meet **Sentinel** — your all-in-one homelab bot",
+            color=discord.Color.blue()
+        )
+
+        embed.add_field(
+            name="🖥️ Infrastructure",
+            value=(
+                "`/homelab status` `/homelab uptime`\n"
+                "`/node <name>` status/vms/lxc/restart\n"
+                "`/vm <id>` `/lxc <id>` status/start/stop/restart"
+            ),
+            inline=False
+        )
+
+        embed.add_field(
+            name="📦 Containers",
+            value=(
+                "`/check` `/update <name>` `/restart <name>`\n"
+                "`/containers` `/logs <name>` `/vmcheck`"
+            ),
+            inline=False
+        )
+
+        embed.add_field(
+            name="🎬 Media",
+            value=(
+                "`/downloads` `/download <title>` `/search`\n"
+                "`/library movies/shows/stats` `/recent`\n"
+                "⚠️ Failed downloads → React 🗑️ to remove"
+            ),
+            inline=False
+        )
+
+        embed.add_field(
+            name="📋 GitLab",
+            value=(
+                "`/todo <desc>` `/issues` `/close <id>`\n"
+                "`/quick <tasks>` `/project`"
+            ),
+            inline=True
+        )
+
+        embed.add_field(
+            name="🤖 Tasks",
+            value=(
+                "`/task <desc>` `/queue` `/status`\n"
+                "`/done` `/cancel <id>` `/taskstats`"
+            ),
+            inline=True
+        )
+
+        embed.add_field(
+            name="✅ Onboarding",
+            value="`/onboard <service>` `/onboard-all`",
+            inline=True
+        )
+
+        embed.add_field(
+            name="📢 Channels",
+            value="#homelab-infrastructure • #container-updates • #media-downloads • #claude-tasks",
+            inline=False
+        )
+
+        embed.set_footer(text="⚡ Live progress bars • 👍 Reaction approvals • 🗑️ Remove failed downloads")
+
+        await interaction.response.send_message(embed=embed)
+
     @property
     def config(self):
         return self.bot.config
