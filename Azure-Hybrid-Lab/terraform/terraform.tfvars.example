@@ -1,0 +1,43 @@
+# =============================================================================
+# Terraform Variables - Azure Hybrid Lab
+# =============================================================================
+# Copy this file to terraform.tfvars and fill in your values
+# NEVER commit terraform.tfvars to source control
+# =============================================================================
+
+# -----------------------------------------------------------------------------
+# Subscription IDs (already set as defaults, override if needed)
+# -----------------------------------------------------------------------------
+# platform_subscription_id = "***AZURE_SUBSCRIPTION_ID_REDACTED***"
+# app_subscription_id      = "***AZURE_SUBSCRIPTION_ID_REDACTED***"
+
+# -----------------------------------------------------------------------------
+# Required: Admin Credentials
+# -----------------------------------------------------------------------------
+admin_password = "YourSecurePassword123!"
+
+# -----------------------------------------------------------------------------
+# Required: VPN Pre-Shared Key
+# -----------------------------------------------------------------------------
+onprem_network = {
+  vlan_id       = 80
+  address_space = "192.168.80.0/24"
+  gateway_ip    = "192.168.80.1"
+  wan_ip        = "136.158.11.91"
+  vpn_psk       = "YourVPNPreSharedKey123!"
+}
+
+# -----------------------------------------------------------------------------
+# Optional: Override Location
+# -----------------------------------------------------------------------------
+# location = "australiaeast"
+
+# -----------------------------------------------------------------------------
+# Optional: Custom Tags
+# -----------------------------------------------------------------------------
+# tags = {
+#   Environment = "Production"
+#   Project     = "Azure-Hybrid-Lab"
+#   ManagedBy   = "Terraform"
+#   Owner       = "your-name"
+# }
