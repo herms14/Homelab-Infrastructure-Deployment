@@ -94,6 +94,34 @@ They're not just stored anymore. *They're loved.*
    - 7.1 [Complete Deployment Flow](#71-complete-deployment-flow)
    - 7.2 [Authentik Integration](#72-authentik-integration)
    - 7.3 [Service Dependencies](#73-service-dependencies)
+8. [Storage Architecture](#8-storage-architecture)
+   - 8.1 [Storage Design Philosophy](#81-storage-design-philosophy)
+   - 8.2 [Synology NAS Configuration](#82-synology-nas-configuration)
+   - 8.3 [Manual NFS Mounts](#83-manual-nfs-mounts)
+   - 8.4 [LXC Bind Mount Strategy](#84-lxc-bind-mount-strategy)
+9. [Kubernetes Cluster](#9-kubernetes-cluster)
+   - 9.1 [Cluster Overview](#91-cluster-overview)
+   - 9.2 [Node Architecture](#92-node-architecture)
+   - 9.3 [Installing Kubernetes (kubeadm)](#93-installing-kubernetes-kubeadm)
+   - 9.4 [Cluster Management](#94-cluster-management)
+   - 9.5 [High Availability](#95-high-availability)
+10. [Observability Stack](#10-observability-stack)
+    - 10.1 [Architecture Overview](#101-architecture-overview)
+    - 10.2 [Components](#102-components)
+    - 10.3 [Service URLs](#103-service-urls)
+    - 10.4 [Traefik OTEL Configuration](#104-traefik-otel-configuration)
+    - 10.5 [Using Jaeger](#105-using-jaeger)
+11. [Watchtower Interactive Updates](#11-watchtower-interactive-updates)
+    - 11.1 [Overview](#111-overview)
+    - 11.2 [Architecture](#112-architecture)
+    - 11.3 [Watchtower Configuration](#113-watchtower-configuration)
+    - 11.4 [Update Approval Flow](#114-update-approval-flow)
+12. [Sentinel Discord Bot](#12-sentinel-discord-bot)
+    - 12.1 [Overview](#121-overview)
+    - 12.2 [Architecture](#122-architecture)
+    - 12.3 [Channel Routing](#123-channel-routing)
+    - 12.4 [Commands](#124-commands)
+    - 12.5 [Management](#125-management)
 
 ---
 
@@ -143,7 +171,7 @@ A **Proxmox cluster** is a group of Proxmox nodes that work together as a single
 - **Authentication**: Users and API tokens work across all nodes
 - **Migration capability**: VMs can move between nodes
 
-```
+```text
 ┌─────────────────────────────────────────────────────────────────┐
 │                      MorpheusCluster                             │
 │                                                                  │
@@ -909,6 +937,22 @@ Think of it like apartments in a building:
 | 90 | Management | 192.168.90.0/24 | 192.168.90.1 | Network devices | .50-.254 |
 | 91 | Firewall | 192.168.91.0/24 | 192.168.91.1 | OPNsense | Static only |
 
+### WiFi SSID to VLAN Mapping
+
+Each VLAN has a dedicated WiFi SSID, providing wireless access to the appropriate network segment:
+
+| SSID | VLAN | Purpose |
+|------|:----:|---------|
+| NKD5380-Internal | 10 | Main home network (phones, laptops) |
+| NHN7476-Homelab | 20 | Homelab devices requiring VLAN 20 access |
+| WOC321-IoT | 30 | Smart home devices (isolated) |
+| NAZ9229-Production | 40 | Direct access to Docker services |
+| EAD6167-Guest | 50 | Visitor access (rate limited) |
+| NAZ9229-Sonos | 60 | Sonos speakers |
+| NCP5653-Management | 90 | Network device management |
+
+> **Security Note**: WiFi passwords are stored separately in the Obsidian vault credentials file. All SSIDs use WPA3 when supported, with WPA2 fallback.
+
 ---
 
 ## 2.3 Switch Port Configuration Deep Dive
@@ -920,7 +964,7 @@ Think of it like apartments in a building:
 - Traffic leaves switch **untagged**
 - Used for: End devices (PCs, printers, simple servers)
 
-```
+```text
 ┌─────────────┐                ┌─────────────┐
 │   Device    │  Untagged     │   Switch    │
 │   (PC)      │◄─────────────►│  Port 1     │
@@ -933,7 +977,7 @@ Think of it like apartments in a building:
 - Traffic leaves switch **tagged with VLAN ID**
 - Used for: Switch-to-switch, switch-to-router, hypervisors
 
-```
+```text
 ┌─────────────┐                ┌─────────────┐
 │  Proxmox    │  Tagged       │   Switch    │
 │   Node      │◄─────────────►│  Port 2     │
@@ -1016,7 +1060,7 @@ The main PC sometimes runs Hyper-V VMs that need to be on VLAN 20 (Homelab). Ins
 
 ### Components
 
-```
+```text
 ┌────────────────────────────────────────────────────────────────┐
 │                     DNS Resolution Flow                         │
 │                                                                 │
@@ -1089,7 +1133,7 @@ server:
 
 Tailscale creates a mesh VPN using WireGuard, allowing secure access from anywhere without port forwarding.
 
-```
+```text
 ┌─────────────────────────────────────────────────────────────────┐
 │                    Tailscale Network                            │
 │                                                                 │
@@ -1167,7 +1211,7 @@ Think of it like this: A cloud-init template is a "blank" VM image. When you clo
 
 ### How Cloud-Init Works in Proxmox
 
-```
+```text
 ┌─────────────────────────────────────────────────────────────────┐
 │                    Cloud-Init Boot Process                       │
 │                                                                  │
@@ -1803,7 +1847,7 @@ services:
 
 The "Arr Stack" is a collection of applications that automate media library management:
 
-```
+```text
 ┌─────────────────────────────────────────────────────────────────┐
 │                    Media Automation Flow                         │
 │                                                                  │
@@ -2523,7 +2567,7 @@ tdarr:
 | Quality | CRF 20-22 | Balance quality vs size |
 
 **Transcoding Flow**:
-```
+```text
 ┌─────────────────────────────────────────────────────┐
 │              Tdarr Transcoding Pipeline              │
 ├─────────────────────────────────────────────────────┤
@@ -3254,7 +3298,7 @@ node02 ansible_host=192.168.20.21 ansible_user=root
 
 ### Connection Flow
 
-```
+```text
 ┌─────────────────────────────────────────────────────────────────┐
 │                    Ansible Connection Flow                       │
 │                                                                  │
@@ -3322,7 +3366,7 @@ ansible all -a "uptime"
 
 ### New Service Deployment Flow
 
-```
+```text
 ┌─────────────────────────────────────────────────────────────────┐
 │                  Complete Service Deployment                     │
 │                                                                  │
@@ -3383,7 +3427,7 @@ ansible all -a "uptime"
 
 ### Forward Auth Flow
 
-```
+```text
 ┌─────────────────────────────────────────────────────────────────┐
 │                  Forward Authentication Flow                     │
 │                                                                  │
@@ -3543,6 +3587,792 @@ For a complete system restart, services should start in this order:
 
 ---
 
+# 8. Storage Architecture
+
+This section covers the production-grade NFS storage architecture used throughout the homelab.
+
+## 8.1 Storage Design Philosophy
+
+The storage architecture follows a key design principle:
+
+> **One NFS export = One Proxmox storage pool**
+
+This prevents "inactive storage" warnings in Proxmox and ensures clean separation between VM disks, ISOs, container configs, and media files.
+
+### Why This Matters
+
+| Issue | Cause | Solution |
+|-------|-------|----------|
+| Inactive storage warnings | Mixed content types | Dedicated exports |
+| `?` icons in Proxmox UI | Non-standard content | Homogeneous storage pools |
+| Template clone failures | Missing storage access | All storages on all nodes |
+| LXC rootfs errors | Wrong storage type | App configs via bind mounts |
+| Slow UI | Proxmox scanning large media | Media as manual mounts |
+
+---
+
+## 8.2 Synology NAS Configuration
+
+The Synology DS920+ NAS (192.168.20.31) provides centralized storage for the cluster.
+
+### NFS Exports
+
+| Storage Pool | Export Path | Type | Content | Management |
+|--------------|-------------|------|---------|------------|
+| **VMDisks** | `/volume2/ProxmoxCluster-VMDisks` | NFS | VM disk images | Proxmox-managed |
+| **ISOs** | `/volume2/ProxmoxCluster-ISOs` | NFS | ISO images | Proxmox-managed |
+| **LXC Configs** | `/volume2/Proxmox-LXCs` | NFS | App configs | Manual mount |
+| **Media** | `/volume2/Proxmox-Media` | NFS | Movies, Series, Music | Manual mount |
+| **ProxmoxData** | `/volume2/ProxmoxData` | NFS | Immich photos (7TB) | Manual mount |
+
+### Proxmox Storage Pools
+
+**VMDisks Pool** - VM virtual disks with full Proxmox integration:
+```
+ID: VMDisks
+Server: 192.168.20.31
+Export: /volume2/ProxmoxCluster-VMDisks
+Content: Disk image
+Nodes: All nodes
+```
+
+**ISOs Pool** - Installation media:
+```
+ID: ISOs
+Server: 192.168.20.31
+Export: /volume2/ProxmoxCluster-ISOs
+Content: ISO image
+Nodes: All nodes
+```
+
+These pools enable live migration, snapshots, and high availability across the cluster.
+
+---
+
+## 8.3 Manual NFS Mounts
+
+For container configs and media, manual mounts are used to avoid Proxmox scanning large directories.
+
+### Proxmox Node Configuration
+
+Add to `/etc/fstab` on **both** Proxmox nodes:
+
+```bash
+# LXC configuration storage
+192.168.20.31:/volume2/Proxmox-LXCs   /mnt/nfs/lxcs   nfs  defaults,_netdev  0  0
+
+# Media storage
+192.168.20.31:/volume2/Proxmox-Media  /mnt/nfs/media  nfs  defaults,_netdev  0  0
+```
+
+**Setup Commands:**
+```bash
+# Create mount points
+mkdir -p /mnt/nfs/lxcs /mnt/nfs/media
+
+# Mount all fstab entries
+mount -a
+
+# Verify mounts
+df -h | grep /mnt/nfs
+```
+
+### Docker Host Mounts
+
+**Media Host (docker-lxc-media / 192.168.40.11):**
+```bash
+# /etc/fstab
+192.168.20.31:/volume2/Proxmox-Media /mnt/media nfs defaults,_netdev 0 0
+```
+
+Media directory structure:
+- `/mnt/media/Movies` - Movie library
+- `/mnt/media/Series` - TV series library
+- `/mnt/media/Music` - Music library
+- `/mnt/media/Downloads` - Download staging
+
+**Immich Host (immich-vm01 / 192.168.40.22):**
+```bash
+# /etc/fstab
+192.168.20.31:/volume2/ProxmoxData /mnt/appdata nfs defaults,_netdev 0 0
+```
+
+Immich directory structure (7TB capacity):
+- `/mnt/appdata/immich/upload/` - Original uploads
+- `/mnt/appdata/immich/library/` - Processed library
+- `/mnt/appdata/immich/profile/` - User profiles
+
+---
+
+## 8.4 LXC Bind Mount Strategy
+
+LXC containers use bind mounts to access NFS-stored configuration directories, providing persistent storage that survives container recreation.
+
+### How It Works
+
+```text
+┌─────────────────────────────────────────────────────────────┐
+│                    Data Flow                                 │
+│                                                              │
+│  Synology NAS                   Proxmox Host    LXC Container│
+│  ┌──────────────┐              ┌──────────┐    ┌───────────┐│
+│  │/volume2/     │──NFS mount──►│/mnt/nfs/ │    │           ││
+│  │Proxmox-LXCs/ │              │lxcs/     │    │           ││
+│  │  └─traefik/  │              │ └─traefik│──►│/app/config││
+│  └──────────────┘              └──────────┘    └───────────┘│
+│                                     │                        │
+│                              bind mount                      │
+│                          (via pct.conf)                      │
+└─────────────────────────────────────────────────────────────┘
+```
+
+### Configuration Example
+
+In the container config file (e.g., `/etc/pve/lxc/100.conf`):
+
+```conf
+# Bind mount for Traefik config
+mp0: /mnt/nfs/lxcs/traefik,mp=/app/config
+```
+
+**Flow breakdown:**
+1. Host has `/mnt/nfs/lxcs` mounted via NFS from Synology
+2. Subdirectory `/mnt/nfs/lxcs/traefik/` bind-mounted into container
+3. Container sees `/app/config` as a normal directory
+4. Data persists on NAS at `/volume2/Proxmox-LXCs/traefik/`
+
+### Benefits of This Approach
+
+| Benefit | Explanation |
+|---------|-------------|
+| **Persistence** | Configs survive container destroy/recreate |
+| **Backups** | NAS handles backup scheduling |
+| **Migration** | Configs accessible from any node |
+| **Simplicity** | No Proxmox storage complexity for app data |
+
+---
+
+# 9. Kubernetes Cluster
+
+This section covers the 9-node Kubernetes cluster deployed across the homelab for container orchestration.
+
+## 9.1 Cluster Overview
+
+| Metric | Value |
+|--------|-------|
+| **Version** | v1.28.15 (stable) |
+| **Control Plane** | 3 nodes (HA) |
+| **Worker Nodes** | 6 nodes |
+| **Total Nodes** | 9 |
+| **Container Runtime** | containerd v1.7.28 |
+| **CNI Plugin** | Calico v3.27.0 |
+| **Pod Network** | 10.244.0.0/16 |
+| **Service CIDR** | 10.96.0.0/12 (default) |
+| **Host Node** | node01 (Proxmox) |
+
+### Why Kubernetes in a Homelab?
+
+| Use Case | Benefit |
+|----------|---------|
+| **Learning** | Gain experience with production K8s patterns |
+| **High Availability** | Services survive node failures |
+| **Scalability** | Easy horizontal scaling |
+| **Declarative** | GitOps-style infrastructure |
+| **Portfolio** | Demonstrable enterprise skills |
+
+---
+
+## 9.2 Node Architecture
+
+### Control Plane Nodes
+
+| Hostname | IP Address | Role |
+|----------|------------|------|
+| k8s-controller01 | 192.168.20.32 | Primary (etcd leader) |
+| k8s-controller02 | 192.168.20.33 | HA replica |
+| k8s-controller03 | 192.168.20.34 | HA replica |
+
+### Worker Nodes
+
+| Hostname | IP Address |
+|----------|------------|
+| k8s-worker01 | 192.168.20.40 |
+| k8s-worker02 | 192.168.20.41 |
+| k8s-worker03 | 192.168.20.42 |
+| k8s-worker04 | 192.168.20.43 |
+| k8s-worker05 | 192.168.20.44 |
+| k8s-worker06 | 192.168.20.45 |
+
+### Node Specifications
+
+All K8s nodes share identical specs (deployed from cloud-init template):
+
+| Setting | Value |
+|---------|-------|
+| Cores | 2 |
+| RAM | 4GB |
+| Disk | 20GB |
+| Network | VLAN 20 |
+| Template | tpl-ubuntu-shared-v1 |
+
+---
+
+## 9.3 Installing Kubernetes (kubeadm)
+
+This section provides a complete guide to deploying a production-grade Kubernetes cluster using kubeadm.
+
+### Prerequisites
+
+Before starting:
+- All nodes deployed from cloud-init template
+- SSH access configured to all nodes
+- All nodes on same VLAN (VLAN 20)
+- Static IPs assigned
+
+### Step 1: Prepare All Nodes
+
+Run on **all 9 nodes** (controllers and workers):
+
+```bash
+# Disable swap (required for kubelet)
+sudo swapoff -a
+sudo sed -i '/ swap / s/^/#/' /etc/fstab
+
+# Load required kernel modules
+cat <<EOF | sudo tee /etc/modules-load.d/k8s.conf
+overlay
+br_netfilter
+EOF
+
+sudo modprobe overlay
+sudo modprobe br_netfilter
+
+# Set required sysctl parameters
+cat <<EOF | sudo tee /etc/sysctl.d/k8s.conf
+net.bridge.bridge-nf-call-iptables  = 1
+net.bridge.bridge-nf-call-ip6tables = 1
+net.ipv4.ip_forward                 = 1
+EOF
+
+sudo sysctl --system
+```
+
+### Step 2: Install containerd
+
+Run on **all nodes**:
+
+```bash
+# Install containerd
+sudo apt-get update
+sudo apt-get install -y containerd
+
+# Configure containerd
+sudo mkdir -p /etc/containerd
+containerd config default | sudo tee /etc/containerd/config.toml
+
+# Enable systemd cgroup driver
+sudo sed -i 's/SystemdCgroup = false/SystemdCgroup = true/' /etc/containerd/config.toml
+
+# Restart containerd
+sudo systemctl restart containerd
+sudo systemctl enable containerd
+```
+
+### Step 3: Install kubeadm, kubelet, kubectl
+
+Run on **all nodes**:
+
+```bash
+# Add Kubernetes repository
+sudo apt-get update
+sudo apt-get install -y apt-transport-https ca-certificates curl gpg
+
+curl -fsSL https://pkgs.k8s.io/core:/stable:/v1.28/deb/Release.key | sudo gpg --dearmor -o /etc/apt/keyrings/kubernetes-apt-keyring.gpg
+
+echo 'deb [signed-by=/etc/apt/keyrings/kubernetes-apt-keyring.gpg] https://pkgs.k8s.io/core:/stable:/v1.28/deb/ /' | sudo tee /etc/apt/sources.list.d/kubernetes.list
+
+# Install packages
+sudo apt-get update
+sudo apt-get install -y kubelet kubeadm kubectl
+sudo apt-mark hold kubelet kubeadm kubectl
+```
+
+### Step 4: Initialize First Control Plane
+
+Run on **k8s-controller01 only**:
+
+```bash
+# Initialize cluster with HA endpoint
+sudo kubeadm init \
+  --control-plane-endpoint="192.168.20.32:6443" \
+  --pod-network-cidr=10.244.0.0/16 \
+  --upload-certs
+
+# Note: Save the output! It contains:
+# - kubeadm join command for other control plane nodes
+# - kubeadm join command for worker nodes
+# - Certificate key (valid 2 hours)
+```
+
+After initialization:
+
+```bash
+# Configure kubectl for current user
+mkdir -p $HOME/.kube
+sudo cp -i /etc/kubernetes/admin.conf $HOME/.kube/config
+sudo chown $(id -u):$(id -g) $HOME/.kube/config
+
+# Verify
+kubectl get nodes
+```
+
+### Step 5: Install Calico CNI
+
+Run on **k8s-controller01**:
+
+```bash
+# Install Calico operator
+kubectl create -f https://raw.githubusercontent.com/projectcalico/calico/v3.27.0/manifests/tigera-operator.yaml
+
+# Install Calico custom resources
+kubectl create -f https://raw.githubusercontent.com/projectcalico/calico/v3.27.0/manifests/custom-resources.yaml
+
+# Wait for Calico pods
+kubectl get pods -n calico-system -w
+```
+
+### Step 6: Join Additional Control Plane Nodes
+
+Run on **k8s-controller02** and **k8s-controller03**:
+
+```bash
+# Use the join command from kubeadm init output
+sudo kubeadm join 192.168.20.32:6443 \
+  --token <token> \
+  --discovery-token-ca-cert-hash sha256:<hash> \
+  --control-plane \
+  --certificate-key <cert-key>
+```
+
+### Step 7: Join Worker Nodes
+
+Run on **all 6 worker nodes**:
+
+```bash
+# Use the worker join command from kubeadm init output
+sudo kubeadm join 192.168.20.32:6443 \
+  --token <token> \
+  --discovery-token-ca-cert-hash sha256:<hash>
+```
+
+### Step 8: Verify Cluster
+
+Run on **any control plane node**:
+
+```bash
+# Check all nodes are Ready
+kubectl get nodes -o wide
+
+# Expected output:
+# NAME               STATUS   ROLES           AGE   VERSION
+# k8s-controller01   Ready    control-plane   10m   v1.28.15
+# k8s-controller02   Ready    control-plane   8m    v1.28.15
+# k8s-controller03   Ready    control-plane   8m    v1.28.15
+# k8s-worker01       Ready    <none>          5m    v1.28.15
+# ... (all 6 workers)
+
+# Check system pods
+kubectl get pods -n kube-system
+
+# Check Calico pods
+kubectl get pods -n calico-system
+```
+
+---
+
+## 9.4 Cluster Management
+
+### Useful Commands
+
+```bash
+# Cluster info
+kubectl cluster-info
+
+# Node status with resources
+kubectl top nodes
+
+# All pods across namespaces
+kubectl get pods -A
+
+# System pods
+kubectl get pods -n kube-system
+
+# Calico status
+kubectl get pods -n calico-system
+
+# Describe a node
+kubectl describe node k8s-worker01
+```
+
+### Accessing the Cluster Remotely
+
+From the Ansible controller (192.168.20.30):
+
+```bash
+# Copy kubeconfig from controller
+scp k8s-controller01:~/.kube/config ~/.kube/config
+
+# Verify access
+kubectl get nodes
+```
+
+---
+
+## 9.5 High Availability
+
+### Control Plane HA
+
+The cluster uses **stacked etcd** topology:
+
+```text
+┌────────────────────────────────────────────────────────────┐
+│                 Control Plane Architecture                  │
+│                                                             │
+│  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐     │
+│  │ controller01 │  │ controller02 │  │ controller03 │     │
+│  │              │  │              │  │              │     │
+│  │ API Server   │  │ API Server   │  │ API Server   │     │
+│  │ Scheduler    │  │ Scheduler    │  │ Scheduler    │     │
+│  │ Controller   │  │ Controller   │  │ Controller   │     │
+│  │ etcd         │  │ etcd         │  │ etcd         │     │
+│  └──────┬───────┘  └──────┬───────┘  └──────┬───────┘     │
+│         │                 │                 │              │
+│         └────────────────┬┴─────────────────┘              │
+│                          │                                  │
+│                   etcd replication                          │
+└────────────────────────────────────────────────────────────┘
+```
+
+### Failure Scenarios
+
+| Failure | Impact | Recovery |
+|---------|--------|----------|
+| 1 controller down | Cluster operational | Auto-failover |
+| 2 controllers down | **Cluster degraded** | Manual intervention |
+| Worker down | Pods rescheduled | Auto-recovery |
+
+---
+
+# 10. Observability Stack
+
+This section covers the OpenTelemetry-based distributed tracing infrastructure.
+
+## 10.1 Architecture Overview
+
+```text
+┌─────────────────────────────────────────────────────────────────────┐
+│                     Observability Architecture                       │
+│                                                                      │
+│  User Request                                                        │
+│       │                                                              │
+│       ▼                                                              │
+│  ┌─────────────────┐     ┌─────────────────┐                        │
+│  │    Traefik      │────►│   OTEL Traces   │                        │
+│  │  192.168.40.20  │     │   (OTLP HTTP)   │                        │
+│  │                 │     └────────┬────────┘                        │
+│  │  • Routes       │              │                                  │
+│  │  • SSL          │              ▼                                  │
+│  │  • OTEL Traces  │     ┌─────────────────┐     ┌─────────────────┐│
+│  │  • Metrics      │     │ OTEL Collector  │────►│     Jaeger      ││
+│  └─────────────────┘     │  192.168.40.13  │     │  192.168.40.13  ││
+│                          │                 │     │                 ││
+│                          │  • Receivers    │     │  • Trace Store  ││
+│                          │  • Processors   │     │  • Query API    ││
+│                          │  • Exporters    │     │  • Jaeger UI    ││
+│                          └─────────────────┘     └────────┬────────┘│
+│                                                           │          │
+│                          ┌────────────────────────────────┘          │
+│                          ▼                                           │
+│                 ┌─────────────────────────────────────────┐         │
+│                 │                 Grafana                  │         │
+│                 │             192.168.40.13:3030           │         │
+│                 │  Prometheus + Jaeger Datasources         │         │
+│                 └─────────────────────────────────────────┘         │
+└─────────────────────────────────────────────────────────────────────┘
+```
+
+## 10.2 Components
+
+| Component | Purpose | Host | Port |
+|-----------|---------|------|------|
+| **OTEL Collector** | Central trace/metrics receiver | docker-vm-core-utilities01 | 4317 (gRPC), 4318 (HTTP) |
+| **Jaeger** | Distributed tracing visualization | docker-vm-core-utilities01 | 16686 (UI) |
+| **Traefik** | Trace source (instrumented) | traefik-vm01 | 8082 (metrics) |
+
+## 10.3 Service URLs
+
+### External (via Traefik with Authentik SSO)
+
+| Service | URL |
+|---------|-----|
+| Jaeger | https://jaeger.hrmsmrflrii.xyz |
+| Demo App | https://demo.hrmsmrflrii.xyz |
+| Prometheus | https://prometheus.hrmsmrflrii.xyz |
+| Grafana | https://grafana.hrmsmrflrii.xyz |
+
+### Internal (Direct Access)
+
+| Service | URL | Port |
+|---------|-----|------|
+| Jaeger UI | http://192.168.40.13:16686 | 16686 |
+| OTEL Collector (gRPC) | http://192.168.40.13:4317 | 4317 |
+| OTEL Collector (HTTP) | http://192.168.40.13:4318 | 4318 |
+| OTEL Collector Metrics | http://192.168.40.13:8888 | 8888 |
+| OTEL Pipeline Metrics | http://192.168.40.13:8889 | 8889 |
+| Jaeger Metrics | http://192.168.40.13:14269 | 14269 |
+
+## 10.4 Traefik OTEL Configuration
+
+Traefik is configured to send traces to the OTEL Collector:
+
+```yaml
+# traefik.yml (static configuration)
+tracing:
+  otlp:
+    http:
+      endpoint: "http://192.168.40.13:4318/v1/traces"
+  serviceName: "traefik"
+  sampleRate: 1.0  # 100% sampling
+
+metrics:
+  prometheus:
+    buckets: [0.1, 0.3, 1.2, 5.0]
+    addEntryPointsLabels: true
+    addRoutersLabels: true
+    addServicesLabels: true
+    entryPoint: metrics
+
+entryPoints:
+  metrics:
+    address: ":8082"
+```
+
+## 10.5 Using Jaeger
+
+1. Navigate to https://jaeger.hrmsmrflrii.xyz
+2. Authenticate via Authentik (Google SSO)
+3. Select service from dropdown (e.g., `traefik`)
+4. Click "Find Traces"
+5. Click on a trace to see span details
+
+### Sample Trace
+
+```
+Trace ID: abc123...
+├── traefik (root span)
+│   ├── Duration: 150ms
+│   ├── HTTP Method: GET
+│   ├── HTTP URL: /api/resource
+│   └── Status Code: 200
+```
+
+---
+
+# 11. Watchtower Interactive Updates
+
+This section covers the automated container update system with Discord-based approval workflow.
+
+## 11.1 Overview
+
+Watchtower monitors all Docker containers for updates and sends interactive Discord notifications. Updates only proceed after user approval via emoji reactions.
+
+| Setting | Value |
+|---------|-------|
+| **Check Schedule** | Daily at 3:00 AM |
+| **Mode** | Monitor-only (requires approval) |
+| **Notifications** | Discord with reaction-based approval |
+| **Auto-cleanup** | Old images removed after update |
+
+## 11.2 Architecture
+
+```text
+Docker Hosts (Watchtower)          Sentinel Bot (192.168.40.13)
+┌─────────────────────┐            ┌─────────────────────────────────┐
+│ .40.13 (utilities)  │            │  Discord.py + Quart Webhooks    │
+│ .40.11 (media)      │───────────►│                                 │
+│ .40.20 (traefik)    │  Shoutrrr  │  Receives webhooks              │
+│ .40.21 (authentik)  │  Webhook   │  Sends Discord notifications    │
+│ .40.22 (immich)     │            │  Executes updates via SSH       │
+│ .40.23 (gitlab)     │            └─────────────────────────────────┘
+└─────────────────────┘                          │
+                                                 ▼
+                                    ┌─────────────────────────────────┐
+                                    │      Discord Channel            │
+                                    │                                 │
+                                    │  "New update for sonarr..."     │
+                                    │                                 │
+                                    │  👍 → Update    👎 → Skip       │
+                                    └─────────────────────────────────┘
+```
+
+## 11.3 Watchtower Configuration
+
+Each Docker host runs Watchtower in monitor-only mode:
+
+```yaml
+# /opt/watchtower/docker-compose.yml
+services:
+  watchtower:
+    image: containrrr/watchtower:latest
+    container_name: watchtower
+    restart: unless-stopped
+    environment:
+      DOCKER_API_VERSION: "1.44"
+      WATCHTOWER_SCHEDULE: "0 0 3 * * *"
+      WATCHTOWER_CLEANUP: "true"
+      WATCHTOWER_INCLUDE_STOPPED: "false"
+      WATCHTOWER_MONITOR_ONLY: "true"
+      WATCHTOWER_NOTIFICATIONS: "shoutrrr"
+      WATCHTOWER_NOTIFICATION_URL: "generic+http://192.168.40.13:5050/webhook/watchtower"
+      TZ: "America/New_York"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+```
+
+**Key Settings:**
+- `WATCHTOWER_MONITOR_ONLY: "true"` - Does NOT auto-update
+- `generic+http://` - Required URL format for Shoutrrr
+
+## 11.4 Update Approval Flow
+
+1. Watchtower detects update → sends webhook to Sentinel
+2. Sentinel posts embed to `#container-updates` Discord channel
+3. User reacts with 👍 to approve ALL updates
+4. Number emojis (1️⃣, 2️⃣, etc.) for individual updates
+5. Bot executes approved updates via SSH
+6. Completion notification with status
+
+---
+
+# 12. Sentinel Discord Bot
+
+Sentinel is the unified Discord bot for homelab management, consolidating 4 previous bots (Argus, Chronos, Mnemosyne, Athena).
+
+## 12.1 Overview
+
+| Property | Value |
+|----------|-------|
+| **Location** | `/opt/sentinel-bot/` on docker-vm-core-utilities01 |
+| **Container** | `sentinel-bot` |
+| **Webhook Port** | 5050 |
+| **Framework** | discord.py 2.3+ with Quart webhooks |
+| **Status** | Deployed January 2026 |
+
+## 12.2 Architecture
+
+```
+Discord Server
+     │
+     ▼
+Sentinel Bot (discord.py 2.3+)
+├── Core
+│   ├── bot.py           → Main SentinelBot class
+│   ├── database.py      → Async SQLite (aiosqlite)
+│   ├── channel_router.py → Notification routing
+│   └── ssh_manager.py   → Async SSH (asyncssh)
+│
+├── Cogs (7 modules)
+│   ├── homelab.py       → Proxmox cluster management
+│   ├── updates.py       → Container updates + reaction approvals
+│   ├── media.py         → Download monitoring + Jellyseerr
+│   ├── gitlab.py        → GitLab issue management
+│   ├── tasks.py         → Claude task queue
+│   ├── onboarding.py    → Service verification
+│   └── scheduler.py     → Daily reports
+│
+├── Webhooks (Quart on port 5050)
+│   ├── /webhook/watchtower  → Container update notifications
+│   ├── /webhook/jellyseerr  → Media request notifications
+│   └── /api/tasks           → Claude task queue REST API
+│
+└── Services (API integrations)
+    ├── proxmox.py      → Prometheus + SSH
+    ├── radarr.py       → Radarr v3 API
+    ├── sonarr.py       → Sonarr v3 API
+    └── jellyseerr.py   → Jellyseerr API
+```
+
+## 12.3 Channel Routing
+
+| Cog | Channel | Purpose |
+|-----|---------|---------|
+| **Homelab** | `#homelab-infrastructure` | Proxmox status, VM/LXC management |
+| **Updates** | `#container-updates` | Container updates with reaction approvals |
+| **Media** | `#media-downloads` | Download progress, library stats |
+| **GitLab** | `#project-management` | Issue creation and tracking |
+| **Tasks** | `#claude-tasks` | Claude task queue management |
+| **Onboarding** | `#new-service-onboarding-workflow` | Service verification |
+
+## 12.4 Commands
+
+### Homelab Commands (`#homelab-infrastructure`)
+
+| Command | Description |
+|---------|-------------|
+| `/help` | Show all Sentinel commands |
+| `/insight` | Health check: memory, errors, storage, downloads |
+| `/homelab status` | Cluster overview with resource bars |
+| `/homelab uptime` | Uptime for all nodes/VMs/LXCs |
+| `/node <name> status` | Detailed node status |
+| `/vm <id> start/stop/restart` | VM control |
+| `/lxc <id> start/stop/restart` | LXC control |
+
+### Update Commands (`#container-updates`)
+
+| Command | Description |
+|---------|-------------|
+| `/check` | Scan all containers for updates |
+| `/update <container>` | Update specific container |
+| `/updateall` | Update all with pending updates |
+| `/containers` | List monitored containers |
+
+### Media Commands (`#media-downloads`)
+
+| Command | Description |
+|---------|-------------|
+| `/downloads` | Current download queue with progress |
+| `/download <title>` | Search & add via Jellyseerr |
+| `/library movies` | Movie library statistics |
+| `/library shows` | TV library statistics |
+| `/recent` | Recently added media |
+
+### GitLab Commands (`#project-management`)
+
+| Command | Description |
+|---------|-------------|
+| `/todo <description>` | Create GitLab issue |
+| `/issues` | List open issues |
+| `/close <id>` | Close an issue |
+| `/quick <tasks>` | Bulk create (semicolon-separated) |
+
+## 12.5 Management
+
+```bash
+# View bot logs
+ssh hermes-admin@192.168.40.13 "docker logs sentinel-bot --tail 50"
+
+# Restart bot
+ssh hermes-admin@192.168.40.13 "cd /opt/sentinel-bot && sudo docker compose restart"
+
+# Rebuild after code changes
+ssh hermes-admin@192.168.40.13 "cd /opt/sentinel-bot && sudo docker compose build --no-cache && sudo docker compose up -d"
+
+# Check webhook health
+curl http://192.168.40.13:5050/health
+```
+
+---
+
 # Appendix
 
 ## A. Complete IP Address Map
@@ -3657,6 +4487,139 @@ ansible-playbook playbook.yml -l docker_hosts
 ansible-playbook playbook.yml --check
 ```
 
+## D. SSH Configuration
+
+### SSH Key Setup
+
+| Field | Value |
+|-------|-------|
+| Key File | `~/.ssh/homelab_ed25519` |
+| Key Type | ed25519 |
+| Passphrase | None (for automation) |
+| Comment | `hermes@homelab-nopass` |
+
+### SSH Config File
+
+Create `~/.ssh/config` for convenient host access:
+
+```ssh-config
+# Proxmox Nodes
+Host node01
+    HostName 192.168.20.20
+    User root
+    IdentityFile ~/.ssh/homelab_ed25519
+
+Host node02
+    HostName 192.168.20.21
+    User root
+    IdentityFile ~/.ssh/homelab_ed25519
+
+# Ansible Controller
+Host ansible-controller01
+    HostName 192.168.20.30
+    User hermes-admin
+    IdentityFile ~/.ssh/homelab_ed25519
+
+# Kubernetes Controllers
+Host k8s-controller01
+    HostName 192.168.20.32
+    User hermes-admin
+    IdentityFile ~/.ssh/homelab_ed25519
+
+Host k8s-controller02
+    HostName 192.168.20.33
+    User hermes-admin
+    IdentityFile ~/.ssh/homelab_ed25519
+
+Host k8s-controller03
+    HostName 192.168.20.34
+    User hermes-admin
+    IdentityFile ~/.ssh/homelab_ed25519
+
+# Kubernetes Workers
+Host k8s-worker01
+    HostName 192.168.20.40
+    User hermes-admin
+    IdentityFile ~/.ssh/homelab_ed25519
+
+Host k8s-worker02
+    HostName 192.168.20.41
+    User hermes-admin
+    IdentityFile ~/.ssh/homelab_ed25519
+
+Host k8s-worker03
+    HostName 192.168.20.42
+    User hermes-admin
+    IdentityFile ~/.ssh/homelab_ed25519
+
+Host k8s-worker04
+    HostName 192.168.20.43
+    User hermes-admin
+    IdentityFile ~/.ssh/homelab_ed25519
+
+Host k8s-worker05
+    HostName 192.168.20.44
+    User hermes-admin
+    IdentityFile ~/.ssh/homelab_ed25519
+
+Host k8s-worker06
+    HostName 192.168.20.45
+    User hermes-admin
+    IdentityFile ~/.ssh/homelab_ed25519
+
+# Service VMs - VLAN 40
+Host docker-vm-core-utilities01
+    HostName 192.168.40.13
+    User hermes-admin
+    IdentityFile ~/.ssh/homelab_ed25519
+
+Host docker-vm-media01
+    HostName 192.168.40.11
+    User hermes-admin
+    IdentityFile ~/.ssh/homelab_ed25519
+
+Host traefik-vm01
+    HostName 192.168.40.20
+    User hermes-admin
+    IdentityFile ~/.ssh/homelab_ed25519
+
+Host authentik-vm01
+    HostName 192.168.40.21
+    User hermes-admin
+    IdentityFile ~/.ssh/homelab_ed25519
+
+Host immich-vm01
+    HostName 192.168.40.22
+    User hermes-admin
+    IdentityFile ~/.ssh/homelab_ed25519
+
+Host gitlab-vm01
+    HostName 192.168.40.23
+    User hermes-admin
+    IdentityFile ~/.ssh/homelab_ed25519
+```
+
+### Usage
+
+```bash
+# Connect using alias
+ssh node01              # Proxmox node 1
+ssh ansible-controller01  # Ansible controller
+ssh k8s-controller01    # K8s control plane
+ssh traefik-vm01        # Traefik host
+
+# Run remote commands
+ssh docker-vm-media01 "docker ps"
+ssh k8s-controller01 "kubectl get nodes"
+```
+
+### Security Notes
+
+- **No Passphrase**: Enables automated Ansible playbook execution
+- **File Permissions**: Key file is `chmod 600` (owner read/write only)
+- **Network Isolation**: Keys only work within internal VLANs (20, 40)
+- **Key Rotation**: Scheduled every 6 months
+
 ---
 
 **Document Information**
@@ -3664,10 +4627,10 @@ ansible-playbook playbook.yml --check
 | Property | Value |
 |----------|-------|
 | Author | Hermes Miraflor II |
-| Version | 2.0 |
+| Version | 2.1 |
 | Created | January 7, 2026 |
-| Last Updated | January 7, 2026 |
-| Total Sections | 7 chapters + Appendix |
+| Last Updated | January 8, 2026 |
+| Total Sections | 12 chapters + Appendix |
 | Repository | https://github.com/herms14/Proxmox-TerraformDeployments |
 
 ---
