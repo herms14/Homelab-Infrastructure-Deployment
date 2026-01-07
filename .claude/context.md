@@ -59,6 +59,66 @@ ssh root@100.96.195.27       # node02
 
 ---
 
+## Azure Cloud Environment
+
+**Subscription**: FireGiants-Prod (`2212d587-1bad-4013-b605-b421b1f83c30`)
+**Tenant ID**: `b6458a9a-9661-468c-bda3-5f496727d0b0`
+**Region**: Southeast Asia
+
+### Azure Network
+
+| Network | Address Space | Purpose |
+|---------|---------------|---------|
+| ans-tf-vm01-vnet | 10.90.10.0/29 | Deployment VMs |
+
+**Connectivity**: Site-to-Site VPN (OPNsense <-> Azure VPN Gateway)
+
+### Azure Virtual Machines
+
+| VM | IP | Size | Purpose |
+|----|-----|------|---------|
+| **ubuntu-deploy-vm** | 10.90.10.5 | D2s_v3 | **Primary deployment VM** (Terraform, Ansible, Azure CLI) |
+| ans-tf-vm01 | 10.90.10.4 | - | Windows management VM (legacy) |
+
+**ubuntu-deploy-vm** is the designated deployment VM for all Azure resources going forward.
+
+### Azure Sentinel (SIEM)
+
+| Resource | Name | Purpose |
+|----------|------|---------|
+| Log Analytics Workspace | law-homelab-sentinel | Log storage (90-day retention) |
+| Sentinel | (attached to LAW) | SIEM analytics |
+| Data Collection Endpoint | dce-homelab-syslog | AMA ingestion endpoint |
+| Data Collection Rule | dcr-homelab-syslog | Syslog collection config |
+| Arc Machine | linux-syslog-server01 | Homelab syslog server (192.168.40.5) |
+
+### Azure SSH Access
+
+```bash
+# Using SSH config alias
+ssh ubuntu-deploy
+
+# Or explicitly
+ssh -i ~/.ssh/ubuntu-deploy-vm.pem hermes-admin@10.90.10.5
+```
+
+**SSH Key Locations**:
+- Local PC: `~/.ssh/ubuntu-deploy-vm.pem`
+- SSH Config: `~/.ssh/config` (Host: ubuntu-deploy)
+
+### Azure Deployment Workflow
+
+All Azure resources should be deployed from `ubuntu-deploy-vm`:
+
+```bash
+ssh ubuntu-deploy
+az login --identity
+cd /opt/terraform/<project>
+terraform init && terraform plan && terraform apply
+```
+
+---
+
 ## Deployed Infrastructure
 
 **Current Infrastructure** (December 2025):

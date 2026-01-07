@@ -250,6 +250,8 @@ All `*.hrmsmrflrii.xyz` subdomains resolve to `192.168.40.20` (Traefik) via Pi-h
 | Proxmox Node01 | https://node01.hrmsmrflrii.xyz | 192.168.20.20:8006 |
 | Proxmox Node02 | https://node02.hrmsmrflrii.xyz | 192.168.20.21:8006 |
 | Traefik Dashboard | https://traefik.hrmsmrflrii.xyz | localhost:8080 |
+| Pi-hole | https://pihole.hrmsmrflrii.xyz | 192.168.90.53:80 |
+| Omada Controller | https://omada.hrmsmrflrii.xyz | 192.168.0.103:443 |
 
 ### Core Services
 
@@ -258,6 +260,7 @@ All `*.hrmsmrflrii.xyz` subdomains resolve to `192.168.40.20` (Traefik) via Pi-h
 | Authentik (SSO) | https://auth.hrmsmrflrii.xyz | 192.168.40.21:9000 |
 | Immich (Photos) | https://photos.hrmsmrflrii.xyz | 192.168.40.22:2283 |
 | GitLab | https://gitlab.hrmsmrflrii.xyz | 192.168.40.23:80 |
+| Home Assistant | https://ha.hrmsmrflrii.xyz | 192.168.40.25:8123 |
 
 ### Media Services (docker-vm-media01)
 

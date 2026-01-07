@@ -5,7 +5,243 @@
 
 ---
 
+## 2026-01-08
+
+### 01:30 - Technical Manual V2 Expansion (Major Update)
+**Status**: Completed
+**Request**: Significantly expand the technical manual with detailed documentation for all services
+
+**Changes Made**:
+
+1. **Created `docs/HOMELAB_TECHNICAL_MANUAL_V2.md`** (~3,200 lines):
+
+   **Docker Services Expanded** - Detailed documentation for each service:
+   - Sonarr (TV): Configuration, line-by-line explanations, update procedures
+   - Lidarr (Music): Configuration, key settings, dependencies
+   - Bazarr (Subtitles): How it connects to Radarr/Sonarr
+   - Jellyseerr/Overseerr: Request management for Jellyfin/Plex
+   - Tdarr: Transcoding pipeline with ASCII flow diagram
+   - Autobrr: IRC announce monitoring for private trackers
+   - Deluge: BitTorrent client configuration
+   - SABnzbd: Usenet client with provider setup
+   - Complete Docker Compose file (all services)
+
+   **Glance Dashboard Deep Dive**:
+   - Widget types and usage
+   - Custom API widget template syntax
+   - Monitor widget examples
+   - Embedded Grafana integration
+   - Environment variable usage
+
+2. **Content Sources**:
+   - `ansible/docker/deploy-arr-stack.yml` - Full media stack compose
+   - `ansible-playbooks/glance/deploy-glance-dashboard.yml` - Dashboard config
+   - Existing V1 manual sections
+
+3. **Updated Obsidian Sync**:
+   - `38 - Homelab Technical Manual.md` updated to Version 2.0
+   - Added sync reference to V2 source file
+
+**Key Statistics**:
+- 12 Docker services fully documented
+- Each service includes: what it is, how it works, Docker config, dependencies
+- Complete docker-compose.yml reference (~200 lines)
+- Glance widget documentation with template examples
+
+---
+
 ## 2026-01-07
+
+### 24:00 - Technical Manual Prologue Addition
+**Status**: Completed
+**Request**: Create an overview page telling the personal story of how the homelab started
+
+**Changes Made**:
+
+1. **Added Prologue Section** to `docs/HOMELAB_TECHNICAL_MANUAL.md`:
+   - "It Started With Sophia's Photos" - Japan trip 2023, Google Photos notification
+   - "The Escalation Trap" - NAS → Pi-hole → Docker → Proxmox → Kubernetes
+   - "From Photo Storage to Hybrid Cloud" - Microsoft layoffs, preserving technical playground
+   - "Why This Manual Exists" - Purpose and intended audience
+   - "This Is My Passion. This Makes Me Happy." - Dramatic closing with emotional impact
+
+2. **Content leveraged from existing blog post**:
+   - `My Accidental Journey Into Homelabbing - From Trip Photos to Full-Blown Infrastructure.md`
+   - Adapted narrative to focus on Sophia's photos as the catalyst
+   - Maintained the "escalation" theme from the original post
+   - Added dramatic closing: "They're not just stored anymore. They're loved."
+
+**Key Quotes Added**:
+- "It's proof that passion, applied consistently, creates extraordinary things."
+- "Version 2 is complete. Version 3 is forming in my head. Somewhere beyond that, version 10 is waiting."
+
+---
+
+### 23:30 - Azure Hybrid Lab - Active Directory Deployment
+**Status**: Completed
+**Request**: Deploy Active Directory forest with enterprise tiering model, 4 domain controllers, OUs, groups, and simulated users
+
+**Changes Made**:
+
+1. **Azure Infrastructure** (via Terraform from ubuntu-deploy-vm):
+   - Identity Subnet: 10.10.4.0/24 in existing Hub VNet
+   - Network Security Group: nsg-identity-prod
+   - 4 Windows Server 2022 VMs (Standard_B2s)
+   - Key Vault: kv-azurehybrid-id-prod
+   - VNet Peering: Hub ↔ Spoke (Connected)
+   - Container Registry: acrazurehybridprod.azurecr.io
+
+2. **Domain Controllers**:
+   - AZDC01 (10.10.4.4): Primary DC, Forest Root
+   - AZDC02 (10.10.4.5): Secondary DC, Writable
+   - AZRODC01 (10.10.4.6): Read-Only DC
+   - AZRODC02 (10.10.4.7): Read-Only DC
+   - Domain: hrmsmrflrii.xyz (NetBIOS: HRMSMRFLRII)
+
+3. **Active Directory Structure** (via Ansible):
+   - Enterprise Tiering Model (Tier 0, 1, 2)
+   - 52 Organizational Units
+   - 43 Custom Security Groups
+   - 38 Simulated Users (admins, IT, Finance, HR, Engineering, etc.)
+   - Service Accounts per tier
+
+4. **Ansible Playbooks Created**:
+   - `ansible-playbooks/azure-ad/inventory.yml` - Windows hosts inventory
+   - `ansible-playbooks/azure-ad/deploy-active-directory.yml` - 9-phase deployment
+
+5. **VPN Configuration**:
+   - Updated Azure Local Gateway with all homelab VLANs
+   - OPNsense: Add route for 10.10.0.0/21 to VPN tunnel
+
+6. **Documentation Created**:
+   - `docs/AZURE_HYBRID_LAB.md` - Full technical documentation
+   - Wiki: `Azure-Hybrid-Lab.md` - Beginner-friendly guide
+   - Obsidian: `37 - Azure Hybrid Lab.md` - Internal with credentials
+   - Updated `CLAUDE.md` Infrastructure Context Summary
+   - Updated all indexes and sidebars
+
+**Credentials**:
+- Domain Admin: HRMSMRFLRII\azureadmin / (see Obsidian vault for credentials)
+- Standard Users: (see Obsidian vault)
+- DSRM: (see Obsidian vault)
+
+---
+
+### 22:00 - Azure Environment Setup & Sentinel Deployment
+**Status**: Completed
+**Request**: Set up Azure hybrid environment with Sentinel SIEM, deployment VM, and comprehensive documentation
+
+**Changes Made**:
+
+1. **Azure Sentinel Deployment** (via Terraform):
+   - Log Analytics Workspace: `law-homelab-sentinel` (90-day retention)
+   - Microsoft Sentinel onboarded
+   - Data Collection Endpoint: `dce-homelab-syslog`
+   - Data Collection Rule: `dcr-homelab-syslog` (syslog facilities)
+   - Azure Monitor Agent installed on Arc server
+
+2. **Ubuntu Deployment VM** (`ubuntu-deploy-vm`):
+   - IP: 10.90.10.5
+   - Size: Standard_D2s_v3 (2 vCPU, 8GB RAM)
+   - OS: Ubuntu 22.04 LTS
+   - Tools: Terraform, Ansible, Azure CLI
+   - Managed Identity: Contributor role on subscription
+   - **Designated as primary deployment VM for all Azure resources**
+
+3. **Network Configuration**:
+   - NAT Gateway configured for outbound internet
+   - Site-to-Site VPN: OPNsense <-> Azure (10.90.10.0/29)
+   - NSG rules: Outbound HTTPS allowed on subnet and NIC level
+
+4. **SSH Configuration**:
+   - SSH key saved to `~/.ssh/ubuntu-deploy-vm.pem`
+   - SSH config updated with `ubuntu-deploy` alias
+   - Access: `ssh ubuntu-deploy`
+
+5. **Documentation Created**:
+   - `docs/AZURE_ENVIRONMENT.md` - Comprehensive Azure technical manual
+   - Updated `CLAUDE.md` with Azure context
+   - Updated `.claude/context.md` with Azure section
+   - Created network flow diagrams and architecture diagrams
+
+6. **Documentation Synced**:
+   - Obsidian: `36 - Azure Environment.md` created
+   - Obsidian: `00 - Homelab Index.md` updated with "Cloud & Hybrid" section
+   - Wiki: `Azure-Environment.md` created
+   - Wiki: `_Sidebar.md` updated with Azure Environment link
+
+**Files Created/Modified**:
+- `docs/AZURE_ENVIRONMENT.md` (new - comprehensive Azure documentation)
+- `terraform/azure-sentinel/*.tf` (Sentinel Terraform configs)
+- `terraform/azure-deploy-vm/*.tf` (Ubuntu VM Terraform configs)
+- Obsidian: `36 - Azure Environment.md` (new)
+- Wiki: `Azure-Environment.md` (new)
+- `~/.ssh/ubuntu-deploy-vm.pem` (SSH key)
+
+**Files Modified**:
+- `CLAUDE.md` - Added Azure section to context summary and Quick Reference
+- `.claude/context.md` - Added Azure Cloud Environment section
+- `~/.ssh/config` - Added ubuntu-deploy and windows-deploy aliases
+
+**Architecture Summary**:
+```
+Azure (10.90.10.0/29)          Homelab (192.168.x.x)
+┌─────────────────┐            ┌─────────────────┐
+│ ubuntu-deploy   │            │ linux-syslog-   │
+│ 10.90.10.5      │◄──VPN────►│ server01        │
+│ (Terraform)     │            │ 192.168.40.5    │
+└────────┬────────┘            │ (Arc + AMA)     │
+         │                     └────────┬────────┘
+         ▼                              │
+┌─────────────────┐                     ▼
+│ Azure Sentinel  │◄────────────────────┘
+│ law-homelab-    │     Syslog → DCE → DCR
+│ sentinel        │
+└─────────────────┘
+```
+
+---
+
+### 16:30 - Home Assistant Device Configuration & SSL Setup
+**Status**: Completed
+**Request**: Configure Tapo devices in Home Assistant, add HA to Glance, configure SSL for Pi-hole/Proxmox/Omada
+
+**Changes Made**:
+1. **Glance Dashboard Updates**
+   - Added Home Assistant to Management bookmarks section
+   - Added Home Assistant to Core Services monitor section
+   - Updated Pi-hole URL to https://pihole.hrmsmrflrii.xyz/admin/
+   - Updated Omada URL to https://omada.hrmsmrflrii.xyz
+
+2. **SSL Configuration via Traefik**
+   - Added Omada route to Traefik services.yml (https://omada.hrmsmrflrii.xyz)
+   - Updated Pi-hole DNS (pihole.toml) to route Proxmox nodes through Traefik
+   - All services now have valid Let's Encrypt SSL certificates:
+     - https://pihole.hrmsmrflrii.xyz
+     - https://node01.hrmsmrflrii.xyz
+     - https://node02.hrmsmrflrii.xyz
+     - https://omada.hrmsmrflrii.xyz
+
+3. **Home Assistant Tapo Configuration**
+   - Created smart-home dashboard (dashboards/smart-home.yaml)
+   - Created Network dashboard for Omada devices (dashboards/network.yaml)
+   - Added C211 camera via RTSP (rtsp://herms14:c%40llimachus14@192.168.30.67:554/stream1)
+   - Created device enrollment guide (docs/HOME_ASSISTANT_DEVICE_ENROLLMENT.md)
+
+4. **Documentation Updates**
+   - Created docs/HOME_ASSISTANT_DEVICE_ENROLLMENT.md
+   - Updated Obsidian 07 - Deployed Services.md with SSL URLs
+   - Updated Obsidian 10 - IP Address Map.md with Home Assistant
+
+**Files Created/Modified**:
+- `docs/HOME_ASSISTANT_DEVICE_ENROLLMENT.md` (new)
+- `/opt/homeassistant/config/dashboards/smart-home.yaml` (new)
+- `/opt/homeassistant/config/dashboards/network.yaml` (new)
+- `/opt/traefik/config/dynamic/services.yml` (modified - added Omada route)
+- `/etc/pihole/pihole.toml` (modified - updated hosts array)
+- `/opt/glance/config/glance.yml` (modified - added Home Assistant)
+
+---
 
 ### 04:00 - Home Assistant Deployment
 **Status**: Completed

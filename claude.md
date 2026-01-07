@@ -44,9 +44,23 @@ Terraform infrastructure-as-code for deploying VMs and LXC containers on a Proxm
 ║   • Grafana:  https://grafana.hrmsmrflrii.xyz                                ║
 ║   • Traefik:  https://traefik.hrmsmrflrii.xyz                                ║
 ╠══════════════════════════════════════════════════════════════════════════════╣
+║ AZURE CLOUD (FireGiants-Prod)                                                ║
+║   • ubuntu-deploy-vm: 10.90.10.5 - Primary Terraform/Ansible deployment VM   ║
+║   • Sentinel SIEM:    law-homelab-sentinel - Log aggregation & analytics     ║
+║   • VPN:              Site-to-Site (OPNsense <-> Azure)                      ║
+╠══════════════════════════════════════════════════════════════════════════════╣
+║ AZURE HYBRID LAB (Active Directory)                                          ║
+║   • Domain:   hrmsmrflrii.xyz (HRMSMRFLRII)                                  ║
+║   • AZDC01:   10.10.4.4  - Primary DC (Forest Root)                          ║
+║   • AZDC02:   10.10.4.5  - Secondary DC                                      ║
+║   • AZRODC01: 10.10.4.6  - Read-Only DC                                      ║
+║   • AZRODC02: 10.10.4.7  - Read-Only DC                                      ║
+║   • Admin:    HRMSMRFLRII\azureadmin                                         ║
+╠══════════════════════════════════════════════════════════════════════════════╣
 ║ SSH ACCESS                                                                    ║
 ║   • User: hermes-admin (VMs) | root (Proxmox)                                ║
-║   • Key:  ~/.ssh/homelab_ed25519                                             ║
+║   • Homelab Key:  ~/.ssh/homelab_ed25519                                     ║
+║   • Azure Key:    ~/.ssh/ubuntu-deploy-vm.pem                                ║
 ╚══════════════════════════════════════════════════════════════════════════════╝
 ```
 
@@ -116,6 +130,8 @@ Before tokens exhaust, write a handoff:
 | **CI/CD** | [docs/CICD.md](./docs/CICD.md) |
 | **Service Onboarding** | [docs/SERVICE_ONBOARDING.md](./docs/SERVICE_ONBOARDING.md) |
 | **Discord Bots** | [docs/DISCORD_BOTS.md](./docs/DISCORD_BOTS.md) |
+| **Azure Environment** | [docs/AZURE_ENVIRONMENT.md](./docs/AZURE_ENVIRONMENT.md) |
+| **Azure Hybrid Lab** | [docs/AZURE_HYBRID_LAB.md](./docs/AZURE_HYBRID_LAB.md) |
 | **Troubleshooting** | [docs/TROUBLESHOOTING.md](./docs/TROUBLESHOOTING.md) |
 
 ---
@@ -145,6 +161,27 @@ ssh root@100.96.195.27       # node02
 |------|---------|---------|
 | VLAN 20 | 192.168.20.0/24 | Infrastructure (K8s, Ansible) |
 | VLAN 40 | 192.168.40.0/24 | Services (Docker, Apps) |
+
+### Azure Cloud Environment
+
+**Subscription**: FireGiants-Prod (`2212d587-1bad-4013-b605-b421b1f83c30`)
+
+| Resource | IP/Name | Purpose |
+|----------|---------|---------|
+| ubuntu-deploy-vm | 10.90.10.5 | **Primary deployment VM** (Terraform, Ansible, Azure CLI) |
+| ans-tf-vm01 | 10.90.10.4 | Windows management VM (legacy) |
+| law-homelab-sentinel | - | Log Analytics + Sentinel SIEM |
+| linux-syslog-server01 | 192.168.40.5 (Arc) | Syslog aggregator (homelab) |
+
+**Connectivity**: Site-to-Site VPN (OPNsense <-> Azure VNet 10.90.10.0/29)
+
+```bash
+# SSH to Azure deployment VM
+ssh ubuntu-deploy
+
+# Or explicitly
+ssh -i ~/.ssh/ubuntu-deploy-vm.pem hermes-admin@10.90.10.5
+```
 
 ### Deployed Infrastructure
 
