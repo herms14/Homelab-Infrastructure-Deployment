@@ -624,7 +624,7 @@ The Home page has been carefully configured and should be preserved as-is.
 | Sun Times | sunrise-sunset.org API, Manila coords (14.5995, 120.9842) |
 | Calendar | Monday first day |
 | Daily Note | Obsidian Local REST API via Tailscale (100.90.207.58:27123) |
-| Infrastructure Bookmarks | Authentik, Omada Cloud, Proxmox, Traefik, OPNsense, Portainer, Synology NAS |
+| Infrastructure Bookmarks | Authentik, Omada Cloud, Proxmox, Traefik, OPNsense, Portainer, Synology NAS, Home Assistant |
 | Services Bookmarks | Media (8 services), Downloads (2), Productivity (4), Monitoring (5) |
 
 ##### Obsidian Daily Notes Widget
@@ -641,7 +641,7 @@ The Home page has been carefully configured and should be preserved as-is.
 | GitHub Contributions | custom-api | https://api.github.com/users/herms14 |
 | Proxmox Cluster | monitor | Node 01-02 on port 8006 |
 | Storage | monitor | Synology NAS on VLAN 10 & 20, port 5001 |
-| Core Services | monitor | Traefik, Authentik, GitLab, Immich, n8n, Paperless, Pi-hole, Karakeep, Lagident |
+| Core Services | monitor | Traefik, Authentik, GitLab, Immich, n8n, Paperless, Pi-hole, Karakeep, Lagident, Home Assistant |
 | Media Services | monitor | Jellyfin, Radarr, Sonarr, Lidarr, Prowlarr, Bazarr, Jellyseerr, Tdarr, Deluge, SABnzbd, Wizarr, Tracearr |
 | Monitoring Stack | monitor | Uptime Kuma, Prometheus, Grafana, Jaeger, Glance, Speedtest |
 

@@ -116,4 +116,27 @@ ENV/
 
 *.log
 logs/
+
+# ===========================================
+# Sensitive Terraform/Automation Files
+# ===========================================
+
+# Azure Terraform scripts with credentials
+terraform/azure-sentinel/*.ps1
+terraform/azure-deploy-vm/*.ps1
 Azure-Hybrid-Lab/terraform/proxmox/terraform.tfvars
+
+# Ansible files with credentials
+ansible-playbooks/azure-ad/inventory.yml
+ansible-playbooks/azure-ad/deploy-active-directory.yml
+
+# Packer files with credentials
+Azure-Hybrid-Lab/packer/*/autounattend.xml
+Azure-Hybrid-Lab/packer/*/*.pkrvars.hcl
+Azure-Hybrid-Lab/packer/*/*.pkrvars.hcl.example
+
+# Azure Hybrid Lab resume doc (contains passwords)
+Azure-Hybrid-Lab/RESUME_DEPLOYMENT.md
+
+# Claude context files with credentials
+.claude/active-tasks.md
