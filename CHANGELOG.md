@@ -7,6 +7,54 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed - Grafana Dashboard Sorting & PBS Fixes (January 12, 2026)
+- **Fixed dashboard sorting** for Proxmox Cluster Health dashboard panels
+  - "Top VMs by CPU Usage", "Top VMs by Memory Usage", and "NAS Storage Pool Usage" now sort in descending order
+  - Uses PromQL `sort_desc()` function instead of Grafana transformations
+  - Provisioned dashboards require file update + Grafana restart (not API deployment)
+- **Fixed PBS Backup Status dashboard** - No data issue resolved
+  - Changed datasource UID from `"prometheus"` to `"PBFA97CFB590B2093"` (45 occurrences)
+  - Dashboard now correctly connects to Prometheus datasource
+- **Reset PBS root password** from forgotten password to `NewPBS2025`
+  - Used `pct exec 100 -- bash` and `chpasswd` to reset
+  - Updated credentials in Obsidian vault
+- **Removed PBS subscription nag popup**
+  - Modified `/usr/share/javascript/proxmox-widget-toolkit/proxmoxlib.js`
+  - Flipped condition from `!== 'active'` to `=== 'active'`
+- **Fixed PBS daily backup failures** - Permission error resolved
+  - Added `DatastoreBackup` role for `backup@pbs!pve` on `/datastore/daily`
+  - Added same permission for `backup@pbs` user
+- **Cleaned up orphaned PBS backups**
+  - Removed 14 incomplete snapshot directories with `.tmp_fidx` files but no `index.json.blob`
+  - Resolved "missing blob files" errors in backup logs
+
+### Added - Tailscale on Node03 (January 12, 2026)
+- **Installed Tailscale v1.92.5** on node03 (192.168.20.22)
+  - Tailscale IP: **100.88.228.34**
+  - Hostname: `node03`
+  - Accept-routes enabled for subnet routing via node01
+- **Updated documentation**:
+  - CLAUDE.md Infrastructure Context Summary
+  - .claude/context.md Proxmox Cluster table and SSH examples
+- All 3 Proxmox nodes now have Tailscale remote access
+
+### Added - Drive Health Monitoring for PBS (January 12, 2026)
+- **Created SMART Health API** on node03 (192.168.20.22:9101)
+  - Python HTTP server using `smartctl -H -j` for SMART health checks
+  - Monitors: Seagate 4TB HDD (main datastore), Kingston 1TB NVMe (daily datastore)
+  - Systemd service: `smart-health-api.service`
+  - API endpoint: `http://192.168.20.22:9101/health`
+- **Added Drive Health Status widget** to Glance Backup page
+  - Custom-api widget with Go templating
+  - Displays drive name, datastore, and health status (HEALTHY/FAILED)
+  - Green badge for healthy, red badge for failed drives
+  - 5-minute cache interval
+- **Updated documentation**:
+  - `docs/OBSERVABILITY.md` - Dashboard sorting fixes with PromQL examples
+  - `docs/PBS_MONITORING.md` - Root password, ACL permissions, subscription nag removal, SMART API
+  - `docs/GLANCE.md` - Backup tab with Drive Health widget
+  - `.claude/context.md` - PBS password and drive health monitoring
+
 ### Added - Homelab Chronicle Timeline App (January 11, 2026)
 - **Created homelab-chronicle** - A beautiful timeline visualization app for documenting homelab evolution
   - Location: `apps/homelab-chronicle/`

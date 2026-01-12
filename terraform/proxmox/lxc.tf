@@ -51,7 +51,7 @@ locals {
 
 # Create all LXC containers using for_each
 module "lxc" {
-  source   = "./modules/lxc"
+  source   = "../modules/lxc"
   for_each = local.lxc_map
 
   # Container Identification

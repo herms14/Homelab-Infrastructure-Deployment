@@ -6,11 +6,11 @@
 
 **Cluster**: MorpheusCluster (3-node + Qdevice)
 
-| Node | IP Address | Purpose | Workload Type |
-|------|------------|---------|---------------|
-| **node01** | 192.168.20.20 | Primary VM Host | K8s cluster, LXCs, Core Services |
-| **node02** | 192.168.20.21 | Service Host | Traefik, Authentik, GitLab, Immich |
-| **node03** | 192.168.20.22 | Desktop Node (Ryzen 9) | GitLab, Immich, Syslog Server |
+| Node | IP Address | Tailscale IP | Purpose | Workload Type |
+|------|------------|--------------|---------|---------------|
+| **node01** | 192.168.20.20 | 100.89.33.5 | Primary VM Host | K8s cluster, LXCs, Core Services |
+| **node02** | 192.168.20.21 | 100.96.195.27 | Service Host | Traefik, Authentik, GitLab, Immich |
+| **node03** | 192.168.20.22 | 100.88.228.34 | Desktop Node (Ryzen 9) | GitLab, Immich, Syslog Server |
 
 ### Node03 Hardware
 

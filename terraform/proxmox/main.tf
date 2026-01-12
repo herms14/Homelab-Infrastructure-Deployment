@@ -192,7 +192,7 @@ locals {
 
 # Create all VMs using for_each
 module "vms" {
-  source   = "./modules/linux-vm"
+  source   = "../modules/linux-vm"
   for_each = local.vms_map
 
   # VM Identification
