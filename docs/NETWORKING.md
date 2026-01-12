@@ -342,6 +342,7 @@ Tailscale provides secure remote access to the homelab from outside the local ne
 |--------|----------|--------------|------|
 | node01 | 192.168.20.20 | 100.89.33.5 | **Subnet Router** |
 | node02 | 192.168.20.21 | 100.96.195.27 | Peer |
+| node03 | 192.168.20.22 | 100.88.228.34 | Peer |
 | Synology NAS | 192.168.20.31 | 100.84.128.43 | Peer (inactive) |
 | MacBook Pro | - | 100.90.207.58 | Client |
 

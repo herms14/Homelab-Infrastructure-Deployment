@@ -1,7 +1,7 @@
 # Infrastructure Context
 
 > Core infrastructure reference. This file contains stable information that rarely changes.
-> Last updated: 2026-01-11
+> Last updated: 2026-01-12
 
 ## Proxmox Cluster
 
@@ -11,7 +11,7 @@
 |------|----------|--------------|---------|
 | node01 | 192.168.20.20 | 100.89.33.5 | Primary VM Host (K8s, LXCs, Core Services) |
 | node02 | 192.168.20.21 | 100.96.195.27 | Service Host (Traefik, Authentik, GitLab, Immich) |
-| node03 | 192.168.20.22 | - | Desktop Node - Ryzen 9 5900XT (GitLab, Immich, Syslog) |
+| node03 | 192.168.20.22 | 100.88.228.34 | Desktop Node - Ryzen 9 5900XT (GitLab, Immich, Syslog) |
 
 ### Node03 Power Management
 
@@ -62,7 +62,7 @@ PBS runs as LXC 100 on node03, providing enterprise backups with deduplication.
 | IP | 192.168.20.50 |
 | Web UI | https://192.168.20.50:8007 |
 | Login | `root` (select "Linux PAM" realm) |
-| Password | `PBSr00t@2025!` |
+| Password | `NewPBS2025` |
 | API Token | backup@pbs!pve |
 
 > **Note**: Enter `root` in username field, not `root@pam`. Realm dropdown adds suffix.
@@ -78,6 +78,13 @@ PBS runs as LXC 100 on node03, providing enterprise backups with deduplication.
 - `pbs-daily`: Critical VMs daily at 2AM, keep 7
 - `pbs-main`: All VMs weekly Sun 3AM, keep 4 weekly + 2 monthly
 
+**Drive Health Monitoring (Added January 12, 2026):**
+| Property | Value |
+|----------|-------|
+| API Endpoint | http://192.168.20.22:9101/health |
+| Service | `smart-health-api.service` on node03 |
+| Drives | Seagate 4TB HDD (/dev/sda, main), Kingston 1TB NVMe (/dev/nvme1n1, daily) |
+
 ### Remote Access (Tailscale)
 
 When outside the local network, use Tailscale IPs:
@@ -86,7 +93,7 @@ When outside the local network, use Tailscale IPs:
 # SSH via Tailscale
 ssh root@100.89.33.5         # node01
 ssh root@100.96.195.27       # node02
-ssh root@192.168.20.22       # node03 (no Tailscale yet)
+ssh root@100.88.228.34       # node03 (via Tailscale)
 
 # Proxmox Web UI via Tailscale
 # https://100.89.33.5:8006    (node01)

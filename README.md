@@ -61,6 +61,7 @@ git clone https://github.com/herms14/Proxmox-TerraformDeployments.git
 cd Proxmox-TerraformDeployments
 
 # Configure your variables
+cd terraform/proxmox
 cp terraform.tfvars.example terraform.tfvars
 # Edit terraform.tfvars with your Proxmox API credentials
 
@@ -75,34 +76,43 @@ terraform apply
 ## Repository Structure
 
 ```
-tf-proxmox/
-+-- main.tf                 # VM definitions
-+-- lxc.tf                  # LXC container definitions
-+-- variables.tf            # Terraform variables
-+-- modules/                # Terraform modules
-|   +-- linux-vm/           # Linux VM module (cloud-init)
-|   +-- lxc/                # LXC container module
-+-- ansible/                # Ansible playbooks
-|   +-- docker/             # Docker & Arr stack
-|   +-- k8s/                # Kubernetes deployment
-|   +-- traefik/            # Reverse proxy
-|   +-- authentik/          # Identity provider
-|   +-- immich/             # Photo management
-|   +-- gitlab/             # DevOps platform
-|   +-- n8n/                # Workflow automation
-|   +-- opnsense/           # DNS automation
-+-- docs/                   # Modular documentation
-|   +-- NETWORKING.md       # Network configuration
-|   +-- PROXMOX.md          # Cluster & VM standards
-|   +-- STORAGE.md          # Storage configuration
-|   +-- TERRAFORM.md        # IaC deployment
-|   +-- SERVICES.md         # Docker services
-|   +-- ANSIBLE.md          # Automation
-|   +-- INVENTORY.md        # Deployed resources
-|   +-- TROUBLESHOOTING.md  # Issue resolution
-|   +-- legacy/             # Extended documentation
-+-- wiki/                   # Wiki source files
-+-- CLAUDE.md               # AI assistant context
+homelab-infra-automation-project/
+├── terraform/              # All Terraform configurations
+│   ├── proxmox/            # Proxmox VM/LXC deployment
+│   │   ├── main.tf         # VM definitions
+│   │   ├── lxc.tf          # LXC container definitions
+│   │   └── variables.tf    # Terraform variables
+│   ├── azure/              # Azure cloud resources
+│   │   ├── deploy-vm/      # Azure deployment VM
+│   │   ├── sentinel/       # Azure Sentinel SIEM
+│   │   └── nat-gateway/    # NAT gateway
+│   ├── modules/            # Reusable Terraform modules
+│   │   ├── linux-vm/       # Linux VM module
+│   │   ├── windows-vm/     # Windows VM module
+│   │   └── lxc/            # LXC container module
+│   └── env/                # Environment-specific tfvars
+├── ansible/                # All Ansible automation
+│   ├── roles/              # Service configurations
+│   │   ├── k8s/            # Kubernetes deployment
+│   │   ├── docker/         # Docker & Arr stack
+│   │   ├── traefik/        # Reverse proxy
+│   │   ├── authentik/      # Identity provider
+│   │   └── ...             # Other services
+│   ├── playbooks/          # Deployment playbooks
+│   │   ├── monitoring/     # Grafana dashboards
+│   │   ├── services/       # Service deployments
+│   │   ├── sentinel-bot/   # Discord bots
+│   │   └── ...             # Other playbooks
+│   └── inventory/          # Inventory files
+├── scripts/                # Utility scripts
+│   ├── utilities/          # Helper scripts
+│   ├── gitlab-runner/      # CI/CD scripts
+│   └── diagrams/           # Diagram generators
+├── docs/                   # Technical documentation
+├── dashboards/             # Grafana dashboard JSON
+├── apps/                   # Custom applications
+├── wiki/                   # GitHub Wiki mirror
+└── CLAUDE.md               # AI assistant context
 ```
 
 ## Key Technologies

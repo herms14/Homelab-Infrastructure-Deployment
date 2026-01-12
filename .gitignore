@@ -20,7 +20,7 @@ crash.*.log
 
 # But include example tfvars for reference
 !*.tfvars.example
-!env/*.tfvars
+!terraform/env/*.tfvars
 
 # Ignore override files
 override.tf
@@ -74,6 +74,10 @@ glance-backup/
 gitlab-repo/
 homelab-services/
 Proxmox-TerraformDeployments.wiki/
+wiki/
+
+# Claude temp files
+tmpclaude-*
 
 # ===========================================
 # IDE and OS
@@ -122,13 +126,13 @@ logs/
 # ===========================================
 
 # Azure Terraform scripts with credentials
-terraform/azure-sentinel/*.ps1
-terraform/azure-deploy-vm/*.ps1
+terraform/azure/sentinel/*.ps1
+terraform/azure/deploy-vm/*.ps1
 Azure-Hybrid-Lab/terraform/proxmox/terraform.tfvars
 
 # Ansible files with credentials
-ansible-playbooks/azure-ad/inventory.yml
-ansible-playbooks/azure-ad/deploy-active-directory.yml
+ansible/playbooks/azure-ad/inventory.yml
+ansible/playbooks/azure-ad/deploy-active-directory.yml
 
 # Packer files with credentials
 Azure-Hybrid-Lab/packer/*/autounattend.xml

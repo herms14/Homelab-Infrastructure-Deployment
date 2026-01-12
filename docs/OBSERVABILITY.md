@@ -599,6 +599,30 @@ node_hwmon_temp_celsius * on(instance) group_left(node)
 | 60-80°C | Yellow | Warning |
 | > 80°C | Red | Critical |
 
+### Dashboard Sorting (Fixed January 12, 2026)
+
+Dashboard panels that display "Top VMs by CPU/Memory" use PromQL's `sort_desc()` function for proper descending order:
+
+```promql
+# Top VMs by CPU Usage (sorted highest to lowest)
+sort_desc(max by (name) (pve_cpu_usage_ratio{id=~"qemu/.*"} * on(id) group_left(name)
+  max by (id, name) (pve_guest_info{type="qemu"})) * 100)
+
+# Top VMs by Memory Usage (sorted highest to lowest)
+sort_desc(max by (id) (pve_memory_usage_bytes{id=~"qemu/.*"} / pve_memory_size_bytes{id=~"qemu/.*"})
+  * on(id) group_left(name) max by (id, name) (pve_guest_info{type="qemu"}) * 100)
+
+# NAS Storage Pool Usage (sorted highest to lowest)
+sort_desc(max by (id) (pve_disk_usage_bytes{id=~"storage/.*"})
+  / max by (id) (pve_disk_size_bytes{id=~"storage/.*"}) * 100)
+```
+
+**Key Implementation Notes**:
+- Use `sort_desc()` at the outermost level of PromQL queries
+- Set `instant: true` in Grafana targets for current values
+- Remove any Grafana transformations that might interfere with sorting
+- Provisioned dashboards require file update + Grafana restart (not API)
+
 ### Dashboard URLs
 
 | Access Method | URL |

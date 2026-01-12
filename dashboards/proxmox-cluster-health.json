@@ -417,12 +417,9 @@
       "id": 8,
       "options": { "displayMode": "gradient", "minVizHeight": 10, "minVizWidth": 0, "orientation": "horizontal", "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false }, "showUnfilled": true, "valueMode": "color" },
       "pluginVersion": "10.0.0",
-      "targets": [{ "expr": "max by (name) (pve_cpu_usage_ratio{id=~\"qemu/.*\"} * on(id) group_left(name) max by (id, name) (pve_guest_info{type=\"qemu\"})) * 100", "legendFormat": "{{name}}", "refId": "A", "instant": true }],
+      "targets": [{ "expr": "sort_desc(max by (name) (pve_cpu_usage_ratio{id=~\"qemu/.*\"} * on(id) group_left(name) max by (id, name) (pve_guest_info{type=\"qemu\"})) * 100)", "legendFormat": "{{name}}", "refId": "A", "instant": true }],
       "title": "Top VMs by CPU Usage",
-      "transformations": [
-        { "id": "reduce", "options": { "reducers": ["lastNotNull"], "mode": "reduceFields", "includeTimeField": false } },
-        { "id": "sortBy", "options": { "fields": {}, "sort": [{ "desc": true, "field": "Field" }] } }
-      ],
+      "transformations": [],
       "type": "bargauge"
     },
     {
@@ -441,12 +438,9 @@
       "id": 9,
       "options": { "displayMode": "gradient", "minVizHeight": 10, "minVizWidth": 0, "orientation": "horizontal", "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false }, "showUnfilled": true, "valueMode": "color" },
       "pluginVersion": "10.0.0",
-      "targets": [{ "expr": "max by (id) (pve_memory_usage_bytes{id=~\"qemu/.*\"} / pve_memory_size_bytes) * on(id) group_left(name) max by (id, name) (pve_guest_info{type=\"qemu\"}) * 100", "legendFormat": "{{name}}", "refId": "A", "instant": true }],
+      "targets": [{ "expr": "sort_desc(max by (id) (pve_memory_usage_bytes{id=~\"qemu/.*\"} / pve_memory_size_bytes{id=~\"qemu/.*\"}) * on(id) group_left(name) max by (id, name) (pve_guest_info{type=\"qemu\"}) * 100)", "legendFormat": "{{name}}", "refId": "A", "instant": true }],
       "title": "Top VMs by Memory Usage",
-      "transformations": [
-        { "id": "reduce", "options": { "reducers": ["lastNotNull"], "mode": "reduceFields", "includeTimeField": false } },
-        { "id": "sortBy", "options": { "fields": {}, "sort": [{ "desc": true, "field": "Field" }] } }
-      ],
+      "transformations": [],
       "type": "bargauge"
     },
     {
@@ -495,12 +489,9 @@
       "id": 14,
       "options": { "displayMode": "gradient", "minVizHeight": 10, "minVizWidth": 0, "orientation": "horizontal", "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false }, "showUnfilled": true, "valueMode": "color" },
       "pluginVersion": "10.0.0",
-      "targets": [{ "expr": "max by (id) (pve_disk_usage_bytes{id=~\"storage/.*\"}) / max by (id) (pve_disk_size_bytes{id=~\"storage/.*\"}) * 100", "legendFormat": "{{id}}", "refId": "A", "instant": true }],
-      "title": "Storage Pool Usage",
-      "transformations": [
-        { "id": "reduce", "options": { "reducers": ["lastNotNull"], "mode": "reduceFields", "includeTimeField": false } },
-        { "id": "sortBy", "options": { "fields": {}, "sort": [{ "desc": true, "field": "Field" }] } }
-      ],
+      "targets": [{ "expr": "sort_desc(max by (id) (pve_disk_usage_bytes{id=~\"storage/.*\"}) / max by (id) (pve_disk_size_bytes{id=~\"storage/.*\"}) * 100)", "legendFormat": "{{id}}", "refId": "A", "instant": true }],
+      "title": "NAS Storage Pool Usage",
+      "transformations": [],
       "type": "bargauge"
     }
   ],

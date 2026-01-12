@@ -1193,6 +1193,68 @@ Dynamic Reddit feed aggregator with thumbnails and native Reddit widgets.
 
 **Deployment Playbook**: `ansible-playbooks/glance/deploy-web-reddit-update.yml`
 
+### Backup Tab (Added January 11, 2026)
+
+The Backup tab provides monitoring for Proxmox Backup Server (PBS) with embedded Grafana dashboard and drive health status.
+
+**Layout (2 columns)**:
+```
+┌───────────────────────────────────────────────────────────────┬──────────────────┐
+│                     MAIN (full)                                │  SIDEBAR (small) │
+├───────────────────────────────────────────────────────────────┼──────────────────┤
+│ PBS Backup Status Dashboard (Grafana iframe, h=1400)          │ PBS Server       │
+│ - Status Overview: pbs_up, version, uptime                    │ (monitor)        │
+│ - Datastore Storage: Pie charts for daily/main                │                  │
+│ - Backup Snapshots: Counts per datastore                      │ Drive Health     │
+│ - Storage Usage Over Time                                     │ Status (API)     │
+│ - PBS Host Metrics: CPU, memory, load                         │                  │
+│                                                               │ Quick Links      │
+│                                                               │ (PBS UI, Grafana)│
+└───────────────────────────────────────────────────────────────┴──────────────────┘
+```
+
+**Grafana Dashboard**: `pbs-backup-status` (UID)
+- URL: `https://grafana.hrmsmrflrii.xyz/d/pbs-backup-status/pbs-backup-status?kiosk&theme=transparent&refresh=30s`
+- Iframe Height: 1400px
+- Dashboard JSON: `dashboards/pbs-backup-status.json`
+- Datasource UID: `PBFA97CFB590B2093` (Prometheus)
+
+**Drive Health Status Widget** (Added January 12, 2026):
+
+Displays SMART health status for PBS storage drives.
+
+```yaml
+- type: custom-api
+  title: Drive Health Status
+  cache: 5m
+  url: http://192.168.20.22:9101/health
+  template: |
+    <div style="padding: 10px;">
+      {{ range .JSON.Array "drives" }}
+      <div style="...">
+        <div>{{ .String "name" }}</div>
+        <div>{{ .String "datastore" }} datastore</div>
+        {{ if .Bool "healthy" }}
+          <span style="background: #22c55e;">HEALTHY</span>
+        {{ else }}
+          <span style="background: #ef4444;">FAILED</span>
+        {{ end }}
+      </div>
+      {{ end }}
+    </div>
+```
+
+**Drive Health API**:
+| Property | Value |
+|----------|-------|
+| Host | node03 (192.168.20.22) |
+| Port | 9101 |
+| Endpoint | `/health` |
+| Monitored Drives | Seagate 4TB HDD (main), Kingston 1TB NVMe (daily) |
+| Service | `smart-health-api.service` |
+
+See [PBS Monitoring](./PBS_MONITORING.md) for complete SMART API documentation.
+
 ### Sports Tab (PROTECTED)
 
 **DO NOT MODIFY without explicit user permission.**

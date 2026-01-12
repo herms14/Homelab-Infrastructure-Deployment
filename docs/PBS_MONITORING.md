@@ -264,6 +264,171 @@ curl -s http://localhost:9101/metrics | grep -i pbs
 curl -s 'http://localhost:9090/api/v1/query?query=pbs_up'
 ```
 
+## Administration Notes (Updated January 12, 2026)
+
+### Root Password
+
+| Field | Value |
+|-------|-------|
+| Username | `root` (select "Linux PAM" realm) |
+| Password | `NewPBS2025` |
+
+> **Note**: Enter `root` in username field (not `root@pam`). The realm dropdown automatically adds the `@pam` suffix.
+
+### ACL Permissions
+
+To ensure daily backups work properly, the following ACL permissions must be set:
+
+```bash
+# Add DatastoreBackup permission for API token on daily datastore
+pvesh create /access/acl --path /datastore/daily --role DatastoreBackup --token 'backup@pbs!pve'
+
+# Add DatastoreBackup permission for user on daily datastore (for non-token access)
+pvesh create /access/acl --path /datastore/daily --role DatastoreBackup --userid 'backup@pbs'
+```
+
+| Principal | Path | Role |
+|-----------|------|------|
+| `backup@pbs` | `/` | Audit |
+| `backup@pbs` | `/datastore/main` | DatastoreAdmin |
+| `backup@pbs` | `/datastore/daily` | DatastoreAdmin |
+| `backup@pbs!pve` | `/datastore/main` | DatastoreAdmin |
+| `backup@pbs!pve` | `/datastore/daily` | DatastoreBackup |
+
+### Subscription Nag Removal
+
+To remove the "No valid subscription" popup:
+
+```bash
+# SSH to PBS container via node03
+ssh root@192.168.20.22
+
+# Enter the LXC container
+pct exec 100 -- bash
+
+# Edit the proxmoxlib.js file
+nano /usr/share/javascript/proxmox-widget-toolkit/proxmoxlib.js
+
+# Find this line:
+if (res === null || res === undefined || !res || res.data.status.toLowerCase() !== 'active') {
+
+# Change to (flip the condition):
+if (res === null || res === undefined || !res || res.data.status.toLowerCase() === 'active') {
+
+# Clear browser cache or use incognito to verify
+```
+
+### Orphaned Backup Cleanup
+
+If backup errors show "missing blob files" in logs, check for incomplete snapshots:
+
+```bash
+# On PBS container, check for orphaned temp files
+find /backup /backup-ssd -name "*.tmp_fidx" 2>/dev/null
+
+# Check for snapshots missing index.json.blob
+for dir in /backup*/*/vm/*/; do
+  if [[ -d "$dir" ]]; then
+    for snap in "$dir"*/; do
+      if [[ -d "$snap" && ! -f "$snap/index.json.blob" ]]; then
+        echo "Incomplete: $snap"
+      fi
+    done
+  fi
+done
+
+# Remove incomplete snapshots (after verification)
+# rm -rf /path/to/incomplete/snapshot
+```
+
+## Drive Health Monitoring (Added January 12, 2026)
+
+SMART health monitoring for PBS storage drives is provided via a custom API on node03.
+
+### SMART Health API
+
+| Property | Value |
+|----------|-------|
+| Host | node03 (192.168.20.22) |
+| Port | 9101 |
+| Endpoint | `http://192.168.20.22:9101/health` |
+| Service | `smart-health-api.service` |
+
+### Monitored Drives
+
+| Drive | Device | Datastore |
+|-------|--------|-----------|
+| Seagate 4TB HDD | `/dev/sda` | main |
+| Kingston 1TB NVMe | `/dev/nvme1n1` | daily |
+
+### API Response
+
+```json
+{
+  "drives": [
+    {
+      "device": "/dev/sda",
+      "name": "Seagate 4TB HDD",
+      "datastore": "main",
+      "healthy": true,
+      "status": "PASSED"
+    },
+    {
+      "device": "/dev/nvme1n1",
+      "name": "Kingston 1TB NVMe",
+      "datastore": "daily",
+      "healthy": true,
+      "status": "PASSED"
+    }
+  ]
+}
+```
+
+### Service Files
+
+**Script Location**: `/opt/smart-health-api/smart-health.py`
+
+```python
+#!/usr/bin/env python3
+from http.server import HTTPServer, BaseHTTPRequestHandler
+import subprocess
+import json
+
+DRIVES = [
+    {"device": "/dev/sda", "name": "Seagate 4TB HDD", "datastore": "main"},
+    {"device": "/dev/nvme1n1", "name": "Kingston 1TB NVMe", "datastore": "daily"}
+]
+
+# Uses smartctl -H -j to check SMART health status
+# Returns JSON with healthy boolean and status string
+```
+
+**Systemd Service**: `/etc/systemd/system/smart-health-api.service`
+
+```bash
+# Enable and start the service
+systemctl enable smart-health-api
+systemctl start smart-health-api
+
+# Check status
+systemctl status smart-health-api
+curl http://localhost:9101/health
+```
+
+### Glance Integration
+
+The Drive Health Status widget is displayed on the Glance Backup page:
+
+```yaml
+- type: custom-api
+  title: Drive Health Status
+  cache: 5m
+  url: http://192.168.20.22:9101/health
+  template: |
+    # Uses Go templating to display drive status with color indicators
+    # Green for healthy, Red for failed
+```
+
 ## References
 
 - [PBS Exporter GitHub](https://github.com/natrontech/pbs-exporter)

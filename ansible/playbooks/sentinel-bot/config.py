@@ -68,6 +68,7 @@ class SSHConfig:
     # Host IPs
     node01_ip: str
     node02_ip: str
+    node03_ip: str
     docker_utilities_ip: str
     docker_media_ip: str
     docker_glance_ip: str
@@ -139,6 +140,7 @@ def load_config() -> Config:
         proxmox_user='root',
         node01_ip=os.environ.get('PROXMOX_NODE01_IP', '192.168.20.20'),
         node02_ip=os.environ.get('PROXMOX_NODE02_IP', '192.168.20.21'),
+        node03_ip=os.environ.get('PROXMOX_NODE03_IP', '192.168.20.22'),
         docker_utilities_ip=os.environ.get('DOCKER_UTILITIES_IP', '192.168.40.13'),
         docker_media_ip=os.environ.get('DOCKER_MEDIA_IP', '192.168.40.11'),
         docker_glance_ip=os.environ.get('DOCKER_GLANCE_IP', '192.168.40.12'),
@@ -238,4 +240,5 @@ VM_HOSTS = {
 PROXMOX_NODES = {
     'node01': '192.168.20.20',
     'node02': '192.168.20.21',
+    'node03': '192.168.20.22',
 }
