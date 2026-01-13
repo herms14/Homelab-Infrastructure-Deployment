@@ -1,0 +1,35 @@
+services:
+  homelab-chronicle:
+    build: .
+    container_name: homelab-chronicle
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      - DATABASE_URL=file:/data/chronicle.db
+      - NEXTAUTH_URL=https://chronicle.hrmsmrflrii.xyz
+      - NEXTAUTH_SECRET=${NEXTAUTH_SECRET}
+      - AUTHENTIK_CLIENT_ID=${AUTHENTIK_CLIENT_ID}
+      - AUTHENTIK_CLIENT_SECRET=${AUTHENTIK_CLIENT_SECRET}
+      - AUTHENTIK_ISSUER=https://auth.hrmsmrflrii.xyz/application/o/homelab-chronicle/
+    volumes:
+      - chronicle-data:/data
+      - chronicle-uploads:/app/public/uploads
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.chronicle.rule=Host(`chronicle.hrmsmrflrii.xyz`)"
+      - "traefik.http.routers.chronicle.entrypoints=websecure"
+      - "traefik.http.routers.chronicle.tls.certresolver=letsencrypt"
+      - "traefik.http.services.chronicle.loadbalancer.server.port=3000"
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:3000/api/events"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+volumes:
+  chronicle-data:
+    driver: local
+  chronicle-uploads:
+    driver: local

@@ -1,0 +1,27 @@
+# Traefik Dynamic Configuration for Homelab Chronicle
+# Add this to /opt/traefik/config/dynamic/services.yml on traefik host
+#
+# Or copy to: /opt/traefik/config/dynamic/chronicle.yml
+
+http:
+  routers:
+    chronicle:
+      rule: "Host(`chronicle.hrmsmrflrii.xyz`)"
+      service: chronicle
+      entryPoints:
+        - websecure
+      tls:
+        certResolver: letsencrypt
+      # Optional: Authentik middleware for SSO protection
+      # middlewares:
+      #   - authentik@file
+
+  services:
+    chronicle:
+      loadBalancer:
+        servers:
+          - url: "http://192.168.40.15:3000"
+        healthCheck:
+          path: /api/events
+          interval: 30s
+          timeout: 5s
