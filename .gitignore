@@ -82,7 +82,6 @@ glance-backup/
 gitlab-repo/
 homelab-services/
 Proxmox-TerraformDeployments.wiki/
-wiki/
 
 # Claude temp files
 tmpclaude-*
