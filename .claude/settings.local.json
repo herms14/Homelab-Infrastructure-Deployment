@@ -213,7 +213,9 @@
       "Bash(tracert:*)",
       "Bash(gemini:*)",
       "Bash(powershell.exe:*)",
-      "Bash(do sed -i 's/c@llimachus14/CHANGE_ME_BEFORE_USE/g; s/Homelab@Azure2026!/CHANGE_ME_BEFORE_USE/g' \"$f\")"
+      "Bash(do sed -i 's/c@llimachus14/CHANGE_ME_BEFORE_USE/g; s/Homelab@Azure2026!/CHANGE_ME_BEFORE_USE/g' \"$f\")",
+      "Bash(\"C:\\\\Program Files\\\\dotnet\\\\dotnet.exe\" publish -c Release -o ./publish)",
+      "Bash(\"C:\\\\Program Files\\\\dotnet\\\\dotnet.exe\" restore --source https://api.nuget.org/v3/index.json)"
     ],
     "deny": [],
     "ask": []

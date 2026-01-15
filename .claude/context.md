@@ -1,622 +1,129 @@
 # Infrastructure Context
 
-> Core infrastructure reference. This file contains stable information that rarely changes.
-> Last updated: 2026-01-12
+> Detailed infrastructure reference. Read when needed for specific lookups.
 
 ## Proxmox Cluster
 
-**Cluster**: MorpheusCluster (3-node + Qdevice)
-
 | Node | Local IP | Tailscale IP | Purpose |
 |------|----------|--------------|---------|
-| node01 | 192.168.20.20 | 100.89.33.5 | Primary VM Host (K8s, LXCs, Core Services) |
-| node02 | 192.168.20.21 | 100.96.195.27 | Service Host (Traefik, Authentik, GitLab, Immich) |
-| node03 | 192.168.20.22 | 100.88.228.34 | Desktop Node - Ryzen 9 5900XT (GitLab, Immich, Syslog) |
+| node01 | 192.168.20.20 | 100.89.33.5 | Primary (K8s, LXCs, Core) |
+| node02 | 192.168.20.21 | 100.96.195.27 | Services (Traefik, Authentik, GitLab) |
+| node03 | 192.168.20.22 | 100.88.228.34 | Hybrid Lab (Windows VMs) |
 
-### Node03 Power Management
+**Wake-on-LAN MACs**: node01: `38:05:25:32:82:76`, node02: `84:47:09:4d:7a:ca`
+**Node Exporter**: All nodes on port 9100
 
-Node03 is a desktop PC with power-saving optimizations applied:
-- **CPU**: AMD Ryzen 9 5900XT 16-Core, governor set to `powersave`
-- **Storage**: 2x NVMe, 1x SSD, 1x 4TB HDD (spindown: 20min)
-- **Services**: `power-save.service`, `powertop.service` (auto-tune at boot)
-- **GRUB**: `amd_pstate=active processor.max_cstate=9`
-- **Expected idle**: ~40-60W (down from ~100-150W)
-
-### Wake-on-LAN
-
-| Node | MAC Address | Status |
-|------|-------------|--------|
-| node01 | `38:05:25:32:82:76` | Enabled & Persistent |
-| node02 | `84:47:09:4d:7a:ca` | Enabled & Persistent |
-| node03 | `TBD` | TBD |
-
-**Wake nodes from MacBook**:
-```bash
-python3 scripts/wake-nodes.py          # Wake both
-python3 scripts/wake-nodes.py node01   # Wake node01 only
-```
-
-**BIOS**: Ensure WoL is enabled in each node's BIOS/UEFI (Power Management → Wake on LAN).
-
-### Node Exporter (Hardware Metrics)
-
-All Proxmox nodes run node_exporter v1.7.0 for temperature and hardware monitoring.
-
-| Node | Endpoint | Collectors |
-|------|----------|------------|
-| node01 | 192.168.20.20:9100 | hwmon, thermal_zone, cpu, meminfo |
-| node02 | 192.168.20.21:9100 | hwmon, thermal_zone, cpu, meminfo |
-| node03 | 192.168.20.22:9100 | hwmon, thermal_zone, cpu, meminfo |
-
-**Service**: `/etc/systemd/system/node_exporter.service`
-**Binary**: `/usr/local/bin/node_exporter`
-**Prometheus Job**: `proxmox-nodes`
-
-### Proxmox Backup Server (PBS)
-
-PBS runs as LXC 100 on node03, providing enterprise backups with deduplication.
+## Proxmox Backup Server (PBS)
 
 | Setting | Value |
 |---------|-------|
-| VMID | 100 |
+| VMID | 100 (LXC on node03) |
 | IP | 192.168.20.50 |
 | Web UI | https://192.168.20.50:8007 |
-| Login | `root` (select "Linux PAM" realm) |
-| Password | `NewPBS2025` |
+| Login | root (Linux PAM realm) |
 | API Token | backup@pbs!pve |
 
-> **Note**: Enter `root` in username field, not `root@pam`. Realm dropdown adds suffix.
-
-**Datastores:**
-
-| ID | Datastore | Storage | Size | Purpose |
-|----|-----------|---------|------|---------|
-| pbs-main | main | 4TB HDD | 3.4TB | Weekly/monthly archival |
-| pbs-daily | daily | 1TB NVMe | 870GB | Daily backups (fast) |
-
-**Backup Strategy:**
-- `pbs-daily`: Critical VMs daily at 2AM, keep 7
-- `pbs-main`: All VMs weekly Sun 3AM, keep 4 weekly + 2 monthly
-
-**Drive Health Monitoring (Added January 12, 2026):**
-| Property | Value |
-|----------|-------|
-| API Endpoint | http://192.168.20.22:9101/health |
-| Service | `smart-health-api.service` on node03 |
-| Drives | Seagate 4TB HDD (/dev/sda, main), Kingston 1TB NVMe (/dev/nvme1n1, daily) |
-
-### Remote Access (Tailscale)
-
-When outside the local network, use Tailscale IPs:
-
-```bash
-# SSH via Tailscale
-ssh root@100.89.33.5         # node01
-ssh root@100.96.195.27       # node02
-ssh root@100.88.228.34       # node03 (via Tailscale)
-
-# Proxmox Web UI via Tailscale
-# https://100.89.33.5:8006    (node01)
-# https://100.96.195.27:8006  (node02)
-# https://192.168.20.22:8006  (node03 - local only)
-```
-
-**Other Tailscale Devices**:
-- Synology NAS: 100.84.128.43 (inactive)
-- Kratos PC: 100.124.141.17 (user device)
-
----
+**Datastores**: `main` (4TB HDD weekly), `daily` (1TB NVMe daily)
 
 ## Networks
 
 | VLAN | Network | Purpose |
 |------|---------|---------|
-| VLAN 20 | 192.168.20.0/24 | Infrastructure (K8s, Ansible) |
-| VLAN 40 | 192.168.40.0/24 | Services (Docker, Apps) |
-| VLAN 90 | 192.168.90.0/24 | Management (Pi-hole DNS) |
+| 20 | 192.168.20.0/24 | Infrastructure |
+| 40 | 192.168.40.0/24 | Services |
+| 80 | 192.168.80.0/24 | Hybrid Lab (AD) |
+| 90 | 192.168.90.0/24 | Management |
 
-**DNS Server**: 192.168.90.53 (Pi-hole v6 + Unbound)
+**DNS**: 192.168.90.53 (Pi-hole v6 + Unbound)
 
----
-
-## Azure Cloud Environment
+## Azure Environment
 
 **Subscription**: FireGiants-Prod (`2212d587-1bad-4013-b605-b421b1f83c30`)
-**Tenant ID**: `b6458a9a-9661-468c-bda3-5f496727d0b0`
 **Region**: Southeast Asia
 
-### Azure Network
+| Resource | IP/Name | Purpose |
+|----------|---------|---------|
+| ubuntu-deploy-vm | 10.90.10.5 | Deployment VM (Terraform, Ansible) |
+| law-homelab-sentinel | - | Log Analytics + Sentinel |
+| linux-syslog-server01 | 192.168.40.5 (Arc) | Syslog aggregator |
 
-| Network | Address Space | Purpose |
-|---------|---------------|---------|
-| ans-tf-vm01-vnet | 10.90.10.0/29 | Deployment VMs |
+**VPN**: Site-to-Site (OPNsense <-> Azure VPN Gateway)
 
-**Connectivity**: Site-to-Site VPN (OPNsense <-> Azure VPN Gateway)
-
-### Azure Virtual Machines
-
-| VM | IP | Size | Purpose |
-|----|-----|------|---------|
-| **ubuntu-deploy-vm** | 10.90.10.5 | D2s_v3 | **Primary deployment VM** (Terraform, Ansible, Azure CLI) |
-| ans-tf-vm01 | 10.90.10.4 | - | Windows management VM (legacy) |
-
-**ubuntu-deploy-vm** is the designated deployment VM for all Azure resources going forward.
-
-### Azure Sentinel (SIEM)
-
-| Resource | Name | Purpose |
-|----------|------|---------|
-| Log Analytics Workspace | law-homelab-sentinel | Log storage (90-day retention) |
-| Sentinel | (attached to LAW) | SIEM analytics |
-| Data Collection Endpoint | dce-homelab-syslog | AMA ingestion endpoint |
-| Data Collection Rule | dcr-homelab-syslog | Syslog collection config |
-| Arc Machine | linux-syslog-server01 | Homelab syslog server (192.168.40.5) |
-
-### Azure SSH Access
-
-```bash
-# Using SSH config alias
-ssh ubuntu-deploy
-
-# Or explicitly
-ssh -i ~/.ssh/ubuntu-deploy-vm.pem hermes-admin@10.90.10.5
-```
-
-**SSH Key Locations**:
-- Local PC: `~/.ssh/ubuntu-deploy-vm.pem`
-- SSH Config: `~/.ssh/config` (Host: ubuntu-deploy)
-
-### Azure Deployment Workflow
-
-All Azure resources should be deployed from `ubuntu-deploy-vm`:
-
-```bash
-ssh ubuntu-deploy
-az login --identity
-cd /opt/terraform/<project>
-terraform init && terraform plan && terraform apply
-```
-
----
-
-## Deployed Infrastructure
-
-**Current Infrastructure** (January 2026):
+## Deployed Hosts
 
 | Host | IP | Type | Services |
 |------|-----|------|----------|
-| pbs-server | 192.168.20.50 | LXC 100 | Proxmox Backup Server (4TB datastore) |
-| docker-lxc-glance | 192.168.40.12 | LXC 200 | Glance, Media Stats API, Reddit Manager, NBA Stats API |
-| docker-lxc-bots | 192.168.40.14 | LXC 201 | (Deprecated - bots consolidated to Sentinel) |
-| pihole | 192.168.90.53 | LXC 202 | Pi-hole v6 + Unbound DNS |
-| docker-vm-core-utilities | 192.168.40.13 | VM 107 | Grafana, Prometheus, Uptime Kuma, Speedtest, cAdvisor, SNMP Exporter, Life Progress API, **Sentinel Bot** |
-| docker-media | 192.168.40.11 | VM | Jellyfin, *arr stack, MeTube, YouTube Stats API |
+| pbs-server | 192.168.20.50 | LXC 100 | Proxmox Backup Server |
+| docker-lxc-glance | 192.168.40.12 | LXC 200 | Glance, APIs |
+| pihole | 192.168.90.53 | LXC 202 | Pi-hole v6 + Unbound |
+| docker-vm-core-utilities | 192.168.40.13 | VM 107 | Grafana, Prometheus, Sentinel Bot |
+| docker-media | 192.168.40.11 | VM | Jellyfin, *arr stack |
 | traefik | 192.168.40.20 | VM | Reverse proxy |
-| authentik | 192.168.40.21 | VM | SSO/Authentication |
+| authentik | 192.168.40.21 | VM | SSO |
 
-**Note**: docker-utilities (192.168.40.10) has been decommissioned. All monitoring services now run on 192.168.40.13.
-
-| Category | Hosts | Details |
-|----------|-------|---------|
-| Kubernetes | 9 VMs | 3 controllers + 6 workers (v1.28.15) |
-| Services | 8 VMs | Traefik, Authentik, Immich, GitLab, GitLab Runner, Arr Stack |
-| LXC Containers | 3 LXC | Glance (200), Discord Bots (201), Pi-hole (202) |
-| Ansible | 1 VM | Configuration management controller |
-
----
-
-## Authentication
-
-| Access | Details |
-|--------|---------|
-| SSH User | hermes-admin (VMs), root (Proxmox) |
-| SSH Key | `~/.ssh/homelab_ed25519` (no passphrase) |
-| SSH Config | `~/.ssh/config` with host aliases |
-| Proxmox API | terraform-deployment-user@pve!tf |
-
-### SSH Quick Access
-
-```bash
-# Using host aliases (from ~/.ssh/config)
-ssh node01              # Proxmox node01 as root
-ssh ansible             # Ansible controller
-ssh k8s-controller01    # K8s primary controller
-ssh docker-vm-core-utilities01    # Docker utilities host
-
-# Direct IP access (auto-selects key)
-ssh root@192.168.20.20
-ssh hermes-admin@192.168.20.30
-```
-
----
-
-## Synology NAS
-
-**Address**: 192.168.20.31
-**DSM Web UI**: https://192.168.20.31:5001
-**Tailscale IP**: 100.84.128.43 (inactive)
-
-### NAS Services
+## Synology NAS (192.168.20.31)
 
 | Service | Port | Purpose |
 |---------|------|---------|
-| DSM | 5001 (HTTPS) | Synology management |
-| **Plex Media Server** | 32400 | Media streaming |
-| NFS | 2049 | File shares for Proxmox |
-| SNMP | 161 | Monitoring metrics |
+| DSM | 5001 | Management |
+| Plex | 32400 | Media streaming |
+| NFS | 2049 | Proxmox storage |
+| SNMP | 161 | Monitoring |
 
-### Plex Media Server
-
-| Setting | Value |
-|---------|-------|
-| Web UI | http://192.168.20.31:32400/web |
-| Direct Stream | http://192.168.20.31:32400 |
-| Media Location | `/volume2/Proxmox-Media/` |
-
-**Library Paths** (on Synology):
-- Movies: `/volume2/Proxmox-Media/Movies`
-- TV Shows: `/volume2/Proxmox-Media/Series`
-- Music: `/volume2/Proxmox-Media/Music`
-
----
+**Media Paths**: `/volume2/Proxmox-Media/{Movies,Series,Music}`
 
 ## Service URLs
 
-| Service | URL |
-|---------|-----|
-| Proxmox | https://proxmox.hrmsmrflrii.xyz |
-| PBS | https://pbs.hrmsmrflrii.xyz (or https://192.168.20.50:8007 internal) |
-| **Plex** | http://192.168.20.31:32400/web |
-| Traefik | https://traefik.hrmsmrflrii.xyz |
-| Authentik | https://auth.hrmsmrflrii.xyz |
-| Immich | https://photos.hrmsmrflrii.xyz |
-| GitLab | https://gitlab.hrmsmrflrii.xyz |
-| Jellyfin | https://jellyfin.hrmsmrflrii.xyz |
-| Deluge | https://deluge.hrmsmrflrii.xyz |
-| SABnzbd | https://sabnzbd.hrmsmrflrii.xyz |
-| MeTube | https://metube.hrmsmrflrii.xyz |
-| n8n | https://n8n.hrmsmrflrii.xyz |
-| **Productivity** | |
-| BentoPDF | https://bentopdf.hrmsmrflrii.xyz |
-| Reactive Resume | https://resume.hrmsmrflrii.xyz |
-| **Network Tools** | |
-| Edgeshark | https://edgeshark.hrmsmrflrii.xyz |
-| **Dashboards** | |
-| Glance | https://glance.hrmsmrflrii.xyz |
-| **Monitoring** | |
-| Uptime Kuma | https://uptime.hrmsmrflrii.xyz |
-| Prometheus | https://prometheus.hrmsmrflrii.xyz |
-| Grafana | https://grafana.hrmsmrflrii.xyz |
-| **Observability** | |
-| Jaeger | https://jaeger.hrmsmrflrii.xyz |
-| Demo App | https://demo.hrmsmrflrii.xyz |
-| **Sentinel Bot** | All Discord channels (unified bot) |
+| Category | Service | URL |
+|----------|---------|-----|
+| Core | Proxmox | https://proxmox.hrmsmrflrii.xyz |
+| Core | Traefik | https://traefik.hrmsmrflrii.xyz |
+| Core | Authentik | https://auth.hrmsmrflrii.xyz |
+| Media | Jellyfin | https://jellyfin.hrmsmrflrii.xyz |
+| Media | Plex | http://192.168.20.31:32400/web |
+| Monitoring | Grafana | https://grafana.hrmsmrflrii.xyz |
+| Monitoring | Prometheus | https://prometheus.hrmsmrflrii.xyz |
+| Dashboard | Glance | https://glance.hrmsmrflrii.xyz |
+| Productivity | GitLab | https://gitlab.hrmsmrflrii.xyz |
+| Productivity | Immich | https://photos.hrmsmrflrii.xyz |
 
----
+## Discord Bot: Sentinel
 
-## Discord Bot Ecosystem
+**Host**: docker-vm-core-utilities01 (192.168.40.13)
+**Config**: `/opt/sentinel-bot/`
+**Webhook Port**: 5050
 
-| Bot | Channel(s) | Host | Config Location |
-|-----|------------|------|-----------------|
-| **Sentinel** | All channels | docker-vm-core-utilities01 (192.168.40.13) | `/opt/sentinel-bot/` |
-
-**Sentinel Bot** (Consolidated January 2026):
-Unified homelab management bot combining the functionality of 4 previous bots (Argus, Chronos, Mnemosyne, Athena).
-
-**Cog Modules:**
 | Cog | Channel | Purpose |
 |-----|---------|---------|
-| **Homelab** | #homelab-infrastructure | Proxmox cluster status, VM/LXC/node management |
-| **Updates** | #container-updates | Container updates, Watchtower webhooks, reaction approvals |
-| **Media** | #media-downloads | Download tracking, failed download alerts, Radarr/Sonarr integration |
-| **GitLab** | #project-management | Issue creation/tracking via slash commands |
-| **Tasks** | #claude-tasks | Claude task queue, REST API for Claude instances |
-| **Onboarding** | #new-service-onboarding | DNS/Traefik/SSL verification |
-| **Scheduler** | Various | Background tasks (7pm updates, download monitoring, failed downloads) |
+| Homelab | #homelab-infrastructure | Proxmox status, VM/LXC management |
+| Updates | #container-updates | Watchtower webhooks |
+| Media | #media-downloads | Download tracking |
+| GitLab | #project-management | Issue management |
+| Tasks | #claude-tasks | Claude task queue |
 
-**Key Commands:**
-| Command | Description |
-|---------|-------------|
-| `/help` | Show all commands |
-| `/insight` | Health check (memory, errors, storage, downloads) |
-| `/homelab status` | Cluster overview |
-| `/homelab uptime` | All node/host uptimes |
-| `/node <name> restart` | Restart Proxmox node (with confirmation) |
-| `/vm <id> restart` | Restart a VM |
-| `/lxc <id> restart` | Restart an LXC container |
-| `/check` | Scan for container updates |
-| `/downloads` | Current download queue |
-
-**Features:**
-- Progress bars on all long-running commands
-- Reaction-based update approvals (thumbsup to approve)
-- Failed download alerts with reaction-based removal (wastebasket emoji)
-- REST API for Claude Code integration (port 5050)
-- SQLite database for persistent storage
-- SSH-based infrastructure management (root for Proxmox, hermes-admin for VMs)
-
-**Deployment Notes:**
-- Runs on docker-vm-core-utilities01 (VM 107)
-- Webhook port: 5050
-- SSH key mounted at `/app/.ssh/homelab_ed25519`
-- See `docs/DISCORD_BOTS.md` for full documentation
-
----
-
-## Glance Dashboard - Protected Pages
-
-**DO NOT modify these layouts without explicit user permission.**
-
-### Home Page Structure
-- **Left Column**: Clock, Weather, Calendar, Bookmarks
-- **Center Column**: Life Progress, GitHub, Proxmox Monitor, Storage Monitor, Service Monitors, K8s Monitors
-- **Right Column**: Crypto, Stocks, Tech News RSS
-
-### Media Page Structure
-- **Main Column**: Media Stats Grid (6-tile), Recent Downloads, Currently Downloading, RSS
-- **Sidebar**: Media Apps Bookmarks, Services Status
-
-### Compute Tab Structure
-- **Main**: Proxmox Cluster Health Dashboard (Grafana), Proxmox Cluster Overview (Grafana), Container Status History Dashboard (Grafana)
-- **Sidebar**: Proxmox Nodes Monitor, Quick Links
-- **Cluster Health Dashboard**: CPU temperature gauges, temp history, VM usage, storage (UID: `proxmox-cluster-health`)
-
-### Container Status History Dashboard (PROTECTED)
-
-**Grafana UID**: `container-status`
-**Glance Iframe Height**: 1500px
-
-**Layout:**
-```
-┌─────────────────────────────────────────────────────────────────────────┐
-│ [Total Containers] [Running]    [Total Memory Used]   [Total CPU Gauge] │  Row 1: h=4
-├─────────────────────────────────────────────────────────────────────────┤
-│ [Utilities VM]  [Utilities Stable] [Media VM]      [Media Stable]       │  Row 2: h=3
-├──────────────────────────────────┬──────────────────────────────────────┤
-│  Top 5 Memory - Utilities VM     │    Top 5 Memory - Media VM           │  Row 3: h=8
-│  (bar gauge, Blue-Purple)        │    (bar gauge, Green-Yellow-Red)     │
-├──────────────────────────────────┼──────────────────────────────────────┤
-│ State Timeline - Utilities VM    │ State Timeline - Media VM            │  Row 4: h=14
-│ (container uptime, 1h window)    │ (container uptime, 1h window)        │
-├──────────────────────────────────┴──────────────────────────────────────┤
-│ Container Issues (Last 15 min) - Table of stopped/restarted containers  │  Row 5: h=8
-└─────────────────────────────────────────────────────────────────────────┘
-```
-
-**Top 5 Memory Panels:**
-- Type: `bargauge` with horizontal orientation
-- Utilities VM: `continuous-BlPu` color scheme
-- Media VM: `continuous-GrYlRd` color scheme
-- Query: `topk(5, docker_container_memory_percent{job="docker-stats-..."})`
-- Unit: percent, max: 100
-
-**Key Configuration:**
-- Visualization: `state-timeline` (not status-history)
-- Query interval: `1m` to reduce data points
-- Time range: `now-1h`
-- Stable threshold: `> 3600` (1 hour) with `or vector(0)` fallback
-- Row height: `0.9`
-- mergeValues: `true`
-
-**Files:**
-- Dashboard JSON: `dashboards/container-status.json`
-- Ansible Playbook: `ansible-playbooks/monitoring/deploy-container-status-dashboard.yml`
-
-### Storage Tab Structure (PROTECTED)
-
-**DO NOT MODIFY without explicit user permission.**
-
-**Grafana Dashboard**: `synology-nas-modern` (UID)
-**Glance Iframe Height**: 1350px
-**URL**: `https://grafana.hrmsmrflrii.xyz/d/synology-nas-modern/synology-nas-storage?orgId=1&kiosk&theme=transparent&refresh=30s`
-**Time Range**: 7 days (for storage consumption trends)
-
-**Layout:**
-```
-┌─────────────────────────────────────────────────────────────────────────┐
-│ [RAID Status] [SSD Cache] [Uptime] [Total] [Used] [Storage %]           │  Row 1: h=4
-├─────────────────────────────────────────────────────────────────────────┤
-│ [Drive 1 HDD] [Drive 2 HDD] [Drive 3 HDD] [Drive 4 HDD] [M.2 1] [M.2 2] │  Row 2: h=4
-├──────────────────────────────────┬──────────────────────────────────────┤
-│ Disk Temperatures (bargauge)     │ [Sys Temp] [Healthy] [CPU Gauge]    │  Row 3: h=6
-│ All 6 drives with gradient       │ [CPU Cores] [Free]   [Mem Gauge]    │
-├──────────────────────────────────┼──────────────────────────────────────┤
-│ CPU Gauge        Memory Gauge    │ [Total RAM]  [Available RAM]        │  Row 4: h=5
-├──────────────────────────────────┼──────────────────────────────────────┤
-│ CPU Usage Over Time (4 cores)    │ Memory Usage Over Time              │  Row 5: h=8
-├──────────────────────────────────┴──────────────────────────────────────┤
-│ Storage Consumption Over Time (Used/Free/Total, 7-day window)           │  Row 6: h=8
-└─────────────────────────────────────────────────────────────────────────┘
-```
-
-**RAID Status Panels (Added January 8, 2026):**
-| Panel | Metric | Description |
-|-------|--------|-------------|
-| RAID Status | `synologyRaidStatus{raidIndex="0"}` | Storage Pool 1 (HDD array) |
-| SSD Cache Status | `synologyRaidStatus{raidIndex="1"}` | SSD Cache Pool |
-
-**RAID Status Value Mappings:**
-| Value | Status | Color | Description |
-|-------|--------|-------|-------------|
-| 1 | Normal | Green (#22c55e) | Array healthy |
-| 2 | REPAIRING | Orange (#f59e0b) | Rebuilding after drive replacement |
-| 7 | SYNCING | Blue (#3b82f6) | Data verification in progress |
-| 11 | DEGRADED | Red (#ef4444) | Drive failure, needs attention |
-| 12 | CRASHED | Red (#ef4444) | Array failed |
-
-**Disk Configuration (6 drives):**
-- Drive 1: Seagate 8TB HDD (ST8000VN004)
-- Drive 2: Seagate 4TB HDD (ST4000VN006)
-- Drive 3: Seagate 12TB HDD (ST12000VN0008)
-- Drive 4: Seagate 10TB HDD (ST10000VN000)
-- M.2 SSD 1: Kingston 1TB NVMe (SNV2S1000G)
-- M.2 SSD 2: Crucial 1TB NVMe (CT1000P2SSD8)
-
-**Color Scheme:**
-- HDDs: Green when healthy (#22c55e)
-- SSDs: Purple when healthy (#8b5cf6)
-- Failed: Red (#ef4444)
-- Storage Timeline: Used (amber #f59e0b), Free (green #22c55e), Total (blue dashed #3b82f6)
-- Memory Chart: Used Real (red #ef4444), Cache/Buffers (amber #f59e0b), Free (green #22c55e)
-
-**Memory Metrics** (IMPORTANT):
-- **Memory Usage Gauge**: `((memTotalReal - memAvailReal - memBuffer - memCached) / memTotalReal) * 100`
-  - Excludes cache and buffers (reclaimable memory) from "used" calculation
-  - Shows ~7% actual usage instead of ~95% (which incorrectly included cache)
-- **Memory Over Time Chart**: Shows 3 series:
-  - Used (Real): `memTotalReal - memAvailReal - memBuffer - memCached`
-  - Cache/Buffers: `memCached + memBuffer`
-  - Free: `memAvailReal`
-- **Units**: `kbytes` (memTotalReal/memAvailReal/memBuffer/memCached are in KB)
-
-**Files:**
-- Dashboard JSON: `dashboards/synology-nas.json`
-- Ansible Playbook: `ansible-playbooks/monitoring/deploy-synology-nas-dashboard.yml`
-
-### Network Tab Structure (PROTECTED)
-
-**DO NOT MODIFY without explicit user permission.**
-
-**Grafana Dashboard**: `omada-network` (UID)
-**Glance Iframe Height**: 2200px
-**URL**: `https://grafana.hrmsmrflrii.xyz/d/omada-network/omada-network-overview?orgId=1&kiosk&theme=transparent&refresh=30s`
-**Dashboard Version**: 3
-
-**Layout:**
-```
-┌──────────────────────────────────────────────────────────────────────────────┐
-│ 📊 OVERVIEW                                                                   │
-│ [Total Clients] [Wired] [Wireless] [Uptime] [Storage] [Upgrade] [WiFi Pie]   │
-├──────────────────────────────────────────────────────────────────────────────┤
-│ 🖥️ DEVICE HEALTH                                                              │
-│ [Gateway CPU] [Gateway Mem] [Switch CPU Bar] [AP CPU Bar]                    │
-│ [Gateway] [Core Switch] [Switch 2] [Living AP] [Outdoor AP] [Computer AP]   │  <- Pi-hole style boxes
-├──────────────────────────────────────────────────────────────────────────────┤
-│ 📶 WIFI SIGNAL QUALITY (h=12 each)                                           │
-│ [Client RSSI Bar Gauge]              │ [SNR Bar Gauge]                       │
-│ [WiFi Signal Over Time - h=10]                                               │
-├──────────────────────────────────────────────────────────────────────────────┤
-│ 🔌 SWITCH PORT STATUS                                                         │
-│ [Port Status Table: Switch, Port, Status, Speed, PoE, Port Name, PoE Mode]   │
-│ [Port Link Speeds Bar]               │ [Port Traffic RX/TX Time Series]      │
-├──────────────────────────────────────────────────────────────────────────────┤
-│ ⚡ POE POWER USAGE                                                            │
-│ [Total PoE Gauge] [PoE Remaining]    │ [PoE Per Port Bar Gauge]              │
-├──────────────────────────────────────────────────────────────────────────────┤
-│ 📈 TRAFFIC ANALYSIS                                                           │
-│ [Client Connection Trend]            │ [Top 10 Clients by Traffic]           │
-│ [Device Download Traffic]            │ [Device Upload Traffic]               │
-│ [Client TX Rate]                     │ [Client RX Rate]                      │
-├──────────────────────────────────────────────────────────────────────────────┤
-│ 📋 CLIENT DETAILS                                                             │
-│ [All Connected Clients Table]                                                │
-└──────────────────────────────────────────────────────────────────────────────┘
-```
-
-**Data Source**: Omada Exporter (`192.168.20.30:9202`)
-**Exporter**: `ghcr.io/charlie-haley/omada_exporter`
-**Omada Controller**: `192.168.0.103` (OC300)
-**Credentials**: `claude-reader` (viewer role)
-
-**Sidebar Widgets:**
-- Network Device Status (Prometheus query)
-- Pi-hole DNS Stats (via `/opt/pihole-stats-api/` on port 5055)
-- Latest Speedtest
-
-**Pi-hole Stats API:**
-- URL: `http://172.17.0.1:5055/api/pihole/stats`
-- Authenticates with Pi-hole v6 API (password stored in Obsidian Credentials)
-- Caches stats for 60 seconds
-- Displays: Queries, Blocked, Block Rate, Active Clients, Blocklist Domains, Cached
-- Config file: `/opt/pihole-stats-api/pihole-stats-api.py` (on LXC 200)
-
-**Files:**
-- Dashboard JSON: `dashboards/omada-network.json`
-- Ansible Playbook: `ansible-playbooks/monitoring/deploy-omada-full-dashboard.yml`
-- Glance Update: `ansible-playbooks/monitoring/update-glance-network-tab.yml`
-- Documentation: `docs/OMADA_NETWORK_DASHBOARD.md`
-
-### Tab Order
-Home | Compute | Storage | Network | Media | Web | Reddit
-
----
+**Commands**: `/help`, `/insight`, `/homelab status`, `/vm <id> restart`, `/lxc <id> restart`, `/check`, `/downloads`
 
 ## Key File Locations
 
-**On LXC 200 (192.168.40.12)**:
-| Purpose | Path |
-|---------|------|
-| Glance Config | `/opt/glance/config/glance.yml` |
-| Media Stats API | `/opt/media-stats-api/media-stats-api.py` |
-| Reddit Manager | `/opt/reddit-manager/reddit-manager.py` |
-| NBA Stats API | `/opt/nba-stats-api/nba-stats-api.py` |
-| Pi-hole Stats API | `/opt/pihole-stats-api/pihole-stats-api.py` |
+**LXC 200 (192.168.40.12)**:
+- Glance: `/opt/glance/config/glance.yml`
+- Media Stats API: `/opt/media-stats-api/`
+- Reddit Manager: `/opt/reddit-manager/`
 
-**On LXC 201 (192.168.40.14)** (DEPRECATED - bots consolidated to Sentinel):
-| Purpose | Path |
-|---------|------|
-| ~~Argus Bot~~ | `/opt/argus-bot/` (deprecated) |
-| ~~Chronos Bot~~ | `/opt/chronos-bot/` (deprecated) |
+**VM 107 (192.168.40.13)**:
+- Sentinel Bot: `/opt/sentinel-bot/`
+- Monitoring Stack: `/opt/monitoring/`
+- Prometheus: `/opt/monitoring/prometheus/prometheus.yml`
+- Grafana Dashboards: `/opt/monitoring/grafana/dashboards/`
 
-**On VM 107 (192.168.40.13)**:
-| Purpose | Path |
-|---------|------|
-| **Sentinel Bot** | `/opt/sentinel-bot/` |
-| Sentinel Config | `/opt/sentinel-bot/.env` |
-| Sentinel SSH Keys | `/opt/sentinel-bot/ssh/homelab_ed25519` |
-| Monitoring Stack | `/opt/monitoring/` |
-| Prometheus Config | `/opt/monitoring/prometheus/prometheus.yml` |
-| Grafana Dashboards | `/opt/monitoring/grafana/dashboards/` |
-| Life Progress API | `/opt/life-progress/app.py` |
-| SNMP Exporter | `/opt/monitoring/snmp-exporter/snmp.yml` |
+**Traefik (192.168.40.20)**:
+- Config: `/opt/traefik/config/`
+- Dynamic: `/opt/traefik/config/dynamic/services.yml`
 
-**On Traefik VM (192.168.40.20)**:
-| Purpose | Path |
-|---------|------|
-| Traefik Config | `/opt/traefik/config/` |
-| Traefik Dynamic | `/opt/traefik/config/dynamic/services.yml` |
-
----
-
-## Infrastructure as Code Tools
+## IaC Tools
 
 | Tool | Location | Purpose |
 |------|----------|---------|
-| **Terraform** | Local (this repo) | VM/LXC provisioning on Proxmox |
-| **Ansible** | 192.168.20.30 (`~/ansible/`) | Configuration management |
-| **Packer** | 192.168.20.30 (`~/packer/`) | VM template creation |
-
-### Packer Configuration
-
-| Item | Details |
-|------|---------|
-| **Version** | 1.14.3 |
-| **Working Directory** | `/home/hermes-admin/packer/` |
-| **Example Template** | `proxmox-ubuntu-template.pkr.hcl` |
-| **Credentials** | `credentials.pkrvars.hcl` (not in git) |
-
-**Quick Start:**
-```bash
-ssh ansible
-cd ~/packer
-packer init proxmox-ubuntu-template.pkr.hcl
-packer build -var-file=credentials.pkrvars.hcl proxmox-ubuntu-template.pkr.hcl
-```
-
----
-
-## Technical Notes
-
-- All VMs use Ubuntu 24.04 LTS cloud-init template
-- VMs use UEFI boot mode (ovmf)
-- LXC containers use Ubuntu 22.04 or Debian 12
-- Auto-start enabled on production infrastructure
-- Proxmox node01 hosts LXC 200 and VM 107 (core services)
-- Glance v0.7.0+ requires config directory mount (`./config:/app/config`)
-- Docker in LXC requires `--security-opt apparmor=unconfined` flag
-- Traefik uses ping entrypoint on port 8082 for health checks
-- Kubelet healthz endpoint binds to 0.0.0.0:10248 on all workers
-- Life Progress API runs on docker-vm-core-utilities (192.168.40.13:5051)
-- Prometheus targets: cadvisor, docker-stats-media, traefik, omada, synology, proxmox-nodes
-- **node_exporter** (v1.7.0) installed on all 3 Proxmox nodes (port 9100) for hardware metrics including CPU temperature
-- Proxmox Cluster Health dashboard: `/opt/monitoring/grafana/dashboards/proxmox-cluster-health.json`
+| Terraform | Local repo | VM/LXC provisioning |
+| Ansible | 192.168.20.30 (`~/ansible/`) | Config management |
+| Packer | 192.168.20.30 (`~/packer/`) | Template creation |
