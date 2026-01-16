@@ -1,0 +1,28 @@
+# Azure Hybrid Lab - Ansible Group Variables
+# Copy this file to all.yml and fill in your credentials
+#
+# WARNING: Do NOT commit all.yml to version control!
+
+# Domain Configuration
+domain_name: "yourdomain.local"
+domain_netbios: "YOURDOMAIN"
+domain_admin_user: "Administrator"
+domain_admin_password: "YourSecurePassword123!"
+
+# DSRM Password (Directory Services Restore Mode)
+dsrm_password: "YourDSRMPassword123!"
+
+# DNS Configuration
+dns_server_primary: "192.168.x.x"
+dns_server_secondary: "192.168.x.x"
+dns_forwarders:
+  - "8.8.8.8"
+  - "8.8.4.4"
+
+# WinRM Configuration
+ansible_user: "Administrator"
+ansible_password: "YourSecurePassword123!"
+ansible_connection: winrm
+ansible_winrm_transport: ntlm
+ansible_winrm_server_cert_validation: ignore
+ansible_port: 5985

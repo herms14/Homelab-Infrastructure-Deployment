@@ -141,10 +141,18 @@ Azure-Hybrid-Lab/terraform/proxmox/terraform.tfvars
 ansible/playbooks/azure-ad/inventory.yml
 ansible/playbooks/azure-ad/deploy-active-directory.yml
 
-# Packer files with credentials
-Azure-Hybrid-Lab/packer/*/autounattend.xml
-Azure-Hybrid-Lab/packer/*/*.pkrvars.hcl
-Azure-Hybrid-Lab/packer/*/*.pkrvars.hcl.example
+# Packer files with credentials (all directories)
+**/packer/**/autounattend*.xml
+**/packer/**/sysprep-unattend.xml
+**/packer/**/*.pkrvars.hcl
+!**/packer/**/*.pkrvars.hcl.example
+
+# Azure Hybrid Lab sensitive files
+Azure-Hybrid-Lab/ansible/group_vars/all.yml
+Azure-Hybrid-Lab/ansible/inventory/proxmox-hosts.yml
+Azure-Hybrid-Lab/terraform/proxmox/terraform.tfvars
+Azure-Hybrid-Lab/terraform/proxmox/terraform.tfstate*
+Azure-Hybrid-Lab/terraform/proxmox/.terraform/
 
 # Azure Hybrid Lab resume doc (contains passwords)
 Azure-Hybrid-Lab/RESUME_DEPLOYMENT.md

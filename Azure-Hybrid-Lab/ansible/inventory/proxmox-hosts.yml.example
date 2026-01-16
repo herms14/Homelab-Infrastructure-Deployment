@@ -1,0 +1,53 @@
+# Azure Hybrid Lab - Ansible Inventory (Proxmox Deployment)
+# Copy this file to proxmox-hosts.yml and update with your IP addresses
+#
+# WARNING: Do NOT commit proxmox-hosts.yml to version control!
+
+all:
+  children:
+    domain_controllers:
+      hosts:
+        DC01:
+          ansible_host: 192.168.x.2
+        DC02:
+          ansible_host: 192.168.x.3
+
+    file_servers:
+      hosts:
+        FS01:
+          ansible_host: 192.168.x.4
+        FS02:
+          ansible_host: 192.168.x.5
+
+    sql_servers:
+      hosts:
+        SQL01:
+          ansible_host: 192.168.x.6
+
+    member_servers:
+      hosts:
+        AADCON01:
+          ansible_host: 192.168.x.7
+        AADPP01:
+          ansible_host: 192.168.x.8
+        AADPP02:
+          ansible_host: 192.168.x.9
+        IIS01:
+          ansible_host: 192.168.x.10
+        IIS02:
+          ansible_host: 192.168.x.11
+
+    workstations:
+      hosts:
+        CLIENT01:
+          ansible_host: 192.168.x.12
+        CLIENT02:
+          ansible_host: 192.168.x.13
+
+  vars:
+    ansible_user: Administrator
+    ansible_password: "{{ vault_admin_password }}"
+    ansible_connection: winrm
+    ansible_winrm_transport: ntlm
+    ansible_winrm_server_cert_validation: ignore
+    ansible_port: 5985
