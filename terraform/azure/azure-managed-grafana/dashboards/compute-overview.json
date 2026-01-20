@@ -1,0 +1,697 @@
+{
+  "annotations": {
+    "list": []
+  },
+  "description": "Comprehensive compute monitoring for Azure VMs across Southeast Asia and East Asia regions",
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 1,
+  "id": null,
+  "links": [],
+  "liveNow": false,
+  "panels": [
+    {
+      "collapsed": false,
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 0 },
+      "id": 1,
+      "panels": [],
+      "title": "CPU Usage",
+      "type": "row"
+    },
+    {
+      "datasource": {
+        "type": "grafana-azure-monitor-datasource",
+        "uid": "azure-monitor-oob"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "palette-classic" },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "drawStyle": "line",
+            "fillOpacity": 10,
+            "gradientMode": "none",
+            "hideFrom": { "legend": false, "tooltip": false, "viz": false },
+            "insertNulls": false,
+            "lineInterpolation": "smooth",
+            "lineWidth": 2,
+            "pointSize": 5,
+            "scaleDistribution": { "type": "linear" },
+            "showPoints": "never",
+            "spanNulls": false,
+            "stacking": { "group": "A", "mode": "none" },
+            "thresholdsStyle": { "mode": "line" }
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "yellow", "value": 70 },
+              { "color": "red", "value": 90 }
+            ]
+          },
+          "unit": "percent",
+          "max": 100,
+          "min": 0
+        },
+        "overrides": []
+      },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 1 },
+      "id": 2,
+      "options": {
+        "legend": { "calcs": ["mean", "max"], "displayMode": "table", "placement": "bottom", "showLegend": true },
+        "tooltip": { "mode": "multi", "sort": "desc" }
+      },
+      "targets": [
+        {
+          "azureMonitor": {
+            "aggregation": "Average",
+            "metricName": "Percentage CPU",
+            "metricNamespace": "microsoft.compute/virtualmachines",
+            "region": "southeastasia",
+            "resources": [{ "resourceGroup": "RG-APP-SERVERS-PROD-SEA", "resourceName": "APP-SEA01", "subscription": "2212d587-1bad-4013-b605-b421b1f83c30" }],
+            "timeGrain": "auto"
+          },
+          "queryType": "Azure Monitor",
+          "refId": "A",
+          "subscription": "2212d587-1bad-4013-b605-b421b1f83c30"
+        },
+        {
+          "azureMonitor": {
+            "aggregation": "Average",
+            "metricName": "Percentage CPU",
+            "metricNamespace": "microsoft.compute/virtualmachines",
+            "region": "southeastasia",
+            "resources": [{ "resourceGroup": "RG-FILE-SERVERS-PROD-SEA", "resourceName": "FS-SEA01", "subscription": "2212d587-1bad-4013-b605-b421b1f83c30" }],
+            "timeGrain": "auto"
+          },
+          "queryType": "Azure Monitor",
+          "refId": "B",
+          "subscription": "2212d587-1bad-4013-b605-b421b1f83c30"
+        },
+        {
+          "azureMonitor": {
+            "aggregation": "Average",
+            "metricName": "Percentage CPU",
+            "metricNamespace": "microsoft.compute/virtualmachines",
+            "region": "southeastasia",
+            "resources": [{ "resourceGroup": "RG-FILE-SERVERS-PROD-SEA", "resourceName": "FS-SEA02", "subscription": "2212d587-1bad-4013-b605-b421b1f83c30" }],
+            "timeGrain": "auto"
+          },
+          "queryType": "Azure Monitor",
+          "refId": "C",
+          "subscription": "2212d587-1bad-4013-b605-b421b1f83c30"
+        },
+        {
+          "azureMonitor": {
+            "aggregation": "Average",
+            "metricName": "Percentage CPU",
+            "metricNamespace": "microsoft.compute/virtualmachines",
+            "region": "southeastasia",
+            "resources": [{ "resourceGroup": "RG-AZUREHYBRID-IDENTITY-PROD", "resourceName": "AZDC01", "subscription": "2212d587-1bad-4013-b605-b421b1f83c30" }],
+            "timeGrain": "auto"
+          },
+          "queryType": "Azure Monitor",
+          "refId": "D",
+          "subscription": "2212d587-1bad-4013-b605-b421b1f83c30"
+        },
+        {
+          "azureMonitor": {
+            "aggregation": "Average",
+            "metricName": "Percentage CPU",
+            "metricNamespace": "microsoft.compute/virtualmachines",
+            "region": "southeastasia",
+            "resources": [{ "resourceGroup": "RG-AZUREHYBRID-IDENTITY-PROD", "resourceName": "AZDC02", "subscription": "2212d587-1bad-4013-b605-b421b1f83c30" }],
+            "timeGrain": "auto"
+          },
+          "queryType": "Azure Monitor",
+          "refId": "E",
+          "subscription": "2212d587-1bad-4013-b605-b421b1f83c30"
+        }
+      ],
+      "title": "CPU Usage - Southeast Asia VMs",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "grafana-azure-monitor-datasource",
+        "uid": "azure-monitor-oob"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "palette-classic" },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "drawStyle": "line",
+            "fillOpacity": 10,
+            "gradientMode": "none",
+            "hideFrom": { "legend": false, "tooltip": false, "viz": false },
+            "insertNulls": false,
+            "lineInterpolation": "smooth",
+            "lineWidth": 2,
+            "pointSize": 5,
+            "scaleDistribution": { "type": "linear" },
+            "showPoints": "never",
+            "spanNulls": false,
+            "stacking": { "group": "A", "mode": "none" },
+            "thresholdsStyle": { "mode": "line" }
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "yellow", "value": 70 },
+              { "color": "red", "value": 90 }
+            ]
+          },
+          "unit": "percent",
+          "max": 100,
+          "min": 0
+        },
+        "overrides": []
+      },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 1 },
+      "id": 3,
+      "options": {
+        "legend": { "calcs": ["mean", "max"], "displayMode": "table", "placement": "bottom", "showLegend": true },
+        "tooltip": { "mode": "multi", "sort": "desc" }
+      },
+      "targets": [
+        {
+          "azureMonitor": {
+            "aggregation": "Average",
+            "metricName": "Percentage CPU",
+            "metricNamespace": "microsoft.compute/virtualmachines",
+            "region": "eastasia",
+            "resources": [{ "resourceGroup": "RG-SERVERS-PROD-EAS", "resourceName": "SRV-EA01", "subscription": "2212d587-1bad-4013-b605-b421b1f83c30" }],
+            "timeGrain": "auto"
+          },
+          "queryType": "Azure Monitor",
+          "refId": "A",
+          "subscription": "2212d587-1bad-4013-b605-b421b1f83c30"
+        },
+        {
+          "azureMonitor": {
+            "aggregation": "Average",
+            "metricName": "Percentage CPU",
+            "metricNamespace": "microsoft.compute/virtualmachines",
+            "region": "eastasia",
+            "resources": [{ "resourceGroup": "RG-SERVERS-PROD-EAS", "resourceName": "SRV-EA02", "subscription": "2212d587-1bad-4013-b605-b421b1f83c30" }],
+            "timeGrain": "auto"
+          },
+          "queryType": "Azure Monitor",
+          "refId": "B",
+          "subscription": "2212d587-1bad-4013-b605-b421b1f83c30"
+        },
+        {
+          "azureMonitor": {
+            "aggregation": "Average",
+            "metricName": "Percentage CPU",
+            "metricNamespace": "microsoft.compute/virtualmachines",
+            "region": "eastasia",
+            "resources": [{ "resourceGroup": "RG-SERVERS-PROD-EAS", "resourceName": "APP-EA01", "subscription": "2212d587-1bad-4013-b605-b421b1f83c30" }],
+            "timeGrain": "auto"
+          },
+          "queryType": "Azure Monitor",
+          "refId": "C",
+          "subscription": "2212d587-1bad-4013-b605-b421b1f83c30"
+        },
+        {
+          "azureMonitor": {
+            "aggregation": "Average",
+            "metricName": "Percentage CPU",
+            "metricNamespace": "microsoft.compute/virtualmachines",
+            "region": "eastasia",
+            "resources": [{ "resourceGroup": "RG-SERVERS-PROD-EAS", "resourceName": "AZRODC01", "subscription": "2212d587-1bad-4013-b605-b421b1f83c30" }],
+            "timeGrain": "auto"
+          },
+          "queryType": "Azure Monitor",
+          "refId": "D",
+          "subscription": "2212d587-1bad-4013-b605-b421b1f83c30"
+        },
+        {
+          "azureMonitor": {
+            "aggregation": "Average",
+            "metricName": "Percentage CPU",
+            "metricNamespace": "microsoft.compute/virtualmachines",
+            "region": "eastasia",
+            "resources": [{ "resourceGroup": "RG-SERVERS-PROD-EAS", "resourceName": "AZRODC02", "subscription": "2212d587-1bad-4013-b605-b421b1f83c30" }],
+            "timeGrain": "auto"
+          },
+          "queryType": "Azure Monitor",
+          "refId": "E",
+          "subscription": "2212d587-1bad-4013-b605-b421b1f83c30"
+        }
+      ],
+      "title": "CPU Usage - East Asia VMs",
+      "type": "timeseries"
+    },
+    {
+      "collapsed": false,
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 9 },
+      "id": 4,
+      "panels": [],
+      "title": "Memory Usage",
+      "type": "row"
+    },
+    {
+      "datasource": {
+        "type": "grafana-azure-monitor-datasource",
+        "uid": "azure-monitor-oob"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "palette-classic" },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "drawStyle": "line",
+            "fillOpacity": 10,
+            "gradientMode": "none",
+            "hideFrom": { "legend": false, "tooltip": false, "viz": false },
+            "insertNulls": false,
+            "lineInterpolation": "smooth",
+            "lineWidth": 2,
+            "pointSize": 5,
+            "scaleDistribution": { "type": "linear" },
+            "showPoints": "never",
+            "spanNulls": false,
+            "stacking": { "group": "A", "mode": "none" },
+            "thresholdsStyle": { "mode": "off" }
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "red", "value": null },
+              { "color": "yellow", "value": 1073741824 },
+              { "color": "green", "value": 2147483648 }
+            ]
+          },
+          "unit": "decbytes"
+        },
+        "overrides": []
+      },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 10 },
+      "id": 5,
+      "options": {
+        "legend": { "calcs": ["mean", "min"], "displayMode": "table", "placement": "bottom", "showLegend": true },
+        "tooltip": { "mode": "multi", "sort": "desc" }
+      },
+      "targets": [
+        {
+          "azureMonitor": {
+            "aggregation": "Average",
+            "metricName": "Available Memory Bytes",
+            "metricNamespace": "microsoft.compute/virtualmachines",
+            "region": "southeastasia",
+            "resources": [{ "resourceGroup": "RG-APP-SERVERS-PROD-SEA", "resourceName": "APP-SEA01", "subscription": "2212d587-1bad-4013-b605-b421b1f83c30" }],
+            "timeGrain": "auto"
+          },
+          "queryType": "Azure Monitor",
+          "refId": "A",
+          "subscription": "2212d587-1bad-4013-b605-b421b1f83c30"
+        },
+        {
+          "azureMonitor": {
+            "aggregation": "Average",
+            "metricName": "Available Memory Bytes",
+            "metricNamespace": "microsoft.compute/virtualmachines",
+            "region": "southeastasia",
+            "resources": [{ "resourceGroup": "RG-FILE-SERVERS-PROD-SEA", "resourceName": "FS-SEA01", "subscription": "2212d587-1bad-4013-b605-b421b1f83c30" }],
+            "timeGrain": "auto"
+          },
+          "queryType": "Azure Monitor",
+          "refId": "B",
+          "subscription": "2212d587-1bad-4013-b605-b421b1f83c30"
+        },
+        {
+          "azureMonitor": {
+            "aggregation": "Average",
+            "metricName": "Available Memory Bytes",
+            "metricNamespace": "microsoft.compute/virtualmachines",
+            "region": "southeastasia",
+            "resources": [{ "resourceGroup": "RG-FILE-SERVERS-PROD-SEA", "resourceName": "FS-SEA02", "subscription": "2212d587-1bad-4013-b605-b421b1f83c30" }],
+            "timeGrain": "auto"
+          },
+          "queryType": "Azure Monitor",
+          "refId": "C",
+          "subscription": "2212d587-1bad-4013-b605-b421b1f83c30"
+        },
+        {
+          "azureMonitor": {
+            "aggregation": "Average",
+            "metricName": "Available Memory Bytes",
+            "metricNamespace": "microsoft.compute/virtualmachines",
+            "region": "southeastasia",
+            "resources": [{ "resourceGroup": "RG-AZUREHYBRID-IDENTITY-PROD", "resourceName": "AZDC01", "subscription": "2212d587-1bad-4013-b605-b421b1f83c30" }],
+            "timeGrain": "auto"
+          },
+          "queryType": "Azure Monitor",
+          "refId": "D",
+          "subscription": "2212d587-1bad-4013-b605-b421b1f83c30"
+        },
+        {
+          "azureMonitor": {
+            "aggregation": "Average",
+            "metricName": "Available Memory Bytes",
+            "metricNamespace": "microsoft.compute/virtualmachines",
+            "region": "southeastasia",
+            "resources": [{ "resourceGroup": "RG-AZUREHYBRID-IDENTITY-PROD", "resourceName": "AZDC02", "subscription": "2212d587-1bad-4013-b605-b421b1f83c30" }],
+            "timeGrain": "auto"
+          },
+          "queryType": "Azure Monitor",
+          "refId": "E",
+          "subscription": "2212d587-1bad-4013-b605-b421b1f83c30"
+        }
+      ],
+      "title": "Available Memory - Southeast Asia VMs",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "grafana-azure-monitor-datasource",
+        "uid": "azure-monitor-oob"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "palette-classic" },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "drawStyle": "line",
+            "fillOpacity": 10,
+            "gradientMode": "none",
+            "hideFrom": { "legend": false, "tooltip": false, "viz": false },
+            "insertNulls": false,
+            "lineInterpolation": "smooth",
+            "lineWidth": 2,
+            "pointSize": 5,
+            "scaleDistribution": { "type": "linear" },
+            "showPoints": "never",
+            "spanNulls": false,
+            "stacking": { "group": "A", "mode": "none" },
+            "thresholdsStyle": { "mode": "off" }
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "red", "value": null },
+              { "color": "yellow", "value": 1073741824 },
+              { "color": "green", "value": 2147483648 }
+            ]
+          },
+          "unit": "decbytes"
+        },
+        "overrides": []
+      },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 10 },
+      "id": 6,
+      "options": {
+        "legend": { "calcs": ["mean", "min"], "displayMode": "table", "placement": "bottom", "showLegend": true },
+        "tooltip": { "mode": "multi", "sort": "desc" }
+      },
+      "targets": [
+        {
+          "azureMonitor": {
+            "aggregation": "Average",
+            "metricName": "Available Memory Bytes",
+            "metricNamespace": "microsoft.compute/virtualmachines",
+            "region": "eastasia",
+            "resources": [{ "resourceGroup": "RG-SERVERS-PROD-EAS", "resourceName": "SRV-EA01", "subscription": "2212d587-1bad-4013-b605-b421b1f83c30" }],
+            "timeGrain": "auto"
+          },
+          "queryType": "Azure Monitor",
+          "refId": "A",
+          "subscription": "2212d587-1bad-4013-b605-b421b1f83c30"
+        },
+        {
+          "azureMonitor": {
+            "aggregation": "Average",
+            "metricName": "Available Memory Bytes",
+            "metricNamespace": "microsoft.compute/virtualmachines",
+            "region": "eastasia",
+            "resources": [{ "resourceGroup": "RG-SERVERS-PROD-EAS", "resourceName": "SRV-EA02", "subscription": "2212d587-1bad-4013-b605-b421b1f83c30" }],
+            "timeGrain": "auto"
+          },
+          "queryType": "Azure Monitor",
+          "refId": "B",
+          "subscription": "2212d587-1bad-4013-b605-b421b1f83c30"
+        },
+        {
+          "azureMonitor": {
+            "aggregation": "Average",
+            "metricName": "Available Memory Bytes",
+            "metricNamespace": "microsoft.compute/virtualmachines",
+            "region": "eastasia",
+            "resources": [{ "resourceGroup": "RG-SERVERS-PROD-EAS", "resourceName": "APP-EA01", "subscription": "2212d587-1bad-4013-b605-b421b1f83c30" }],
+            "timeGrain": "auto"
+          },
+          "queryType": "Azure Monitor",
+          "refId": "C",
+          "subscription": "2212d587-1bad-4013-b605-b421b1f83c30"
+        },
+        {
+          "azureMonitor": {
+            "aggregation": "Average",
+            "metricName": "Available Memory Bytes",
+            "metricNamespace": "microsoft.compute/virtualmachines",
+            "region": "eastasia",
+            "resources": [{ "resourceGroup": "RG-SERVERS-PROD-EAS", "resourceName": "AZRODC01", "subscription": "2212d587-1bad-4013-b605-b421b1f83c30" }],
+            "timeGrain": "auto"
+          },
+          "queryType": "Azure Monitor",
+          "refId": "D",
+          "subscription": "2212d587-1bad-4013-b605-b421b1f83c30"
+        },
+        {
+          "azureMonitor": {
+            "aggregation": "Average",
+            "metricName": "Available Memory Bytes",
+            "metricNamespace": "microsoft.compute/virtualmachines",
+            "region": "eastasia",
+            "resources": [{ "resourceGroup": "RG-SERVERS-PROD-EAS", "resourceName": "AZRODC02", "subscription": "2212d587-1bad-4013-b605-b421b1f83c30" }],
+            "timeGrain": "auto"
+          },
+          "queryType": "Azure Monitor",
+          "refId": "E",
+          "subscription": "2212d587-1bad-4013-b605-b421b1f83c30"
+        }
+      ],
+      "title": "Available Memory - East Asia VMs",
+      "type": "timeseries"
+    },
+    {
+      "collapsed": false,
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 18 },
+      "id": 7,
+      "panels": [],
+      "title": "Current Status - All VMs",
+      "type": "row"
+    },
+    {
+      "datasource": {
+        "type": "grafana-azure-monitor-datasource",
+        "uid": "azure-monitor-oob"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "thresholds" },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "yellow", "value": 70 },
+              { "color": "red", "value": 90 }
+            ]
+          },
+          "unit": "percent",
+          "max": 100,
+          "min": 0
+        },
+        "overrides": []
+      },
+      "gridPos": { "h": 6, "w": 24, "x": 0, "y": 19 },
+      "id": 8,
+      "options": {
+        "displayMode": "lcd",
+        "maxVizHeight": 300,
+        "minVizHeight": 16,
+        "minVizWidth": 8,
+        "namePlacement": "auto",
+        "orientation": "horizontal",
+        "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false },
+        "showUnfilled": true,
+        "sizing": "auto",
+        "valueMode": "color"
+      },
+      "targets": [
+        {
+          "azureMonitor": {
+            "aggregation": "Average",
+            "metricName": "Percentage CPU",
+            "metricNamespace": "microsoft.compute/virtualmachines",
+            "region": "southeastasia",
+            "resources": [{ "resourceGroup": "RG-APP-SERVERS-PROD-SEA", "resourceName": "APP-SEA01", "subscription": "2212d587-1bad-4013-b605-b421b1f83c30" }],
+            "timeGrain": "auto"
+          },
+          "queryType": "Azure Monitor",
+          "refId": "A",
+          "subscription": "2212d587-1bad-4013-b605-b421b1f83c30"
+        },
+        {
+          "azureMonitor": {
+            "aggregation": "Average",
+            "metricName": "Percentage CPU",
+            "metricNamespace": "microsoft.compute/virtualmachines",
+            "region": "southeastasia",
+            "resources": [{ "resourceGroup": "RG-FILE-SERVERS-PROD-SEA", "resourceName": "FS-SEA01", "subscription": "2212d587-1bad-4013-b605-b421b1f83c30" }],
+            "timeGrain": "auto"
+          },
+          "queryType": "Azure Monitor",
+          "refId": "B",
+          "subscription": "2212d587-1bad-4013-b605-b421b1f83c30"
+        },
+        {
+          "azureMonitor": {
+            "aggregation": "Average",
+            "metricName": "Percentage CPU",
+            "metricNamespace": "microsoft.compute/virtualmachines",
+            "region": "southeastasia",
+            "resources": [{ "resourceGroup": "RG-FILE-SERVERS-PROD-SEA", "resourceName": "FS-SEA02", "subscription": "2212d587-1bad-4013-b605-b421b1f83c30" }],
+            "timeGrain": "auto"
+          },
+          "queryType": "Azure Monitor",
+          "refId": "C",
+          "subscription": "2212d587-1bad-4013-b605-b421b1f83c30"
+        },
+        {
+          "azureMonitor": {
+            "aggregation": "Average",
+            "metricName": "Percentage CPU",
+            "metricNamespace": "microsoft.compute/virtualmachines",
+            "region": "southeastasia",
+            "resources": [{ "resourceGroup": "RG-AZUREHYBRID-IDENTITY-PROD", "resourceName": "AZDC01", "subscription": "2212d587-1bad-4013-b605-b421b1f83c30" }],
+            "timeGrain": "auto"
+          },
+          "queryType": "Azure Monitor",
+          "refId": "D",
+          "subscription": "2212d587-1bad-4013-b605-b421b1f83c30"
+        },
+        {
+          "azureMonitor": {
+            "aggregation": "Average",
+            "metricName": "Percentage CPU",
+            "metricNamespace": "microsoft.compute/virtualmachines",
+            "region": "southeastasia",
+            "resources": [{ "resourceGroup": "RG-AZUREHYBRID-IDENTITY-PROD", "resourceName": "AZDC02", "subscription": "2212d587-1bad-4013-b605-b421b1f83c30" }],
+            "timeGrain": "auto"
+          },
+          "queryType": "Azure Monitor",
+          "refId": "E",
+          "subscription": "2212d587-1bad-4013-b605-b421b1f83c30"
+        },
+        {
+          "azureMonitor": {
+            "aggregation": "Average",
+            "metricName": "Percentage CPU",
+            "metricNamespace": "microsoft.compute/virtualmachines",
+            "region": "eastasia",
+            "resources": [{ "resourceGroup": "RG-SERVERS-PROD-EAS", "resourceName": "SRV-EA01", "subscription": "2212d587-1bad-4013-b605-b421b1f83c30" }],
+            "timeGrain": "auto"
+          },
+          "queryType": "Azure Monitor",
+          "refId": "F",
+          "subscription": "2212d587-1bad-4013-b605-b421b1f83c30"
+        },
+        {
+          "azureMonitor": {
+            "aggregation": "Average",
+            "metricName": "Percentage CPU",
+            "metricNamespace": "microsoft.compute/virtualmachines",
+            "region": "eastasia",
+            "resources": [{ "resourceGroup": "RG-SERVERS-PROD-EAS", "resourceName": "SRV-EA02", "subscription": "2212d587-1bad-4013-b605-b421b1f83c30" }],
+            "timeGrain": "auto"
+          },
+          "queryType": "Azure Monitor",
+          "refId": "G",
+          "subscription": "2212d587-1bad-4013-b605-b421b1f83c30"
+        },
+        {
+          "azureMonitor": {
+            "aggregation": "Average",
+            "metricName": "Percentage CPU",
+            "metricNamespace": "microsoft.compute/virtualmachines",
+            "region": "eastasia",
+            "resources": [{ "resourceGroup": "RG-SERVERS-PROD-EAS", "resourceName": "APP-EA01", "subscription": "2212d587-1bad-4013-b605-b421b1f83c30" }],
+            "timeGrain": "auto"
+          },
+          "queryType": "Azure Monitor",
+          "refId": "H",
+          "subscription": "2212d587-1bad-4013-b605-b421b1f83c30"
+        },
+        {
+          "azureMonitor": {
+            "aggregation": "Average",
+            "metricName": "Percentage CPU",
+            "metricNamespace": "microsoft.compute/virtualmachines",
+            "region": "eastasia",
+            "resources": [{ "resourceGroup": "RG-SERVERS-PROD-EAS", "resourceName": "AZRODC01", "subscription": "2212d587-1bad-4013-b605-b421b1f83c30" }],
+            "timeGrain": "auto"
+          },
+          "queryType": "Azure Monitor",
+          "refId": "I",
+          "subscription": "2212d587-1bad-4013-b605-b421b1f83c30"
+        },
+        {
+          "azureMonitor": {
+            "aggregation": "Average",
+            "metricName": "Percentage CPU",
+            "metricNamespace": "microsoft.compute/virtualmachines",
+            "region": "eastasia",
+            "resources": [{ "resourceGroup": "RG-SERVERS-PROD-EAS", "resourceName": "AZRODC02", "subscription": "2212d587-1bad-4013-b605-b421b1f83c30" }],
+            "timeGrain": "auto"
+          },
+          "queryType": "Azure Monitor",
+          "refId": "J",
+          "subscription": "2212d587-1bad-4013-b605-b421b1f83c30"
+        }
+      ],
+      "title": "Current CPU Usage - All VMs",
+      "type": "bargauge"
+    }
+  ],
+  "refresh": "1m",
+  "schemaVersion": 39,
+  "tags": ["azure", "compute", "vms", "monitoring"],
+  "templating": { "list": [] },
+  "time": { "from": "now-1h", "to": "now" },
+  "timepicker": {},
+  "timezone": "browser",
+  "title": "Azure VMs - Compute Overview",
+  "uid": "azure-compute-overview",
+  "version": 1,
+  "weekStart": ""
+}

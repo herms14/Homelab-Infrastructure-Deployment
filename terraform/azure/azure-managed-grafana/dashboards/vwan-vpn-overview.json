@@ -1,0 +1,229 @@
+{
+  "annotations": { "list": [] },
+  "description": "Azure VPN Gateway monitoring for homelab site-to-site VPN connectivity",
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 1,
+  "id": null,
+  "links": [],
+  "liveNow": false,
+  "panels": [
+    {
+      "collapsed": false,
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 0 },
+      "id": 1,
+      "panels": [],
+      "title": "VPN Gateway Status",
+      "type": "row"
+    },
+    {
+      "datasource": { "type": "grafana-azure-monitor-datasource", "uid": "azure-monitor-oob" },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "thresholds" },
+          "mappings": [],
+          "thresholds": { "mode": "absolute", "steps": [{ "color": "green", "value": null }, { "color": "yellow", "value": 80 }, { "color": "red", "value": 95 }] },
+          "unit": "Bps"
+        },
+        "overrides": []
+      },
+      "gridPos": { "h": 4, "w": 8, "x": 0, "y": 1 },
+      "id": 2,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false },
+        "textMode": "auto"
+      },
+      "targets": [
+        { "azureMonitor": { "aggregation": "Average", "metricName": "TunnelAverageBandwidth", "metricNamespace": "microsoft.network/virtualnetworkgateways", "region": "southeastasia", "resources": [{ "resourceGroup": "erd-connectivity-sea-rg", "resourceName": "erd-shared-corp-vnetgw-sea", "subscription": "2212d587-1bad-4013-b605-b421b1f83c30" }], "timeGrain": "auto" }, "queryType": "Azure Monitor", "refId": "A", "subscription": "2212d587-1bad-4013-b605-b421b1f83c30" }
+      ],
+      "title": "Tunnel Bandwidth",
+      "type": "stat"
+    },
+    {
+      "datasource": { "type": "grafana-azure-monitor-datasource", "uid": "azure-monitor-oob" },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "thresholds" },
+          "mappings": [],
+          "thresholds": { "mode": "absolute", "steps": [{ "color": "green", "value": null }] },
+          "unit": "decbytes"
+        },
+        "overrides": []
+      },
+      "gridPos": { "h": 4, "w": 8, "x": 8, "y": 1 },
+      "id": 3,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": { "calcs": ["sum"], "fields": "", "values": false },
+        "textMode": "auto"
+      },
+      "targets": [
+        { "azureMonitor": { "aggregation": "Total", "metricName": "TunnelIngressBytes", "metricNamespace": "microsoft.network/virtualnetworkgateways", "region": "southeastasia", "resources": [{ "resourceGroup": "erd-connectivity-sea-rg", "resourceName": "erd-shared-corp-vnetgw-sea", "subscription": "2212d587-1bad-4013-b605-b421b1f83c30" }], "timeGrain": "auto" }, "queryType": "Azure Monitor", "refId": "A", "subscription": "2212d587-1bad-4013-b605-b421b1f83c30" }
+      ],
+      "title": "Total Ingress (Period)",
+      "type": "stat"
+    },
+    {
+      "datasource": { "type": "grafana-azure-monitor-datasource", "uid": "azure-monitor-oob" },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "thresholds" },
+          "mappings": [],
+          "thresholds": { "mode": "absolute", "steps": [{ "color": "green", "value": null }] },
+          "unit": "decbytes"
+        },
+        "overrides": []
+      },
+      "gridPos": { "h": 4, "w": 8, "x": 16, "y": 1 },
+      "id": 4,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": { "calcs": ["sum"], "fields": "", "values": false },
+        "textMode": "auto"
+      },
+      "targets": [
+        { "azureMonitor": { "aggregation": "Total", "metricName": "TunnelEgressBytes", "metricNamespace": "microsoft.network/virtualnetworkgateways", "region": "southeastasia", "resources": [{ "resourceGroup": "erd-connectivity-sea-rg", "resourceName": "erd-shared-corp-vnetgw-sea", "subscription": "2212d587-1bad-4013-b605-b421b1f83c30" }], "timeGrain": "auto" }, "queryType": "Azure Monitor", "refId": "A", "subscription": "2212d587-1bad-4013-b605-b421b1f83c30" }
+      ],
+      "title": "Total Egress (Period)",
+      "type": "stat"
+    },
+    {
+      "collapsed": false,
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 5 },
+      "id": 5,
+      "panels": [],
+      "title": "VPN Tunnel Traffic",
+      "type": "row"
+    },
+    {
+      "datasource": { "type": "grafana-azure-monitor-datasource", "uid": "azure-monitor-oob" },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "palette-classic" },
+          "custom": {
+            "axisBorderShow": false, "axisCenteredZero": false, "axisColorMode": "text", "axisLabel": "", "axisPlacement": "auto",
+            "barAlignment": 0, "drawStyle": "line", "fillOpacity": 20, "gradientMode": "scheme",
+            "hideFrom": { "legend": false, "tooltip": false, "viz": false }, "insertNulls": false,
+            "lineInterpolation": "smooth", "lineWidth": 2, "pointSize": 5,
+            "scaleDistribution": { "type": "linear" }, "showPoints": "never", "spanNulls": false,
+            "stacking": { "group": "A", "mode": "none" }, "thresholdsStyle": { "mode": "off" }
+          },
+          "mappings": [],
+          "thresholds": { "mode": "absolute", "steps": [{ "color": "green", "value": null }] },
+          "unit": "Bps"
+        },
+        "overrides": [
+          { "matcher": { "id": "byName", "options": "Ingress" }, "properties": [{ "id": "color", "value": { "fixedColor": "blue", "mode": "fixed" } }] },
+          { "matcher": { "id": "byName", "options": "Egress" }, "properties": [{ "id": "color", "value": { "fixedColor": "orange", "mode": "fixed" } }] }
+        ]
+      },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 6 },
+      "id": 6,
+      "options": {
+        "legend": { "calcs": ["mean", "max", "sum"], "displayMode": "table", "placement": "bottom", "showLegend": true },
+        "tooltip": { "mode": "multi", "sort": "desc" }
+      },
+      "targets": [
+        { "azureMonitor": { "aggregation": "Average", "metricName": "TunnelIngressBytes", "metricNamespace": "microsoft.network/virtualnetworkgateways", "region": "southeastasia", "resources": [{ "resourceGroup": "erd-connectivity-sea-rg", "resourceName": "erd-shared-corp-vnetgw-sea", "subscription": "2212d587-1bad-4013-b605-b421b1f83c30" }], "timeGrain": "auto" }, "queryType": "Azure Monitor", "refId": "Ingress", "subscription": "2212d587-1bad-4013-b605-b421b1f83c30" },
+        { "azureMonitor": { "aggregation": "Average", "metricName": "TunnelEgressBytes", "metricNamespace": "microsoft.network/virtualnetworkgateways", "region": "southeastasia", "resources": [{ "resourceGroup": "erd-connectivity-sea-rg", "resourceName": "erd-shared-corp-vnetgw-sea", "subscription": "2212d587-1bad-4013-b605-b421b1f83c30" }], "timeGrain": "auto" }, "queryType": "Azure Monitor", "refId": "Egress", "subscription": "2212d587-1bad-4013-b605-b421b1f83c30" }
+      ],
+      "title": "VPN Tunnel Traffic (Bytes/sec)",
+      "type": "timeseries"
+    },
+    {
+      "datasource": { "type": "grafana-azure-monitor-datasource", "uid": "azure-monitor-oob" },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "palette-classic" },
+          "custom": {
+            "axisBorderShow": false, "axisCenteredZero": false, "axisColorMode": "text", "axisLabel": "", "axisPlacement": "auto",
+            "barAlignment": 0, "drawStyle": "line", "fillOpacity": 20, "gradientMode": "scheme",
+            "hideFrom": { "legend": false, "tooltip": false, "viz": false }, "insertNulls": false,
+            "lineInterpolation": "smooth", "lineWidth": 2, "pointSize": 5,
+            "scaleDistribution": { "type": "linear" }, "showPoints": "never", "spanNulls": false,
+            "stacking": { "group": "A", "mode": "none" }, "thresholdsStyle": { "mode": "off" }
+          },
+          "mappings": [],
+          "thresholds": { "mode": "absolute", "steps": [{ "color": "green", "value": null }] },
+          "unit": "pps"
+        },
+        "overrides": [
+          { "matcher": { "id": "byName", "options": "Ingress Packets" }, "properties": [{ "id": "color", "value": { "fixedColor": "blue", "mode": "fixed" } }] },
+          { "matcher": { "id": "byName", "options": "Egress Packets" }, "properties": [{ "id": "color", "value": { "fixedColor": "orange", "mode": "fixed" } }] }
+        ]
+      },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 6 },
+      "id": 7,
+      "options": {
+        "legend": { "calcs": ["mean", "max", "sum"], "displayMode": "table", "placement": "bottom", "showLegend": true },
+        "tooltip": { "mode": "multi", "sort": "desc" }
+      },
+      "targets": [
+        { "azureMonitor": { "aggregation": "Average", "metricName": "TunnelIngressPacketCount", "metricNamespace": "microsoft.network/virtualnetworkgateways", "region": "southeastasia", "resources": [{ "resourceGroup": "erd-connectivity-sea-rg", "resourceName": "erd-shared-corp-vnetgw-sea", "subscription": "2212d587-1bad-4013-b605-b421b1f83c30" }], "timeGrain": "auto" }, "queryType": "Azure Monitor", "refId": "Ingress Packets", "subscription": "2212d587-1bad-4013-b605-b421b1f83c30" },
+        { "azureMonitor": { "aggregation": "Average", "metricName": "TunnelEgressPacketCount", "metricNamespace": "microsoft.network/virtualnetworkgateways", "region": "southeastasia", "resources": [{ "resourceGroup": "erd-connectivity-sea-rg", "resourceName": "erd-shared-corp-vnetgw-sea", "subscription": "2212d587-1bad-4013-b605-b421b1f83c30" }], "timeGrain": "auto" }, "queryType": "Azure Monitor", "refId": "Egress Packets", "subscription": "2212d587-1bad-4013-b605-b421b1f83c30" }
+      ],
+      "title": "VPN Tunnel Packets (pps)",
+      "type": "timeseries"
+    },
+    {
+      "collapsed": false,
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 14 },
+      "id": 8,
+      "panels": [],
+      "title": "VPN Tunnel Health",
+      "type": "row"
+    },
+    {
+      "datasource": { "type": "grafana-azure-monitor-datasource", "uid": "azure-monitor-oob" },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "palette-classic" },
+          "custom": {
+            "axisBorderShow": false, "axisCenteredZero": false, "axisColorMode": "text", "axisLabel": "", "axisPlacement": "auto",
+            "barAlignment": 0, "drawStyle": "line", "fillOpacity": 20, "gradientMode": "scheme",
+            "hideFrom": { "legend": false, "tooltip": false, "viz": false }, "insertNulls": false,
+            "lineInterpolation": "smooth", "lineWidth": 2, "pointSize": 5,
+            "scaleDistribution": { "type": "linear" }, "showPoints": "never", "spanNulls": false,
+            "stacking": { "group": "A", "mode": "none" }, "thresholdsStyle": { "mode": "line" }
+          },
+          "mappings": [],
+          "thresholds": { "mode": "absolute", "steps": [{ "color": "green", "value": null }, { "color": "yellow", "value": 80 }, { "color": "red", "value": 95 }] },
+          "unit": "Bps"
+        },
+        "overrides": []
+      },
+      "gridPos": { "h": 8, "w": 24, "x": 0, "y": 15 },
+      "id": 9,
+      "options": {
+        "legend": { "calcs": ["mean", "max"], "displayMode": "table", "placement": "bottom", "showLegend": true },
+        "tooltip": { "mode": "multi", "sort": "desc" }
+      },
+      "targets": [
+        { "azureMonitor": { "aggregation": "Average", "metricName": "TunnelAverageBandwidth", "metricNamespace": "microsoft.network/virtualnetworkgateways", "region": "southeastasia", "resources": [{ "resourceGroup": "erd-connectivity-sea-rg", "resourceName": "erd-shared-corp-vnetgw-sea", "subscription": "2212d587-1bad-4013-b605-b421b1f83c30" }], "timeGrain": "auto" }, "queryType": "Azure Monitor", "refId": "A", "subscription": "2212d587-1bad-4013-b605-b421b1f83c30" }
+      ],
+      "title": "Tunnel Average Bandwidth",
+      "type": "timeseries"
+    }
+  ],
+  "refresh": "1m",
+  "schemaVersion": 39,
+  "tags": ["azure", "vpn", "networking"],
+  "templating": { "list": [] },
+  "time": { "from": "now-1h", "to": "now" },
+  "timepicker": {},
+  "timezone": "browser",
+  "title": "Azure VPN Gateway Overview",
+  "uid": "azure-vwan-vpn-overview",
+  "version": 1,
+  "weekStart": ""
+}
