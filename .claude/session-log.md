@@ -10,12 +10,14 @@
 **Status**: Completed ✅
 **Task**: Create comprehensive Azure deployment documentation for Claude agents
 
-**Files Created**:
+**Files Created/Updated**:
 1. **AZURE-CLAUDE.md** (Obsidian)
    - Claude agent context file for Azure deployments
+   - All three subscriptions: FireGiants-Prod, FireGiants-Dev, Nokron-Prod
    - SSH access details, key locations
    - Deployment workflow architecture
    - Terraform provider templates
+   - **Comprehensive documentation requirements section**
    - Troubleshooting guide
 
 2. **53 - Azure Deployment Tutorial.md** (Obsidian)
@@ -25,15 +27,26 @@
    - Common operations (update, destroy, import)
    - Quick reference commands
 
+3. **claude.md** (Project root)
+   - Added all Azure subscriptions
+   - Added Azure deployment workflow section
+   - Added mandatory documentation requirements
+   - Documentation checklist for implementations
+
 **Documentation Synced To**:
 - Technical Manual: Added "Azure Deployment Workflow" section
 - Book Chapter 24: Expanded Terraform Deployment Workflow with architecture diagram
 
-**Key Information Documented**:
-- SSH: `ssh ubuntu-deploy` or `ssh -i ~/.ssh/ubuntu-deploy-vm.pem hermes-admin@10.90.10.5`
-- Copy files: `scp -r terraform/azure/[project]/ ubuntu-deploy:/opt/terraform/`
-- Deploy: `az login --identity && terraform init && terraform apply`
-- Provider: Use `use_msi = true` and `skip_provider_registration = true`
+**Azure Subscriptions Documented**:
+- FireGiants-Prod: `***AZURE_SUBSCRIPTION_ID_REDACTED***` (Primary)
+- FireGiants-Dev: `***AZURE_SUBSCRIPTION_ID_REDACTED***`
+- Nokron-Prod: `***AZURE_SUBSCRIPTION_ID_REDACTED***`
+
+**Documentation Requirements Added**:
+- All implementations must be documented in 3 locations
+- Technical Manual: Tutorial style (steps, tables, code)
+- Book: Narrative style (full paragraphs, context, lessons)
+- Obsidian: Modular notes with diagrams and configs
 
 ---
 
