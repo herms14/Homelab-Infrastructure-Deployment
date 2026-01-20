@@ -42,42 +42,37 @@
 ---
 
 ### Azure Managed Grafana Deployment
-**Status**: Ready to Deploy
+**Status**: Completed ✅
 **Task**: Create Azure Managed Grafana with comprehensive monitoring dashboards
 
+**Grafana URL**: https://grafana-homelab-prod-cmd8aqhtemcddgdz.sing.grafana.azure.com
+
 **Work Completed**:
-1. **Terraform Configuration**:
-   - Created `main.tf` with Grafana, Monitor Workspace, DCR, DCE, role assignments
-   - Added alert rules: VPN tunnel down, high CPU, low memory, high disk IOPS
-   - Created action group for critical alerts
+1. **Terraform Deployment**: Grafana, Monitor Workspace, DCR, DCE, role assignments, alerts
 
-2. **Dashboards Created** (4 total):
-   - `compute-overview.json` - VM CPU, memory, disk I/O for SEA & East Asia
+2. **Dashboards Created** (4 total in Homelab Monitoring folder):
+   - `compute-overview.json` - VM CPU, memory for SEA & East Asia
    - `network-overview.json` - Network traffic, bandwidth per VM
-   - `storage-overview.json` - Disk performance, IOPS, managed disk inventory
-   - `vwan-vpn-overview.json` - VPN tunnel status, traffic, VWAN resources
+   - `storage-overview.json` - Disk performance, IOPS
+   - `vwan-vpn-overview.json` - VPN tunnel status, traffic
 
-3. **Configuration**:
-   - Created `terraform.tfvars` with subscription ID and VM resource IDs
-   - Updated all dashboards to use correct resource names (vpngw-homelab-prod-sea)
-   - Created `deploy.sh` deployment script
+3. **VPN Dashboard Fix** (Critical):
+   - **Issue**: Dashboard showed "No data" for VPN metrics
+   - **Root cause**: VPN Gateway metrics don't support 1-minute intervals
+   - **Fix**: Changed `"timeGrain": "auto"` to `"timeGrain": "PT5M"`
+   - Updated resource to correct VPN Gateway: `erd-shared-corp-vnetgw-sea` in `erd-connectivity-sea-rg`
 
-**Files Created**:
-- `terraform/azure/azure-managed-grafana/main.tf` (with alerts)
-- `terraform/azure/azure-managed-grafana/terraform.tfvars`
+4. **Documentation Updated**:
+   - Obsidian `52 - Azure Managed Grafana.md` - Full documentation with query examples
+   - Technical Manual - VPN Gateway query format and time grain warning
+   - Book Chapter 34 - Added lesson #8 about VPN Gateway time grain
+
+**Key Lesson**: VPN Gateway metrics require PT5M or higher time grain (PT5M, PT15M, PT30M, PT1H, PT6H, PT12H, P1D)
+
+**Files Modified**:
 - `terraform/azure/azure-managed-grafana/dashboards/vwan-vpn-overview.json`
-- `terraform/azure/azure-managed-grafana/deploy.sh`
-
-**Next Steps**:
-```bash
-# Copy to ubuntu-deploy-vm
-scp -r terraform/azure/azure-managed-grafana/ hermes-admin@ubuntu-deploy:/opt/terraform/
-
-# SSH and deploy
-ssh ubuntu-deploy
-cd /opt/terraform/azure-managed-grafana
-chmod +x deploy.sh && ./deploy.sh
-```
+- `obsidian-homelab/52 - Azure Managed Grafana.md` (Obsidian)
+- Technical Manual, Book (Obsidian)
 
 ---
 
