@@ -6,6 +6,37 @@
 
 ## 2026-01-20
 
+### Azure Deployment Documentation
+**Status**: Completed ✅
+**Task**: Create comprehensive Azure deployment documentation for Claude agents
+
+**Files Created**:
+1. **AZURE-CLAUDE.md** (Obsidian)
+   - Claude agent context file for Azure deployments
+   - SSH access details, key locations
+   - Deployment workflow architecture
+   - Terraform provider templates
+   - Troubleshooting guide
+
+2. **53 - Azure Deployment Tutorial.md** (Obsidian)
+   - Step-by-step deployment guide
+   - Local-to-Azure workflow
+   - Best practices and naming conventions
+   - Common operations (update, destroy, import)
+   - Quick reference commands
+
+**Documentation Synced To**:
+- Technical Manual: Added "Azure Deployment Workflow" section
+- Book Chapter 24: Expanded Terraform Deployment Workflow with architecture diagram
+
+**Key Information Documented**:
+- SSH: `ssh ubuntu-deploy` or `ssh -i ~/.ssh/ubuntu-deploy-vm.pem hermes-admin@10.90.10.5`
+- Copy files: `scp -r terraform/azure/[project]/ ubuntu-deploy:/opt/terraform/`
+- Deploy: `az login --identity && terraform init && terraform apply`
+- Provider: Use `use_msi = true` and `skip_provider_registration = true`
+
+---
+
 ### Glance Dashboard UI Redesign & Documentation Update
 **Status**: Completed
 **Task**: Major UI redesign with 25 new themes and comprehensive documentation updates
