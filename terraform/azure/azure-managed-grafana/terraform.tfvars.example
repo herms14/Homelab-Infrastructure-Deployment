@@ -1,0 +1,52 @@
+# =============================================================================
+# Azure Managed Grafana - Example Variables
+# =============================================================================
+# Copy this file to terraform.tfvars and update with your values
+
+subscription_id     = "your-subscription-id"
+resource_group_name = "rg-grafana-prod-sea"
+location            = "southeastasia"
+grafana_name        = "grafana-homelab-prod"
+sku                 = "Standard"
+
+# Optional: Override default settings
+api_key_enabled                   = true
+deterministic_outbound_ip_enabled = false
+public_network_access             = "Enabled"
+zone_redundancy                   = "Disabled"
+
+# Optional: Grafana admin access (Azure AD Object IDs)
+grafana_admin_object_ids = []
+
+# Tags
+tags = {
+  environment = "production"
+  project     = "homelab-monitoring"
+  managed_by  = "terraform"
+}
+
+# =============================================================================
+# VM Monitoring Configuration
+# =============================================================================
+# Add VM resource IDs for monitoring (after VMs are deployed)
+
+# Southeast Asia VMs
+sea_vm_resource_ids = [
+  # "/subscriptions/xxx/resourceGroups/rg-identity-prod-sea/providers/Microsoft.Compute/virtualMachines/AZDC01",
+  # "/subscriptions/xxx/resourceGroups/rg-identity-prod-sea/providers/Microsoft.Compute/virtualMachines/AZDC02",
+  # "/subscriptions/xxx/resourceGroups/rg-app-servers-prod-sea/providers/Microsoft.Compute/virtualMachines/APP-SEA01",
+  # "/subscriptions/xxx/resourceGroups/rg-file-servers-prod-sea/providers/Microsoft.Compute/virtualMachines/FS-SEA01",
+  # "/subscriptions/xxx/resourceGroups/rg-file-servers-prod-sea/providers/Microsoft.Compute/virtualMachines/FS-SEA02"
+]
+
+# East Asia VMs
+eastasia_vm_resource_ids = [
+  # "/subscriptions/xxx/resourceGroups/rg-servers-prod-eas/providers/Microsoft.Compute/virtualMachines/SRV-EA01",
+  # "/subscriptions/xxx/resourceGroups/rg-servers-prod-eas/providers/Microsoft.Compute/virtualMachines/SRV-EA02",
+  # "/subscriptions/xxx/resourceGroups/rg-servers-prod-eas/providers/Microsoft.Compute/virtualMachines/APP-EA01",
+  # "/subscriptions/xxx/resourceGroups/rg-servers-prod-eas/providers/Microsoft.Compute/virtualMachines/AZRODC01",
+  # "/subscriptions/xxx/resourceGroups/rg-servers-prod-eas/providers/Microsoft.Compute/virtualMachines/AZRODC02"
+]
+
+# Optional: Log Analytics Workspace ID for Sentinel integration
+log_analytics_workspace_id = ""

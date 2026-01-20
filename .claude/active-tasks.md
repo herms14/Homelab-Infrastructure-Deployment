@@ -31,6 +31,28 @@
 
 ## Recently Completed
 
+### Azure Managed Grafana Deployment (2026-01-20)
+Deployed Azure Managed Grafana with multi-region VM monitoring dashboards.
+
+**Grafana URL**: https://grafana-homelab-prod-cmd8aqhtemcddgdz.sing.grafana.azure.com
+
+**Dashboards Created** (in Homelab Monitoring folder):
+- Azure VMs - Compute Overview (CPU, Memory)
+- Azure Multi-Region Storage Overview (Disk I/O, IOPS)
+- Azure Multi-Region Network Overview (Network In/Out)
+- Azure VWAN & VPN Overview (VPN tunnel status, bandwidth)
+
+**VMs Monitored**:
+- SEA: APP-SEA01, FS-SEA01, FS-SEA02, AZDC01, AZDC02
+- East Asia: SRV-EA01, SRV-EA02, APP-EA01, AZRODC01, AZRODC02
+
+**Files Created**:
+- `terraform/azure/azure-managed-grafana/main.tf`
+- `terraform/azure/azure-managed-grafana/terraform.tfvars`
+- `terraform/azure/azure-managed-grafana/dashboards/*.json` (4 dashboards)
+
+---
+
 ### NAS Backup API - Windows VM Names Fix (2026-01-15)
 Updated `VM_NAMES` in backup APIs - Windows VMs now display correct names.
 
