@@ -76,6 +76,7 @@ Related: [[00 - Homelab Index]] | [[01 - Network Architecture]] | [[07 - Deploye
 | 192.168.40.23 | gitlab-vm01 | DevOps Platform |
 | 192.168.40.24 | gitlab-runner-vm01 | GitLab CI/CD Runner |
 | 192.168.40.25 | homeassistant-lxc (LXC 206) | Home Assistant Smart Home |
+| 192.168.40.26 | ghostfolio-lxc (LXC 208) | Ghostfolio Finance Tracker |
 
 ### Reserved Ranges
 

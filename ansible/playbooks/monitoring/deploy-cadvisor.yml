@@ -66,7 +66,7 @@
 
 
 - name: Update Prometheus Configuration
-  hosts: docker-vm-utilities01
+  hosts: docker-vm-core-utilities01
   become: yes
   vars:
     prometheus_path: /opt/monitoring/prometheus
@@ -86,9 +86,9 @@
 
             - job_name: 'cadvisor-utilities'
               static_configs:
-                - targets: ['192.168.40.10:8081']
+                - targets: ['192.168.40.13:8081']
                   labels:
-                    host: 'docker-vm-utilities01'
+                    host: 'docker-vm-core-utilities01'
 
     - name: Restart Prometheus to load new config
       community.docker.docker_compose_v2:
@@ -108,7 +108,7 @@
 
 
 - name: Deploy Grafana Container Dashboard
-  hosts: docker-vm-utilities01
+  hosts: docker-vm-core-utilities01
   become: yes
   vars:
     grafana_path: /opt/monitoring/grafana
@@ -806,7 +806,7 @@
 
           cAdvisor Endpoints:
           - Media Host: http://192.168.40.11:8081
-          - Utilities Host: http://192.168.40.10:8081
+          - Utilities Host: http://192.168.40.13:8081
 
           Grafana Dashboard:
           - URL: https://grafana.hrmsmrflrii.xyz/d/container-monitoring

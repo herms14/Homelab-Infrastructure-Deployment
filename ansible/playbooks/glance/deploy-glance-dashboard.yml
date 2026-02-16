@@ -17,7 +17,7 @@
 #   ansible-playbook glance/deploy-glance-dashboard.yml
 
 - name: Deploy Glance Dashboard
-  hosts: docker-vm-utilities01
+  hosts: docker-lxc-glance
   become: yes
   vars:
     glance_path: /opt/glance
@@ -489,7 +489,7 @@
                     - type: custom-api
                       title: Hermes Miraflor II Life Progress
                       cache: 1h
-                      url: http://192.168.40.10:5051/progress
+                      url: http://192.168.40.13:5051/progress
                       template: |
                         <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; padding: 10px;">
                           <div style="text-align: center; margin-bottom: 15px;">
@@ -758,10 +758,10 @@
                     - type: custom-api
                       title: Reddit Feed
                       cache: 5m
-                      url: http://192.168.40.10:5053/api/feed
+                      url: http://192.168.40.13:5053/api/feed
                       template: |
                         <div style="margin-bottom: 15px; text-align: right;">
-                          <a href="http://192.168.40.10:5053" target="_blank" style="color: #ff4500; font-size: 12px; text-decoration: none; padding: 5px 10px; border: 1px solid #ff4500; border-radius: 6px;">
+                          <a href="http://192.168.40.13:5053" target="_blank" style="color: #ff4500; font-size: 12px; text-decoration: none; padding: 5px 10px; border: 1px solid #ff4500; border-radius: 6px;">
                             ⚙ Settings
                           </a>
                         </div>
@@ -844,7 +844,7 @@
           Glance Dashboard Deployed Successfully!
           ===========================================
 
-          Access URL: http://192.168.40.10:{{ glance_port }}
+          Access URL: http://192.168.40.12:{{ glance_port }}
           External URL: https://glance.hrmsmrflrii.xyz
 
           Dashboard Features:

@@ -23,7 +23,7 @@
   hosts: localhost
   gather_facts: false
   vars:
-    grafana_url: "http://192.168.40.10:3030"
+    grafana_url: "http://192.168.40.13:3030"
     grafana_api_key: "{{ lookup('env', 'GRAFANA_API_KEY') }}"
     dashboard_file: "../../temp-omada-full-dashboard.json"
 

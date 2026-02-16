@@ -10,7 +10,7 @@
   hosts: localhost
   gather_facts: false
   vars:
-    grafana_url: "http://192.168.40.10:3001"
+    grafana_url: "http://192.168.40.13:3001"
     grafana_api_key: "{{ lookup('env', 'GRAFANA_API_KEY') }}"
     dashboard_uid: "synology-nas-modern"
     dashboard_title: "Synology NAS Storage"

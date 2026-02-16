@@ -13,7 +13,7 @@
 #   - Bandwidth utilization gauge
 #
 # Prerequisites:
-#   - Grafana running on docker-vm-utilities01:3030
+#   - Grafana running on docker-vm-core-utilities01:3030
 #   - node_exporter running on all Proxmox nodes
 #   - Prometheus scraping node_exporter metrics
 
@@ -21,7 +21,7 @@
   hosts: localhost
   gather_facts: false
   vars:
-    grafana_host: "192.168.40.10"
+    grafana_host: "192.168.40.13"
     grafana_port: "3030"
     grafana_url: "http://{{ grafana_host }}:{{ grafana_port }}"
     grafana_user: "admin"

@@ -1,9 +1,9 @@
 ---
 # Update Glance Home page with new services
-# Run on docker-vm-utilities01 (192.168.40.10)
+# Run on docker-lxc-glance (192.168.40.12)
 
 - name: Update Glance Dashboard with New Services
-  hosts: docker-vm-utilities01
+  hosts: docker-lxc-glance
   become: yes
   vars:
     glance_config_dir: /opt/glance/config

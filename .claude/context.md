@@ -54,12 +54,15 @@
 | Host | IP | Type | Services |
 |------|-----|------|----------|
 | pbs-server | 192.168.20.50 | LXC 100 | Proxmox Backup Server |
-| docker-lxc-glance | 192.168.40.12 | LXC 200 | Glance, APIs |
+| docker-lxc-glance | 192.168.40.12 | LXC 200 | Glance Dashboard |
 | pihole | 192.168.90.53 | LXC 202 | Pi-hole v6 + Unbound |
-| docker-vm-core-utilities | 192.168.40.13 | VM 107 | Grafana, Prometheus, Sentinel Bot |
-| docker-media | 192.168.40.11 | VM | Jellyfin, *arr stack |
-| traefik | 192.168.40.20 | VM | Reverse proxy |
-| authentik | 192.168.40.21 | VM | SSO |
+| docker-vm-core-utilities01 | 192.168.40.13 | VM 107 | Grafana, Prometheus, Sentinel Bot, Media Stats API, Reddit Manager |
+| docker-media | 192.168.40.11 | LXC 205 | Jellyfin, *arr stack |
+| traefik | 192.168.40.20 | LXC 203 | Reverse proxy |
+| authentik | 192.168.40.21 | LXC 204 | SSO |
+| immich-vm01 | 192.168.40.22 | VM | Immich photo management |
+| gitlab-vm01 | 192.168.40.23 | VM | GitLab CE |
+| ghostfolio-lxc | 192.168.40.26 | LXC 208 | Ghostfolio finance tracker |
 
 ## Synology NAS (192.168.20.31)
 
@@ -86,6 +89,7 @@
 | Dashboard | Glance | https://glance.hrmsmrflrii.xyz |
 | Productivity | GitLab | https://gitlab.hrmsmrflrii.xyz |
 | Productivity | Immich | https://photos.hrmsmrflrii.xyz |
+| Finance | Ghostfolio | https://ghostfolio.hrmsmrflrii.xyz |
 
 ## Discord Bot: Sentinel
 
@@ -107,14 +111,14 @@
 
 **LXC 200 (192.168.40.12)**:
 - Glance: `/opt/glance/config/glance.yml`
-- Media Stats API: `/opt/media-stats-api/`
-- Reddit Manager: `/opt/reddit-manager/`
 
 **VM 107 (192.168.40.13)**:
 - Sentinel Bot: `/opt/sentinel-bot/`
 - Monitoring Stack: `/opt/monitoring/`
 - Prometheus: `/opt/monitoring/prometheus/prometheus.yml`
 - Grafana Dashboards: `/opt/monitoring/grafana/dashboards/`
+- Media Stats API: `/opt/media-stats-api/`
+- Reddit Manager: `/opt/reddit-manager/`
 
 **Traefik (192.168.40.20)**:
 - Config: `/opt/traefik/config/`

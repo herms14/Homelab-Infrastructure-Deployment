@@ -6,14 +6,14 @@
 #   ansible-playbook monitoring/deploy-container-status-dashboard.yml
 #
 # Prerequisites:
-#   - Grafana running on docker-vm-utilities01:3030
+#   - Grafana running on docker-vm-core-utilities01:3030
 #   - Grafana API key or admin credentials
 
 - name: Deploy Container Status History Dashboard
   hosts: localhost
   gather_facts: false
   vars:
-    grafana_host: "192.168.40.10"
+    grafana_host: "192.168.40.13"
     grafana_port: "3030"
     grafana_url: "http://{{ grafana_host }}:{{ grafana_port }}"
     # Using admin:admin as default - change if different

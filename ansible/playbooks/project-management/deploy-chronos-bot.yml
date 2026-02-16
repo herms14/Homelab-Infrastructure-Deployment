@@ -16,7 +16,7 @@
 #   CHRONOS_DISCORD_TOKEN=xxx GITLAB_TOKEN=xxx ansible-playbook project-management/deploy-chronos-bot.yml
 
 - name: Deploy Chronos Project Management Bot
-  hosts: docker-vm-utilities01
+  hosts: docker-vm-core-utilities01
   become: yes
   vars:
     bot_path: /opt/chronos-bot
@@ -138,7 +138,7 @@
           =====================================================
 
           Container: chronos-bot
-          Host: docker-vm-utilities01 (192.168.40.10)
+          Host: docker-vm-core-utilities01 (192.168.40.13)
           Channel: #{{ allowed_channels }}
 
           GitLab Configuration:

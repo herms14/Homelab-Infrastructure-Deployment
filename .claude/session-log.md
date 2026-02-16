@@ -4,6 +4,125 @@
 
 ---
 
+## 2026-02-16 (cont. 6)
+
+### Strava Stats, Dashboard Fixes, and GitHub Sync
+**Status**: ✅ Complete
+**Task**: Add Strava Stats page, fix Power Control/Gaming PC widgets, Steam Last Played, sync to GitHub
+
+**Changes**:
+- Added `/api/stats` + `/page/stats` endpoints to health-tracker-api.py (Strava athlete stats: Last 4 Weeks, Best Efforts, YTD, All-Time)
+- Added Strava Stats iframe to Health page (height: 500)
+- Fixed Power Control widget: changed from `http://` to `https://power.hrmsmrflrii.xyz/` (mixed content fix), height: 150
+- Added "Last Played" section to Steam widget on Home page (CSS `:first-child` trick)
+- Fixed Gaming PC widget timeout: reduced `gaming-pc-stats` API connection timeout from 5s to 2s, rebuilt container
+- Synced glance.yml and health-tracker-api.py to GitHub `herms14/glance-dashboard`
+- Updated documentation: Obsidian note 55, Technical Manual v5.7, Book Chapter 18
+
+---
+
+## 2026-02-16 (cont. 5)
+
+### Health Tracker API + Glance Health Page
+**Status**: ✅ Complete
+**Task**: Deploy Strava-integrated health tracker with weight logging, exercise calendar, and Glance dashboard page
+
+**Components Deployed**:
+- Health Tracker API (Flask): 192.168.40.13:5062
+- Glance Health tab with 3 custom-api widgets + 3 iframe pages
+
+**Files Created**:
+- `ansible/playbooks/glance/files/health-tracker-api.py` — Flask API (Strava OAuth2, activity caching, weight logging, HTML pages)
+- `ansible/playbooks/glance/files/health-page-config.yml` — Glance page config (avoids Jinja2/Go template conflicts)
+- `ansible/playbooks/glance/deploy-health-tracker-api.yml` — Ansible playbook to deploy API container
+- `ansible/playbooks/glance/update-glance-health-tab.yml` — Ansible playbook to add Health page to Glance
+
+**Key Endpoints**:
+- `/api/health` — Health check
+- `/api/strava/status` — Strava connection status
+- `/api/activities/weekly` — Weekly exercise summary
+- `/api/weight` — Weight data (GET/POST/DELETE)
+- `/page/calendar` — 60-day exercise heatmap (iframe)
+- `/page/weight` — Weight chart + log form (iframe)
+- `/page/activities` — Recent activities list (iframe)
+- `/page/setup` — One-time Strava OAuth setup
+
+**User Action Required**: Visit http://192.168.40.13:5062/page/setup to connect Strava
+
+**Lesson Learned**: Glance Go template syntax (`{{ }}`) conflicts with Ansible Jinja2. Use file-based config merge (copy YAML snippet + Python merge script) instead of set_fact/combine approach for pages containing Go templates.
+
+---
+
+## 2026-02-16 (cont. 4)
+
+### Comprehensive Service Onboarding Guide
+**Status**: ✅ Complete
+**Task**: Create/update comprehensive documentation for onboarding a new service manually, covering all 13 phases
+
+**Documentation Updated (3 locations)**:
+1. `obsidian-homelab/15 - New Service Onboarding Guide.md` — Complete rewrite with 13 phases: LXC vs VM decision framework, Docker installation (with full command explanations), NAS NFS mounts (with fstab option breakdowns), container deployment, Traefik routing, OPNsense DNS (UI + API methods), SSL (automatic), Authentik SSO (ForwardAuth + Native OIDC), Service Version API integration (SERVICE_REGISTRY format), Discord bot registration (Sentinel + Argus), Watchtower deployment, documentation checklist, and a worked example (Linkding deployment end-to-end)
+2. Technical Manual v7.4 — Replaced Service Onboarding section with comprehensive quick-reference covering all integration points
+3. Book Chapter 9 — Added "The Service Onboarding Pipeline" narrative section explaining the evolution and rationale
+
+---
+
+## 2026-02-16 (cont. 3)
+
+### Pi-hole v6 Web UI Fix
+**Status**: ✅ Complete
+**Task**: Diagnose and fix Pi-hole web UI being unreachable at 192.168.90.53
+
+**Root Cause**: Pi-hole v6 FTL drops privileges to `pihole` user after binding port 53. Web server starts after privilege drop and can't bind ports 80/443. The `o` (optional) flag in port config (`80o,443os`) causes silent failure — no errors logged.
+
+**Fix Applied**: `setcap CAP_NET_BIND_SERVICE+eip /usr/bin/pihole-FTL` + restart FTL. Must be re-applied after Pi-hole updates.
+
+**Documentation Updated**:
+- `obsidian-homelab/12 - Troubleshooting.md` - Full diagnosis/fix entry
+- `docs/TROUBLESHOOTING.md` - Service-Specific Issues section
+- Technical Manual - DNS Issues section
+- Book Chapter 21 - DNS / Pi-hole Issues narrative
+
+---
+
+## 2026-02-16 (cont. 2)
+
+### Bulk Service Updates + Manual Service Updates Guide
+**Status**: ✅ Complete
+**Task**: Update 14 Docker services showing available updates, then create a manual documenting how to update each service
+
+**Services Updated (14 total)**:
+- **192.168.40.11**: Radarr, Sonarr, Lidarr, Prowlarr, Bazarr, Overseerr, Autobrr, Deluge, SABnzbd, MeTube
+- **192.168.40.13**: Grafana, Speedtest Tracker, Tracearr
+- **192.168.40.25**: Home Assistant
+- **192.168.40.26**: Ghostfolio (+ PostgreSQL, Redis)
+
+**Documentation Created**:
+- `obsidian-homelab/47 - Manual Service Updates Guide.md` - Comprehensive per-host update procedures with pre/post checklists
+- Technical Manual v7.3 - Added "Manual Service Update Procedures" section with all host commands
+- Book Chapter 16 - Added "Manual Updates: When Automation Isn't Enough" narrative section
+
+---
+
+## 2026-02-16 (cont.)
+
+### IP/URL Mapping Audit and Corrections
+**Status**: ✅ Complete
+**Task**: Audit all IP/URL references across documentation and code for consistency after 192.168.40.10 decommission
+
+**Issues Found and Fixed**:
+- `.claude/agents/glance-grafana-dashboard-fixer.md` - Updated from 192.168.40.10/docker-utilities to correct hosts (192.168.40.12 for Glance, 192.168.40.13 for Grafana)
+- `.claude/context.md` - Fixed Media Stats API and Reddit Manager location (moved from .12 to .13), added missing hosts (immich, gitlab), fixed types (LXC vs VM)
+- `obsidian-homelab/07 - Deployed Services.md` - Fixed overview table (Media Stats API/Reddit Manager on .13 not .12)
+- `obsidian-homelab/10 - IP Address Map.md` - Added missing Ghostfolio LXC entry
+- `obsidian-homelab/23 - Glance Dashboard.md` - Fixed Omada Exporter IP (192.168.20.30 → 192.168.40.13)
+- `ansible/playbooks/container-updates/argus-bot.py` - Fixed all container→host mappings (30+ references)
+- `ansible/playbooks/sysadmin-bot/sysadmin-bot.py` - Fixed DOCKER_HOSTS and health check URLs
+- `ansible/roles/traefik/deploy-traefik-ssl.yml` - Fixed utilities_server_ip and otel_collector_endpoint
+- `ansible/roles/n8n/deploy-n8n.yml` - Fixed comments
+- 30+ additional ansible playbooks - batch-fixed all 192.168.40.10 → 192.168.40.13 references
+
+---
+
 ## 2026-02-16
 
 ### Immich Monitoring, Grafana Alerts, and Disk Hardening

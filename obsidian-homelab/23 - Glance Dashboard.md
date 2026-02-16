@@ -644,7 +644,7 @@ sum(rate(ifHCInOctets{ifIndex=~"3|4"}[5m]) +
 | **UID** | `omada-network` |
 | **Height** | 2200px |
 | **URL** | `https://grafana.hrmsmrflrii.xyz/d/omada-network/omada-network-overview?kiosk&theme=transparent&refresh=30s` |
-| **Data Source** | Omada Exporter (192.168.20.30:9202) |
+| **Data Source** | Omada Exporter (192.168.40.13:9202) |
 
 **Panels:** Overview stats, Device Health, WiFi Signal Quality, Switch Port Status, PoE Power Usage, Traffic Analysis, Client Details.
 

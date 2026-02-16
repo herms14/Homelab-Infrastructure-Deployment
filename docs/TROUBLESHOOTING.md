@@ -23,6 +23,7 @@ This guide documents resolved issues and common problems organized by category f
   - [Glance Template Error - Wrong Number of Args](#glance-template-error---wrong-number-of-args)
 - [Service-Specific Issues](#service-specific-issues)
   - [Immich Disk Full - Redis RDB Failure Cascade](#immich-disk-full---redis-rdb-failure-cascade)
+  - [Pi-hole v6 Web UI Unreachable (Port 80/443 Not Listening)](#pi-hole-v6-web-ui-unreachable-port-80443-not-listening)
 - [Network Issues](#network-issues)
 - [Common Issues](#common-issues)
 - [Diagnostic Commands](#diagnostic-commands)
@@ -1669,6 +1670,57 @@ ssh hermes-admin@192.168.40.12:/opt/glance && sudo docker compose restart'
 **Dashboard Icons Repository**: https://github.com/walkxcode/dashboard-icons
 
 **Prevention**: For arr stack apps, prefer Dashboard Icons URLs as they are consistently maintained and display correctly.
+
+---
+
+### Pi-hole v6 Web UI Unreachable (Port 80/443 Not Listening)
+
+**Resolved**: February 16, 2026
+
+**Symptoms**:
+- Pi-hole DNS resolution works normally (port 53 responds to queries)
+- Web admin UI unreachable at `http://192.168.90.53/admin/`
+- `ss -tlnp` shows port 53 listening but no listeners on port 80 or 443
+- No errors in FTL log or journald — the failure is completely silent
+
+**Root Cause**: Pi-hole v6 FTL starts as root (to bind port 53), then drops privileges to the `pihole` user (uid 999) before starting the embedded web server. Ports 80/443 are privileged (< 1024) and require `CAP_NET_BIND_SERVICE`. The port config uses the `o` (optional) flag (`80o,443os`), so FTL silently skips binding when it can't — no error is logged.
+
+**Diagnosis**:
+```bash
+# Check what's actually listening
+ssh root@192.168.90.53 "ss -tlnp | grep -E ':80|:443|:53'"
+# Only port 53 will be present
+
+# Check port config (look for 'o' = optional flag)
+ssh root@192.168.90.53 "pihole-FTL --config webserver.port"
+# Returns: 80o,443os,[::]:80o,[::]:443os
+
+# Check binary capabilities
+ssh root@192.168.90.53 "getcap /usr/bin/pihole-FTL"
+# Empty = no capabilities set
+```
+
+**Fix**:
+```bash
+# Add capability to bind privileged ports
+ssh -i ~/.ssh/homelab_ed25519 root@192.168.90.53
+setcap CAP_NET_BIND_SERVICE+eip /usr/bin/pihole-FTL
+systemctl restart pihole-FTL
+```
+
+**Verification**:
+```bash
+# Ports 80/443 now listening
+ss -tlnp | grep -E ':80|:443'
+
+# Web UI responds (302 = redirect to login)
+curl -s -o /dev/null -w '%{http_code}' http://192.168.90.53/admin/
+
+# DNS still works
+nslookup google.com 192.168.90.53
+```
+
+**Prevention**: The `setcap` must be re-applied after Pi-hole updates (binary is replaced). Alternatively, change port to 8080 in `/etc/pihole/pihole.toml` to avoid needing capabilities.
 
 ---
 

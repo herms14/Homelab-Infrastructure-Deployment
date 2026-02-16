@@ -1,11 +1,11 @@
 ---
 # n8n Workflow Automation Deployment Playbook
-# Deploys n8n on docker-vm-utilities01 (192.168.40.10)
+# Deploys n8n on docker-vm-core-utilities01 (192.168.40.13)
 #
 # Usage:
-#   ansible-playbook n8n/deploy-n8n.yml -l docker-vm-utilities01 -v
+#   ansible-playbook n8n/deploy-n8n.yml -l docker-vm-core-utilities01 -v
 #
-# Access: http://192.168.40.10:5678 or https://n8n.hrmsmrflrii.xyz (via Traefik)
+# Access: http://192.168.40.13:5678 or https://n8n.hrmsmrflrii.xyz (via Traefik)
 
 - name: Deploy n8n Workflow Automation
   hosts: docker_utilities

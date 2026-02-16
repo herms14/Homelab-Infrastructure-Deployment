@@ -6,7 +6,7 @@
 #   ansible-playbook reddit-manager/deploy-reddit-manager.yml
 
 - name: Deploy Reddit Manager
-  hosts: docker-vm-utilities01
+  hosts: docker-vm-core-utilities01
   become: yes
   vars:
     app_path: /opt/reddit-manager
@@ -90,8 +90,8 @@
         msg: |
           Reddit Manager deployed successfully!
 
-          Management UI: http://192.168.40.10:5053
-          API Endpoint:  http://192.168.40.10:5053/api/feed
+          Management UI: http://192.168.40.13:5053
+          API Endpoint:  http://192.168.40.13:5053/api/feed
 
           Available endpoints:
           - GET  /api/subreddits     - List configured subreddits

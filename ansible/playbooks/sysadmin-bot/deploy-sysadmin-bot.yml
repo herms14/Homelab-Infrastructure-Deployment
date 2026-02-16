@@ -6,7 +6,7 @@
 #   ansible-playbook sysadmin-bot/deploy-sysadmin-bot.yml
 
 - name: Deploy SysAdmin Discord Bot
-  hosts: docker-vm-utilities01
+  hosts: docker-vm-core-utilities01
   become: yes
   vars:
     bot_path: /opt/sysadmin-bot

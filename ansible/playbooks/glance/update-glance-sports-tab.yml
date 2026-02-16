@@ -13,11 +13,11 @@
 #   ansible-playbook glance/update-glance-sports-tab.yml
 
 - name: Add Sports Tab to Glance Dashboard
-  hosts: docker-vm-utilities01
+  hosts: docker-lxc-glance
   become: yes
   vars:
     glance_path: /opt/glance
-    nba_api_url: "http://192.168.40.10:5060"
+    nba_api_url: "http://192.168.40.13:5060"
 
   tasks:
     - name: Read current Glance config

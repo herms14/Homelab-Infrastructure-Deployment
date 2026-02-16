@@ -2,7 +2,7 @@
 # Configure Grafana Alerting with Discord Webhook for Immich Host
 # Sets up contact point, notification policy, and alert rules
 #
-# Targets: docker-vm-utilities01 (192.168.40.13) - Grafana host
+# Targets: docker-vm-core-utilities01 (192.168.40.13) - Grafana host
 #
 # Usage:
 #   ansible-playbook monitoring/configure-grafana-alerts.yml -i "192.168.40.13," -u hermes-admin --become \

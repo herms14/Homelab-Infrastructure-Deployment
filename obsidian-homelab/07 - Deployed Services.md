@@ -18,8 +18,8 @@ All services deployed via Docker Compose, managed by Ansible from ansible-contro
 | DevOps | gitlab-vm01 | GitLab CE |
 | Media | docker-lxc-media (LXC 205, 192.168.40.11) | Arr Stack (14 services) |
 | Smart Home | homeassistant-lxc (LXC 206, 192.168.40.25) | Home Assistant |
-| Dashboard | docker-lxc-glance (LXC 200, 192.168.40.12) | Glance Dashboard, Media Stats API, Reddit Manager |
-| Utilities | docker-vm-core-utilities01 | n8n, Paperless, Life Progress API, Speedtest Tracker |
+| Dashboard | docker-lxc-glance (LXC 200, 192.168.40.12) | Glance Dashboard |
+| Utilities | docker-vm-core-utilities01 | n8n, Paperless, Life Progress API, Speedtest Tracker, Media Stats API, Reddit Manager |
 | Productivity | docker-vm-core-utilities01 | BentoPDF, Reactive Resume, Karakeep |
 | Network Tools | docker-vm-core-utilities01 | Edgeshark (container network inspector) |
 | Media Tools | docker-vm-core-utilities01 | Wizarr, Tracearr |

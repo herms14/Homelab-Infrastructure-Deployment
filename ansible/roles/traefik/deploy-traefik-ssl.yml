@@ -51,10 +51,10 @@
     immich_ip: "192.168.40.22"
     gitlab_ip: "192.168.40.23"
     media_server_ip: "192.168.40.11"
-    utilities_server_ip: "192.168.40.10"
+    utilities_server_ip: "192.168.40.13"
 
     # OpenTelemetry Collector endpoint
-    otel_collector_endpoint: "http://192.168.40.10:4318/v1/traces"
+    otel_collector_endpoint: "http://192.168.40.13:4318/v1/traces"
 
     # Metrics port (internal)
     metrics_port: 8082

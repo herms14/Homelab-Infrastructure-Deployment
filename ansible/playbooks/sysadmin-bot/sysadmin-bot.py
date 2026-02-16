@@ -63,7 +63,7 @@ SSH_USER = os.getenv("SSH_USER", "hermes-admin")
 
 # Docker Hosts
 DOCKER_HOSTS = {
-    "utilities": "192.168.40.10",
+    "utilities": "192.168.40.13",
     "media": "192.168.40.11",
 }
 
@@ -590,8 +590,8 @@ async def health(interaction: discord.Interaction):
         # Check key services via HTTP
         services = [
             ("Traefik", "http://192.168.40.20:80"),
-            ("Grafana", "http://192.168.40.10:3030"),
-            ("Prometheus", "http://192.168.40.10:9090"),
+            ("Grafana", "http://192.168.40.13:3030"),
+            ("Prometheus", "http://192.168.40.13:9090"),
         ]
 
         async with aiohttp.ClientSession() as session:

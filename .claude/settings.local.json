@@ -215,7 +215,12 @@
       "Bash(powershell.exe:*)",
       "Bash(do sed -i 's/c@llimachus14/CHANGE_ME_BEFORE_USE/g; s/Homelab@Azure2026!/CHANGE_ME_BEFORE_USE/g' \"$f\")",
       "Bash(\"C:\\\\Program Files\\\\dotnet\\\\dotnet.exe\" publish -c Release -o ./publish)",
-      "Bash(\"C:\\\\Program Files\\\\dotnet\\\\dotnet.exe\" restore --source https://api.nuget.org/v3/index.json)"
+      "Bash(\"C:\\\\Program Files\\\\dotnet\\\\dotnet.exe\" restore --source https://api.nuget.org/v3/index.json)",
+      "Bash(Get-NetFirewallProfile -Name Domain)",
+      "Bash(az vm user update:*)",
+      "Bash(Get-Content -Path \"C:\\\\Users\\\\herms14\\\\OneDrive\\\\Side Projects\\\\Homelab Projects\\\\homelab-infra-automation-project\\\\terraform\\\\azure\\\\azure-managed-grafana\\\\dashboards\\\\vwan-vpn-overview.json\" -Raw)",
+      "Bash(do sleep 10)",
+      "Bash(exit 0)"
     ],
     "deny": [],
     "ask": []

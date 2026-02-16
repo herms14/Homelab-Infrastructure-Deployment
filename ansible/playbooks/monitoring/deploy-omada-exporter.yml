@@ -11,7 +11,7 @@
 #   ansible-playbook ansible-playbooks/monitoring/deploy-omada-exporter.yml
 
 - name: Deploy Omada Prometheus Exporter
-  hosts: docker-vm-utilities01
+  hosts: docker-vm-core-utilities01
   become: yes
   vars:
     app_path: /opt/omada-exporter
@@ -74,10 +74,10 @@
         msg: |
           Omada Exporter deployed successfully!
 
-          Metrics endpoint: http://192.168.40.10:{{ app_port }}/metrics
+          Metrics endpoint: http://192.168.40.13:{{ app_port }}/metrics
 
           Add this scrape config to Prometheus:
 
             - job_name: 'omada'
               static_configs:
-                - targets: ['192.168.40.10:{{ app_port }}']
+                - targets: ['192.168.40.13:{{ app_port }}']

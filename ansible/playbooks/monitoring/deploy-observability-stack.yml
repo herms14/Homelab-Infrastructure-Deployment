@@ -1,6 +1,6 @@
 ---
 # Deploy Observability Stack (OpenTelemetry Collector, Jaeger, Demo App)
-# Target: docker-vm-utilities01 (192.168.40.10)
+# Target: docker-vm-core-utilities01 (192.168.40.13)
 #
 # Services:
 #   - OpenTelemetry Collector: Trace/metrics collection and routing
@@ -454,7 +454,7 @@
         mode: '0644'
         content: |
           # Observability Stack: OTEL Collector, Jaeger, Demo App
-          # Deployed alongside monitoring stack on docker-vm-utilities01
+          # Deployed alongside monitoring stack on docker-vm-core-utilities01
           name: observability
 
           services:
@@ -646,10 +646,10 @@
           - "============================================"
           - ""
           - "Services (Internal):"
-          - "  OTEL Collector: 192.168.40.10:{{ otel_grpc_port }} (gRPC)"
-          - "  OTEL Collector: 192.168.40.10:{{ otel_http_port }} (HTTP)"
-          - "  Jaeger UI:      192.168.40.10:{{ jaeger_ui_port }}"
-          - "  Demo App:       192.168.40.10:{{ demo_app_port }}"
+          - "  OTEL Collector: 192.168.40.13:{{ otel_grpc_port }} (gRPC)"
+          - "  OTEL Collector: 192.168.40.13:{{ otel_http_port }} (HTTP)"
+          - "  Jaeger UI:      192.168.40.13:{{ jaeger_ui_port }}"
+          - "  Demo App:       192.168.40.13:{{ demo_app_port }}"
           - ""
           - "External URLs (after Traefik configured):"
           - "  Jaeger:    https://jaeger.{{ domain }}"
@@ -663,11 +663,11 @@
           - ""
           - "Verification Commands:"
           - "  # Check OTEL Collector"
-          - "  curl http://192.168.40.10:13133"
+          - "  curl http://192.168.40.13:13133"
           - ""
           - "  # Generate test traces"
-          - "  curl http://192.168.40.10:{{ demo_app_port }}/api/data"
+          - "  curl http://192.168.40.13:{{ demo_app_port }}/api/data"
           - ""
           - "  # View traces in Jaeger"
-          - "  Open http://192.168.40.10:{{ jaeger_ui_port }}"
+          - "  Open http://192.168.40.13:{{ jaeger_ui_port }}"
           - "============================================"
