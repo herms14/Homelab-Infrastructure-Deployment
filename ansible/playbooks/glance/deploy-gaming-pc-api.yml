@@ -1,0 +1,312 @@
+---
+# Gaming PC Stats API Deployment
+# Middleware API that fetches LibreHardwareMonitor data and returns simplified JSON
+#
+# Prerequisites:
+# - LibreHardwareMonitor running on Gaming PC with HTTP server enabled (port 8085)
+#
+# Usage:
+#   ansible-playbook glance/deploy-gaming-pc-api.yml
+
+- name: Deploy Gaming PC Stats API
+  hosts: docker-vm-core-utilities01
+  become: yes
+  vars:
+    gaming_pc_api_path: /opt/gaming-pc-stats
+    gaming_pc_api_port: 5056
+    gaming_pc_ip: 192.168.10.10
+    lhm_port: 8085
+
+  tasks:
+    - name: Create Gaming PC Stats API directory
+      file:
+        path: "{{ gaming_pc_api_path }}"
+        state: directory
+        mode: '0755'
+
+    - name: Create Flask application
+      copy:
+        dest: "{{ gaming_pc_api_path }}/app.py"
+        mode: '0644'
+        content: |
+          from flask import Flask, jsonify
+          import requests
+          import time
+          from datetime import datetime
+
+          app = Flask(__name__)
+
+          # Configuration
+          LHM_URL = "http://{{ gaming_pc_ip }}:{{ lhm_port }}/data.json"
+
+          # Cache settings
+          CACHE_DURATION = 10  # 10 seconds
+          cache_data = {}
+          cache_time = 0
+
+          def get_lhm_data():
+              """Fetch and cache LibreHardwareMonitor data"""
+              global cache_data, cache_time
+              now = time.time()
+
+              if cache_data and (now - cache_time) < CACHE_DURATION:
+                  return cache_data
+
+              try:
+                  response = requests.get(LHM_URL, timeout=5)
+                  response.raise_for_status()
+                  cache_data = response.json()
+                  cache_time = now
+                  return cache_data
+              except Exception as e:
+                  if cache_data:
+                      return cache_data
+                  raise e
+
+          def find_value(children, text_match, category=None):
+              """Recursively find a value in the LHM data structure"""
+              for child in children:
+                  child_text = child.get('Text', '')
+
+                  # If looking for a specific category, check if this is it
+                  if category and child_text == category:
+                      return find_value(child.get('Children', []), text_match)
+
+                  # Check if this is the value we're looking for
+                  if text_match in child_text:
+                      value = child.get('Value', '')
+                      if value:
+                          return value
+
+                  # Recurse into children
+                  result = find_value(child.get('Children', []), text_match, category)
+                  if result:
+                      return result
+
+              return None
+
+          def parse_hardware(data):
+              """Parse LHM data into a simplified structure"""
+              result = {
+                  'cpu': {'name': '', 'temp': 'N/A', 'load': 'N/A'},
+                  'gpu': {'name': '', 'temp': 'N/A', 'load': 'N/A', 'vram': 'N/A', 'fan': 'N/A'},
+                  'memory': {'used': 'N/A', 'available': 'N/A', 'load': 'N/A'},
+                  'storage': [],
+                  'fans': [],
+                  'online': False,
+                  'last_update': datetime.now().isoformat()
+              }
+
+              try:
+                  # Navigate to hardware list: Children[0].Children
+                  root_children = data.get('Children', [])
+                  if not root_children:
+                      return result
+
+                  pc_children = root_children[0].get('Children', [])
+                  result['online'] = True
+
+                  for hw in pc_children:
+                      hw_text = hw.get('Text', '')
+                      hw_children = hw.get('Children', [])
+
+                      # CPU Detection (AMD or Intel)
+                      if 'AMD' in hw_text or 'Intel' in hw_text:
+                          if 'Ryzen' in hw_text or 'Core' in hw_text or any(x in hw_text for x in ['5600', '5800', '5900', '5950', '7600', '7800', '7900', '7950', 'i5', 'i7', 'i9']):
+                              result['cpu']['name'] = hw_text
+                              for cat in hw_children:
+                                  cat_text = cat.get('Text', '')
+                                  if cat_text == 'Temperatures':
+                                      for sensor in cat.get('Children', []):
+                                          sensor_text = sensor.get('Text', '')
+                                          if 'Tctl' in sensor_text or 'Package' in sensor_text or 'Core (Tctl' in sensor_text:
+                                              result['cpu']['temp'] = sensor.get('Value', 'N/A')
+                                              break
+                                  elif cat_text == 'Load':
+                                      for sensor in cat.get('Children', []):
+                                          if sensor.get('Text', '') == 'CPU Total':
+                                              result['cpu']['load'] = sensor.get('Value', 'N/A')
+                                              break
+
+                      # GPU Detection (NVIDIA or AMD)
+                      if 'NVIDIA' in hw_text or 'GeForce' in hw_text or 'Radeon' in hw_text or 'RTX' in hw_text or 'GTX' in hw_text:
+                          result['gpu']['name'] = hw_text
+                          for cat in hw_children:
+                              cat_text = cat.get('Text', '')
+                              if cat_text == 'Temperatures':
+                                  for sensor in cat.get('Children', []):
+                                      if sensor.get('Text', '') == 'GPU Core':
+                                          result['gpu']['temp'] = sensor.get('Value', 'N/A')
+                                          break
+                              elif cat_text == 'Load':
+                                  for sensor in cat.get('Children', []):
+                                      if sensor.get('Text', '') == 'GPU Core':
+                                          result['gpu']['load'] = sensor.get('Value', 'N/A')
+                                          break
+                              elif cat_text == 'Data':
+                                  for sensor in cat.get('Children', []):
+                                      if 'Memory Used' in sensor.get('Text', ''):
+                                          result['gpu']['vram'] = sensor.get('Value', 'N/A')
+                                          break
+                              elif cat_text == 'Fans':
+                                  for sensor in cat.get('Children', []):
+                                      if sensor.get('Value', ''):
+                                          result['gpu']['fan'] = sensor.get('Value', 'N/A')
+                                          break
+
+                      # Memory Detection
+                      if hw_text == 'Generic Memory' or 'Memory' in hw_text and 'GPU' not in hw_text:
+                          for cat in hw_children:
+                              cat_text = cat.get('Text', '')
+                              if cat_text == 'Data':
+                                  for sensor in cat.get('Children', []):
+                                      sensor_text = sensor.get('Text', '')
+                                      if sensor_text == 'Memory Used':
+                                          result['memory']['used'] = sensor.get('Value', 'N/A')
+                                      elif sensor_text == 'Memory Available':
+                                          result['memory']['available'] = sensor.get('Value', 'N/A')
+                              elif cat_text == 'Load':
+                                  for sensor in cat.get('Children', []):
+                                      if sensor.get('Text', '') == 'Memory':
+                                          result['memory']['load'] = sensor.get('Value', 'N/A')
+                                          break
+
+                      # Storage Detection
+                      if any(x in hw_text for x in ['SSD', 'NVMe', 'HDD', 'Samsung', 'WD', 'Seagate', 'Kingston', 'Crucial']):
+                          storage_item = {'name': hw_text, 'temp': 'N/A', 'used': 'N/A'}
+                          for cat in hw_children:
+                              cat_text = cat.get('Text', '')
+                              if cat_text == 'Temperatures':
+                                  for sensor in cat.get('Children', []):
+                                      if 'Temperature' in sensor.get('Text', ''):
+                                          storage_item['temp'] = sensor.get('Value', 'N/A')
+                                          break
+                              elif cat_text == 'Load':
+                                  for sensor in cat.get('Children', []):
+                                      if 'Used Space' in sensor.get('Text', ''):
+                                          storage_item['used'] = sensor.get('Value', 'N/A')
+                                          break
+                          result['storage'].append(storage_item)
+
+                      # Fan Detection (motherboard fans)
+                      for cat in hw_children:
+                          if cat.get('Text', '') == 'Fans':
+                              for sensor in cat.get('Children', []):
+                                  fan_value = sensor.get('Value', '')
+                                  if fan_value and fan_value != '0 RPM':
+                                      result['fans'].append({
+                                          'name': sensor.get('Text', 'Fan'),
+                                          'speed': fan_value
+                                      })
+
+              except Exception as e:
+                  result['error'] = str(e)
+
+              return result
+
+          @app.route('/stats')
+          def stats():
+              """Get parsed hardware stats"""
+              try:
+                  data = get_lhm_data()
+                  return jsonify(parse_hardware(data))
+              except Exception as e:
+                  return jsonify({
+                      'online': False,
+                      'error': str(e),
+                      'cpu': {'name': 'Offline', 'temp': 'N/A', 'load': 'N/A'},
+                      'gpu': {'name': 'Offline', 'temp': 'N/A', 'load': 'N/A', 'vram': 'N/A'},
+                      'memory': {'used': 'N/A', 'available': 'N/A', 'load': 'N/A'},
+                      'storage': [],
+                      'fans': []
+                  }), 200  # Return 200 even on error so widget displays
+
+          @app.route('/health')
+          def health():
+              return jsonify({"status": "healthy", "target": "{{ gaming_pc_ip }}:{{ lhm_port }}"})
+
+          @app.route('/raw')
+          def raw():
+              """Get raw LHM data for debugging"""
+              try:
+                  return jsonify(get_lhm_data())
+              except Exception as e:
+                  return jsonify({"error": str(e)}), 500
+
+          if __name__ == '__main__':
+              app.run(host='0.0.0.0', port=5056)
+
+    - name: Create Dockerfile
+      copy:
+        dest: "{{ gaming_pc_api_path }}/Dockerfile"
+        mode: '0644'
+        content: |
+          FROM python:3.11-slim
+          WORKDIR /app
+          RUN pip install --no-cache-dir flask gunicorn requests
+          COPY app.py .
+          EXPOSE 5056
+          CMD ["gunicorn", "-w", "2", "-b", "0.0.0.0:5056", "app:app"]
+
+    - name: Create Docker Compose file
+      copy:
+        dest: "{{ gaming_pc_api_path }}/docker-compose.yml"
+        mode: '0644'
+        content: |
+          services:
+            gaming-pc-stats:
+              build: .
+              container_name: gaming-pc-stats
+              restart: unless-stopped
+              ports:
+                - "5056:5056"
+              environment:
+                - TZ=Asia/Manila
+              healthcheck:
+                test: ["CMD", "curl", "-f", "http://localhost:5056/health"]
+                interval: 30s
+                timeout: 10s
+                retries: 3
+
+    - name: Build and deploy Gaming PC Stats container
+      community.docker.docker_compose_v2:
+        project_src: "{{ gaming_pc_api_path }}"
+        state: present
+        build: always
+
+    - name: Wait for Gaming PC Stats API to be ready
+      uri:
+        url: "http://localhost:{{ gaming_pc_api_port }}/health"
+        status_code: [200]
+      register: api_status
+      until: api_status.status == 200
+      retries: 30
+      delay: 2
+
+    - name: Test API response
+      uri:
+        url: "http://localhost:{{ gaming_pc_api_port }}/stats"
+        return_content: yes
+      register: stats_response
+      ignore_errors: yes
+
+    - name: Display deployment information
+      debug:
+        msg: |
+          ===========================================
+          Gaming PC Stats API Deployed Successfully!
+          ===========================================
+
+          API Endpoint: http://192.168.40.13:{{ gaming_pc_api_port }}/stats
+          Health Check: http://192.168.40.13:{{ gaming_pc_api_port }}/health
+          Raw LHM Data: http://192.168.40.13:{{ gaming_pc_api_port }}/raw
+
+          Gaming PC Status: {{ 'Online' if stats_response.json.online | default(false) else 'Offline' }}
+          CPU: {{ stats_response.json.cpu.name | default('N/A') }}
+          GPU: {{ stats_response.json.gpu.name | default('N/A') }}
+
+          Files:
+          ------
+          Flask App: {{ gaming_pc_api_path }}/app.py
+          Dockerfile: {{ gaming_pc_api_path }}/Dockerfile
+          Docker Compose: {{ gaming_pc_api_path }}/docker-compose.yml

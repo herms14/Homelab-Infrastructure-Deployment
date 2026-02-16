@@ -10,7 +10,7 @@ from discord import app_commands
 from discord.ext import commands
 from typing import TYPE_CHECKING, Dict, List
 
-from config import CONTAINER_HOSTS, VM_HOSTS
+from config import CONTAINER_HOSTS, VM_HOSTS, COMPOSE_DIRS
 from core.progress import make_progress_bar, ProgressEmbed
 
 if TYPE_CHECKING:
@@ -66,29 +66,97 @@ class UpdatesCog(commands.Cog, name="Updates"):
             progress.update(checked, f":hourglass: Checking **{host_ip}** ({len(containers)} containers)...")
             await status_msg.edit(embed=progress.embed)
 
-            result = await self.ssh.docker_ps_all(host_ip)
-            if not result.success:
-                errors.append(f"**{host_ip}**: Connection failed")
+            # Check each container for updates
+            for container in containers:
+                has_update, error = await self._check_container_update(host_ip, container)
+                if error:
+                    if f"**{host_ip}**" not in str(errors):
+                        errors.append(f"**{host_ip}**: {error}")
+                elif has_update:
+                    updates_available.append({'container': container, 'host': host_ip})
+
             checked += 1
 
         # Final result
         if updates_available:
             embed = progress.complete(
                 ":arrow_up: Updates Available",
-                "\n".join([f"• {u['container']} on {u['host']}" for u in updates_available]),
+                "\n".join([f"• **{u['container']}** on {u['host']}" for u in updates_available]),
                 discord.Color.yellow()
             )
-            embed.set_footer(text=f"React with {APPROVE_ALL_EMOJI} to update all")
+            embed.set_footer(text=f"Use /update <container> to update")
+
+            # Store for reaction handling
+            self._pending_updates[status_msg.id] = {
+                'containers': [(u['container'], u['host']) for u in updates_available],
+                'channel_id': interaction.channel_id
+            }
         else:
             embed = progress.complete(
                 ":white_check_mark: Update Check Complete",
-                f"All containers are up to date!\nChecked {total_hosts} hosts."
+                f"All containers are up to date!\nChecked {len(CONTAINER_HOSTS)} containers on {total_hosts} hosts."
             )
 
         if errors:
-            embed.add_field(name=":warning: Errors", value="\n".join(errors), inline=False)
+            embed.add_field(name=":warning: Errors", value="\n".join(errors[:10]), inline=False)
 
         await status_msg.edit(embed=embed)
+
+    async def _check_container_update(self, host_ip: str, container: str) -> tuple:
+        """
+        Check if a container has an update available.
+        Returns (has_update: bool, error: str or None)
+        """
+        # Get current image and digest
+        cmd = f'docker inspect {container} --format "{{{{.Config.Image}}}} {{{{.Image}}}}"'
+        result = await self.ssh.run(host_ip, cmd)
+
+        if not result.success:
+            # Provide more specific error message
+            stderr = result.stderr.lower() if result.stderr else ""
+            stdout = result.stdout.lower() if result.stdout else ""
+            combined = stderr + stdout
+            if "cannot connect to the docker daemon" in combined or "permission denied" in combined:
+                return False, "Docker unavailable"
+            elif "no such object" in combined or "no such container" in combined:
+                return False, f"Container '{container}' not found"
+            else:
+                return False, "Connection failed"
+
+        try:
+            parts = result.output.strip().split()
+            if len(parts) < 2:
+                return False, None
+
+            image_name = parts[0]
+            local_digest = parts[1]
+
+            # Pull latest image info (dry run - just fetch manifest)
+            pull_cmd = f'docker pull {image_name} 2>&1 | tail -5'
+            pull_result = await self.ssh.run(host_ip, pull_cmd, timeout=120)
+
+            if not pull_result.success:
+                return False, None
+
+            # Check if pull output indicates a new image was downloaded
+            output = pull_result.output.lower()
+            if 'downloaded newer image' in output or 'pull complete' in output:
+                # New image was pulled - update available
+                return True, None
+            elif 'image is up to date' in output or 'already exists' in output:
+                return False, None
+            else:
+                # Check if digest changed by inspecting again
+                new_result = await self.ssh.run(host_ip, f'docker inspect {container} --format "{{{{.Image}}}}"')
+                if new_result.success:
+                    new_digest = new_result.output.strip()
+                    if new_digest != local_digest:
+                        return True, None
+                return False, None
+
+        except Exception as e:
+            logger.error(f"Error checking update for {container}: {e}")
+            return False, None
 
     @app_commands.command(name="update", description="Update a specific container")
     @app_commands.describe(container="Container name to update")
@@ -101,29 +169,35 @@ class UpdatesCog(commands.Cog, name="Updates"):
             return
 
         host_ip = CONTAINER_HOSTS[container]
+        compose_dir = COMPOSE_DIRS.get(container)
 
-        # 3 steps: pull, restart, verify
+        if not compose_dir:
+            await interaction.followup.send(f":x: No compose directory configured for: {container}")
+            return
+
+        # 3 steps: pull, recreate, verify
         progress = ProgressEmbed(f":arrows_counterclockwise: Updating {container}", 3)
         progress.embed.add_field(name="Host", value=host_ip, inline=True)
+        progress.embed.add_field(name="Compose Dir", value=compose_dir, inline=True)
         status_msg = await interaction.followup.send(embed=progress.embed)
 
         # Step 1: Pull new image
         progress.update(0, ":hourglass: Pulling latest image...")
         await status_msg.edit(embed=progress.embed)
 
-        result = await self.ssh.docker_pull(host_ip, container)
+        result = await self.ssh.docker_compose_pull_service(host_ip, compose_dir, container)
         if not result.success:
             embed = progress.error(f":x: Update Failed: {container}", f"Failed to pull image: {result.stderr}")
             await status_msg.edit(embed=embed)
             return
 
-        # Step 2: Restart container
-        progress.update(1, ":hourglass: Restarting container...")
+        # Step 2: Recreate container with new image
+        progress.update(1, ":hourglass: Recreating container...")
         await status_msg.edit(embed=progress.embed)
 
-        result = await self.ssh.docker_restart(host_ip, container)
+        result = await self.ssh.docker_compose_recreate(host_ip, compose_dir, container)
         if not result.success:
-            embed = progress.error(f":x: Update Failed: {container}", f"Restart failed: {result.stderr}")
+            embed = progress.error(f":x: Update Failed: {container}", f"Recreate failed: {result.stderr}")
             if self.db:
                 await self.db.record_update(container, host_ip, 'failed', str(interaction.user))
             await status_msg.edit(embed=embed)
@@ -139,8 +213,108 @@ class UpdatesCog(commands.Cog, name="Updates"):
 
         embed = progress.complete(
             f":white_check_mark: {container} Updated",
-            "Container updated and restarted successfully"
+            "Container recreated with new image successfully"
         )
+        await status_msg.edit(embed=embed)
+
+    @app_commands.command(name="updateall", description="Update all containers with available updates")
+    async def update_all_containers(self, interaction: discord.Interaction):
+        """Check and update all containers that have updates available."""
+        await interaction.response.defer()
+
+        # Group containers by host
+        hosts = {}
+        for container, host_ip in CONTAINER_HOSTS.items():
+            if host_ip not in hosts:
+                hosts[host_ip] = []
+            hosts[host_ip].append(container)
+
+        total_containers = len(CONTAINER_HOSTS)
+        progress = ProgressEmbed(":mag: Checking for Updates...", total_containers)
+        status_msg = await interaction.followup.send(embed=progress.embed)
+
+        # First, find all containers with updates
+        updates_available = []
+        errors = []
+        checked = 0
+
+        for host_ip, containers in hosts.items():
+            for container in containers:
+                progress.update(checked, f":hourglass: Checking **{container}**...")
+                await status_msg.edit(embed=progress.embed)
+
+                has_update, error = await self._check_container_update(host_ip, container)
+                if error:
+                    if f"**{host_ip}**" not in str(errors):
+                        errors.append(f"**{host_ip}**: {error}")
+                elif has_update:
+                    updates_available.append({'container': container, 'host': host_ip})
+
+                checked += 1
+
+        if not updates_available:
+            embed = progress.complete(
+                ":white_check_mark: All Up to Date",
+                f"All {total_containers} containers are up to date!"
+            )
+            if errors:
+                embed.add_field(name=":warning: Errors", value="\n".join(errors[:10]), inline=False)
+            await status_msg.edit(embed=embed)
+            return
+
+        # Now update all containers with available updates
+        total_updates = len(updates_available)
+        progress = ProgressEmbed(f":arrows_counterclockwise: Updating {total_updates} Containers...", total_updates)
+        await status_msg.edit(embed=progress.embed)
+
+        updated = []
+        failed = []
+        skipped = []
+
+        for i, update in enumerate(updates_available):
+            container = update['container']
+            host_ip = update['host']
+            compose_dir = COMPOSE_DIRS.get(container)
+
+            progress.update(i, f":hourglass: Updating **{container}**...")
+            await status_msg.edit(embed=progress.embed)
+
+            if not compose_dir:
+                skipped.append(f"{container}: No compose dir configured")
+                continue
+
+            # Recreate container with new image (image already pulled during check)
+            result = await self.ssh.docker_compose_recreate(host_ip, compose_dir, container)
+
+            if result.success:
+                updated.append(container)
+                if self.db:
+                    await self.db.record_update(container, host_ip, 'success', str(interaction.user))
+            else:
+                failed.append(f"{container}: {result.stderr[:50]}")
+                if self.db:
+                    await self.db.record_update(container, host_ip, 'failed', str(interaction.user))
+
+        # Final result
+        if failed or skipped:
+            embed = progress.complete(
+                f":warning: Updated {len(updated)}/{total_updates} Containers",
+                "**Updated:**\n" + "\n".join([f"• {c}" for c in updated]) if updated else "None",
+                discord.Color.yellow()
+            )
+            if failed:
+                embed.add_field(name=":x: Failed", value="\n".join(failed[:10]), inline=False)
+            if skipped:
+                embed.add_field(name=":fast_forward: Skipped", value="\n".join(skipped[:10]), inline=False)
+        else:
+            embed = progress.complete(
+                f":white_check_mark: Updated {len(updated)} Containers",
+                "\n".join([f"• {c}" for c in updated])
+            )
+
+        if errors:
+            embed.add_field(name=":warning: Connection Errors", value="\n".join(errors[:5]), inline=False)
+
         await status_msg.edit(embed=embed)
 
     @app_commands.command(name="containers", description="List all monitored containers")
@@ -327,12 +501,19 @@ class UpdatesCog(commands.Cog, name="Updates"):
                 await self._perform_update(container, host_ip, update_info.get('channel_id'))
 
     async def _perform_update(self, container: str, host_ip: str, channel_id: int):
-        """Perform a container update."""
+        """Perform a container update using docker-compose."""
         logger.info(f"Updating {container} on {host_ip}")
 
-        # Pull and restart
-        await self.ssh.docker_pull(host_ip, container)
-        result = await self.ssh.docker_restart(host_ip, container)
+        compose_dir = COMPOSE_DIRS.get(container)
+        if not compose_dir:
+            logger.error(f"No compose directory configured for {container}")
+            if self.db:
+                await self.db.record_update(container, host_ip, 'failed', 'reaction')
+            return
+
+        # Pull and recreate using docker-compose
+        await self.ssh.docker_compose_pull_service(host_ip, compose_dir, container)
+        result = await self.ssh.docker_compose_recreate(host_ip, compose_dir, container)
 
         # Record result
         if self.db:

@@ -1,0 +1,477 @@
+server:
+  port: 8080
+  assets-path: /app/assets
+
+theme:
+  # Default: Catppuccin Mocha - Soft, pastel dark theme
+  background-color: 240 21 15
+  contrast-multiplier: 1.2
+  primary-color: 267 84 81
+  positive-color: 115 54 76
+  negative-color: 343 81 75
+  custom-css-file: /app/assets/custom-themes.css
+
+  # Theme Presets - Selectable from the theme picker icon (top-right)
+  presets:
+    # Deep blue professional dark theme
+    midnight-blue:
+      background-color: 213 58 10
+      primary-color: 227 95 67
+      positive-color: 162 82 40
+      negative-color: 0 94 65
+      contrast-multiplier: 1.2
+
+    # Arctic, cool blue-gray palette
+    nord:
+      background-color: 220 16 22
+      primary-color: 193 43 67
+      positive-color: 92 28 65
+      negative-color: 354 42 56
+      contrast-multiplier: 1.1
+
+    # Popular purple-based dark theme
+    dracula:
+      background-color: 231 15 18
+      primary-color: 265 89 78
+      positive-color: 135 94 65
+      negative-color: 0 100 67
+      contrast-multiplier: 1.2
+
+    # Classic code editor theme
+    monokai:
+      background-color: 70 8 15
+      primary-color: 338 95 56
+      positive-color: 80 76 53
+      negative-color: 338 95 56
+      contrast-multiplier: 1.3
+
+    # Soft pastel dark theme (Catppuccin Mocha)
+    catppuccin-mocha:
+      background-color: 240 21 15
+      primary-color: 267 84 81
+      positive-color: 115 54 76
+      negative-color: 343 81 75
+      contrast-multiplier: 1.2
+
+    # Warm retro theme
+    gruvbox-dark:
+      background-color: 0 0 16
+      primary-color: 43 95 58
+      positive-color: 61 66 44
+      negative-color: 5 96 59
+      contrast-multiplier: 1.2
+
+    # Ethan Schoonover's classic
+    solarized-dark:
+      background-color: 192 100 11
+      primary-color: 205 69 49
+      positive-color: 68 100 30
+      negative-color: 1 71 52
+      contrast-multiplier: 1.1
+
+    # VSCode-inspired Japanese theme
+    tokyo-night:
+      background-color: 235 21 13
+      primary-color: 218 87 73
+      positive-color: 85 56 61
+      negative-color: 348 86 70
+      contrast-multiplier: 1.2
+
+    # Neon futuristic theme
+    cyberpunk:
+      background-color: 240 33 8
+      primary-color: 300 100 50
+      positive-color: 158 100 50
+      negative-color: 340 100 50
+      contrast-multiplier: 1.4
+
+    # Original default dark theme
+    classic-dark:
+      background-color: 240 8 9
+      primary-color: 43 50 70
+      positive-color: 43 50 70
+      negative-color: 0 70 70
+      contrast-multiplier: 1.0
+
+pages:
+  - name: Home
+    columns:
+      - size: small
+        widgets:
+          - type: clock
+            hour-format: "24h"
+            timezone: Asia/Manila
+
+          - type: weather
+            location: Manila, Philippines
+            units: metric
+            hour-format: "24h"
+
+          - type: bookmarks
+            title: Quick Links
+            groups:
+              - title: Infrastructure
+                links:
+                  - title: Proxmox
+                    url: https://proxmox.hrmsmrflrii.xyz
+                  - title: Traefik
+                    url: https://traefik.hrmsmrflrii.xyz
+                  - title: OPNsense
+                    url: https://192.168.91.30
+                  - title: Portainer
+                    url: https://portainer.hrmsmrflrii.xyz
+
+              - title: Services
+                links:
+                  - title: Jellyfin
+                    url: https://jellyfin.hrmsmrflrii.xyz
+                  - title: GitLab
+                    url: https://gitlab.hrmsmrflrii.xyz
+                  - title: Immich
+                    url: https://photos.hrmsmrflrii.xyz
+                  - title: n8n
+                    url: https://n8n.hrmsmrflrii.xyz
+
+      - size: full
+        widgets:
+          # Steam Profile Widget - Recently Played Games
+          - type: custom-api
+            title: 🎮 Steam - Recently Played
+            cache: 5m
+            url: http://192.168.40.13:5055/stats
+            template: |
+              <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;">
+                <!-- Profile Header -->
+                <div style="display: flex; align-items: center; margin-bottom: 15px; padding: 10px; background: rgba(102, 192, 244, 0.1); border-radius: 8px;">
+                  {{ if .JSON.String "profile.avatar" }}
+                  <img src="{{ .JSON.String "profile.avatar" }}" style="width: 48px; height: 48px; border-radius: 8px; margin-right: 12px;">
+                  {{ end }}
+                  <div style="flex: 1;">
+                    <div style="font-weight: 600; font-size: 16px; color: #66c0f4;">{{ .JSON.String "profile.name" }}</div>
+                    <div style="font-size: 12px; color: #888;">
+                      {{ .JSON.Int "total_games" }} games owned
+                      {{ if gt (.JSON.Int "wishlist_sale_count") 0 }}
+                      · <span style="color: #4ade80;">{{ .JSON.Int "wishlist_sale_count" }} wishlist items on sale!</span>
+                      {{ end }}
+                    </div>
+                  </div>
+                  <div style="padding: 4px 8px; border-radius: 4px; font-size: 11px; {{ if eq (.JSON.String "profile.status") "Online" }}background: #22c55e; color: #fff;{{ else }}background: #666; color: #ccc;{{ end }}">
+                    {{ .JSON.String "profile.status" }}
+                  </div>
+                </div>
+
+                <!-- Recently Played Games -->
+                <div style="display: flex; flex-direction: column; gap: 10px;">
+                  {{ range .JSON.Array "recent_games" }}
+                  <div style="display: flex; background: rgba(255,255,255,0.03); border-radius: 8px; overflow: hidden; transition: transform 0.2s;">
+                    <img src="{{ .String "thumbnail" }}" style="width: 184px; height: 69px; object-fit: cover; flex-shrink: 0;">
+                    <div style="padding: 8px 12px; flex: 1; display: flex; flex-direction: column; justify-content: center;">
+                      <div style="font-weight: 600; font-size: 13px; color: #fff; margin-bottom: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                        {{ .String "name" }}
+                      </div>
+                      <div style="display: flex; gap: 15px; font-size: 11px; color: #888;">
+                        <span>🕐 {{ .String "last_played" }}</span>
+                        <span>⏱ {{ .String "playtime_total" }} total</span>
+                        {{ if gt (.Int "playtime_2weeks_minutes") 0 }}
+                        <span style="color: #66c0f4;">📊 {{ .String "playtime_2weeks" }} last 2 weeks</span>
+                        {{ end }}
+                      </div>
+                    </div>
+                  </div>
+                  {{ end }}
+                </div>
+
+                <!-- Wishlist Sales -->
+                {{ if gt (len (.JSON.Array "wishlist_on_sale")) 0 }}
+                <div style="margin-top: 15px; padding-top: 15px; border-top: 1px solid rgba(255,255,255,0.1);">
+                  <div style="font-size: 12px; color: #4ade80; margin-bottom: 10px; font-weight: 600;">🏷️ Wishlist Sales</div>
+                  <div style="display: flex; flex-wrap: wrap; gap: 8px;">
+                    {{ range .JSON.Array "wishlist_on_sale" }}
+                    <div style="background: rgba(74, 222, 128, 0.1); border: 1px solid rgba(74, 222, 128, 0.3); border-radius: 6px; padding: 6px 10px; font-size: 11px;">
+                      <span style="color: #fff;">{{ .String "name" }}</span>
+                      <span style="color: #4ade80; font-weight: 600; margin-left: 6px;">-{{ .Int "discount" }}%</span>
+                    </div>
+                    {{ end }}
+                  </div>
+                </div>
+                {{ end }}
+              </div>
+
+          - type: custom-api
+            title: Hermes Miraflor II Life Progress
+            cache: 1h
+            url: http://192.168.40.13:5051/progress
+            template: |
+              <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; padding: 10px;">
+                <div style="text-align: center; margin-bottom: 15px;">
+                  <span style="color: #f87171; font-weight: 600; font-size: 18px;">{{ .JSON.Int "remaining_days" | formatNumber }}</span>
+                  <span style="color: #888; font-size: 14px;"> days remaining until age {{ .JSON.Int "target_age" }}</span>
+                </div>
+                <div style="display: flex; align-items: center; margin-bottom: 12px;">
+                  <span style="width: 60px; font-weight: bold; color: #f87171;">Year</span>
+                  <div style="flex: 1; height: 24px; background: #333; border-radius: 4px; position: relative; margin: 0 15px; overflow: hidden;">
+                    <div style="width: {{ .JSON.Float "year" }}%; height: 100%; background: linear-gradient(90deg, #ef4444, #f87171); border-radius: 4px;"></div>
+                  </div>
+                  <span style="width: 50px; text-align: right; font-weight: 500;">{{ .JSON.Float "year" | printf "%.0f" }}%</span>
+                </div>
+                <div style="display: flex; align-items: center; margin-bottom: 12px;">
+                  <span style="width: 60px; font-weight: bold; color: #facc15;">Month</span>
+                  <div style="flex: 1; height: 24px; background: #333; border-radius: 4px; position: relative; margin: 0 15px; overflow: hidden;">
+                    <div style="width: {{ .JSON.Float "month" }}%; height: 100%; background: linear-gradient(90deg, #eab308, #facc15); border-radius: 4px;"></div>
+                  </div>
+                  <span style="width: 50px; text-align: right; font-weight: 500;">{{ .JSON.Float "month" | printf "%.0f" }}%</span>
+                </div>
+                <div style="display: flex; align-items: center; margin-bottom: 12px;">
+                  <span style="width: 60px; font-weight: bold; color: #4ade80;">Day</span>
+                  <div style="flex: 1; height: 24px; background: #333; border-radius: 4px; position: relative; margin: 0 15px; overflow: hidden;">
+                    <div style="width: {{ .JSON.Float "day" }}%; height: 100%; background: linear-gradient(90deg, #22c55e, #4ade80); border-radius: 4px;"></div>
+                  </div>
+                  <span style="width: 50px; text-align: right; font-weight: 500;">{{ .JSON.Float "day" | printf "%.0f" }}%</span>
+                </div>
+                <div style="display: flex; align-items: center; margin-bottom: 15px;">
+                  <span style="width: 60px; font-weight: bold; color: #4ade80;">Life</span>
+                  <div style="flex: 1; height: 24px; background: #333; border-radius: 4px; position: relative; margin: 0 15px; overflow: hidden;">
+                    <div style="width: {{ .JSON.Float "life" }}%; height: 100%; background: linear-gradient(90deg, #22c55e, #4ade80); border-radius: 4px;"></div>
+                  </div>
+                  <span style="width: 50px; text-align: right; font-weight: 500;">{{ .JSON.Float "life" | printf "%.0f" }}%</span>
+                </div>
+                <div style="text-align: center; padding: 12px; background: rgba(255,255,255,0.05); border-radius: 8px;">
+                  <em style="color: #aaa; font-size: 13px; line-height: 1.5;">"{{ .JSON.String "quote" }}"</em>
+                </div>
+              </div>
+
+          - type: monitor
+            title: Service Health
+            cache: 1m
+            sites:
+              - title: Proxmox Node 01
+                url: https://192.168.20.20:8006
+                icon: si:proxmox
+                allow-insecure: true
+              - title: Proxmox Node 02
+                url: https://192.168.20.21:8006
+                icon: si:proxmox
+                allow-insecure: true
+              - title: Proxmox Node 03
+                url: https://192.168.20.22:8006
+                icon: si:proxmox
+                allow-insecure: true
+              - title: Traefik
+                url: http://192.168.40.20:8082/ping
+                icon: si:traefikproxy
+              - title: Jellyfin
+                url: http://192.168.40.11:8096/health
+                icon: si:jellyfin
+              - title: Radarr
+                url: http://192.168.40.11:7878/ping
+                icon: si:radarr
+              - title: Sonarr
+                url: http://192.168.40.11:8989/ping
+                icon: si:sonarr
+              - title: GitLab
+                url: https://gitlab.hrmsmrflrii.xyz/users/sign_in
+                icon: si:gitlab
+              - title: Immich
+                url: http://192.168.40.22:2283/api/server/ping
+                icon: di:immich
+              - title: Authentik
+                url: http://192.168.40.21:9000/-/health/ready/
+                icon: si:authentik
+
+          - type: monitor
+            title: Kubernetes Cluster
+            cache: 1m
+            sites:
+              - title: K8s Controller 01
+                url: https://192.168.20.32:6443/healthz
+                icon: si:kubernetes
+                allow-insecure: true
+              - title: K8s Controller 02
+                url: https://192.168.20.33:6443/healthz
+                icon: si:kubernetes
+                allow-insecure: true
+              - title: K8s Controller 03
+                url: https://192.168.20.34:6443/healthz
+                icon: si:kubernetes
+                allow-insecure: true
+              - title: K8s Worker 01
+                url: http://192.168.20.40:10248/healthz
+                icon: si:kubernetes
+              - title: K8s Worker 02
+                url: http://192.168.20.41:10248/healthz
+                icon: si:kubernetes
+              - title: K8s Worker 03
+                url: http://192.168.20.42:10248/healthz
+                icon: si:kubernetes
+              - title: K8s Worker 04
+                url: http://192.168.20.43:10248/healthz
+                icon: si:kubernetes
+              - title: K8s Worker 05
+                url: http://192.168.20.44:10248/healthz
+                icon: si:kubernetes
+              - title: K8s Worker 06
+                url: http://192.168.20.45:10248/healthz
+                icon: si:kubernetes
+
+      - size: small
+        widgets:
+          - type: markets
+            title: Markets
+            markets:
+              - symbol: BTC-USD
+                name: Bitcoin
+              - symbol: MSFT
+                name: Microsoft
+              - symbol: AAPL
+                name: Apple
+              - symbol: SPY
+                name: S&P 500
+
+          - type: rss
+            title: Tech News
+            style: horizontal-cards
+            feeds:
+              - url: https://www.reddit.com/r/homelab/.rss
+                title: r/homelab
+              - url: https://www.reddit.com/r/selfhosted/.rss
+                title: r/selfhosted
+            limit: 5
+
+  - name: Media
+    columns:
+      - size: full
+        widgets:
+          - type: iframe
+            title: Radarr Calendar
+            source: http://192.168.40.11:7878/calendar
+            height: 300
+
+      - size: small
+        widgets:
+          - type: bookmarks
+            title: Media Apps
+            groups:
+              - title: Arr Stack
+                links:
+                  - title: Radarr
+                    url: https://radarr.hrmsmrflrii.xyz
+                  - title: Sonarr
+                    url: https://sonarr.hrmsmrflrii.xyz
+                  - title: Lidarr
+                    url: https://lidarr.hrmsmrflrii.xyz
+                  - title: Prowlarr
+                    url: https://prowlarr.hrmsmrflrii.xyz
+                  - title: Bazarr
+                    url: https://bazarr.hrmsmrflrii.xyz
+                  - title: Jellyseerr
+                    url: https://jellyseerr.hrmsmrflrii.xyz
+
+  - name: Sports
+    columns:
+      - size: full
+        widgets:
+          - type: custom-api
+            title: NBA Scores
+            cache: 5m
+            url: https://site.api.espn.com/apis/site/v2/sports/basketball/nba/scoreboard
+            template: |
+              {{ range .events }}
+              {{ .name }} - {{ .status.type.shortDetail }}
+              {{ range .competitions }}
+                {{ range .competitors }}
+                  {{ .team.displayName }}: {{ .score }}
+                {{ end }}
+              {{ end }}
+              {{ end }}
+
+          - type: custom-api
+            title: NFL Scores
+            cache: 5m
+            url: https://site.api.espn.com/apis/site/v2/sports/football/nfl/scoreboard
+            template: |
+              {{ range .events }}
+              {{ .name }} - {{ .status.type.shortDetail }}
+              {{ end }}
+
+  - name: Network
+    columns:
+      - size: full
+        widgets:
+          - type: monitor
+            title: Network Devices
+            cache: 1m
+            sites:
+              - title: Core Router (ER605)
+                url: http://192.168.0.1
+                icon: di:tplink
+              - title: Core Switch (SG3210)
+                url: http://192.168.90.2
+                icon: di:tplink
+              - title: Morpheus Switch (SG2210P)
+                url: http://192.168.90.3
+                icon: di:tplink
+              - title: Atreus Switch (ES20GP)
+                url: http://192.168.90.51
+                icon: di:tplink
+              - title: OPNsense Firewall
+                url: https://192.168.91.30
+                allow-insecure: true
+                icon: si:opnsense
+              - title: Synology NAS
+                url: http://192.168.20.31:5000
+                icon: si:synology
+
+  - name: Storage
+    columns:
+      - size: full
+        widgets:
+          - type: iframe
+            title: Synology NAS Dashboard
+            source: https://grafana.hrmsmrflrii.xyz/d/synology-nas/synology-nas?orgId=1&kiosk&refresh=30s
+            height: 800
+
+  - name: Containers
+    columns:
+      - size: full
+        widgets:
+          - type: iframe
+            title: Container Monitoring
+            source: https://grafana.hrmsmrflrii.xyz/d/container-monitoring/container-monitoring?orgId=1&kiosk&refresh=30s
+            height: 800
+
+  - name: Reddit
+    columns:
+      - size: full
+        widgets:
+          - type: custom-api
+            title: Reddit Feed
+            cache: 5m
+            url: http://192.168.40.13:5053/api/feed
+            template: |
+              <div style="margin-bottom: 15px; text-align: right;">
+                <a href="http://192.168.40.13:5053" target="_blank" style="color: #ff4500; font-size: 12px; text-decoration: none; padding: 5px 10px; border: 1px solid #ff4500; border-radius: 6px;">
+                  ⚙ Settings
+                </a>
+              </div>
+              {{ range .JSON.Array "groups" }}
+              <div style="margin-bottom: 20px;">
+                <div style="color: #ff4500; font-size: 14px; font-weight: 600; margin-bottom: 10px; padding-bottom: 6px; border-bottom: 1px solid rgba(255,69,0,0.3);">
+                  r/{{ .String "name" }}
+                </div>
+                {{ range .Array "posts" }}
+                <div style="display: flex; padding: 8px; margin-bottom: 6px; background: rgba(255,255,255,0.03); border-radius: 6px;">
+                  {{ if .String "thumbnail" }}
+                  <img src="{{ .String "thumbnail" }}" style="width: 60px; height: 60px; object-fit: cover; border-radius: 4px; margin-right: 10px; flex-shrink: 0;" onerror="this.style.display='none'">
+                  {{ end }}
+                  <div style="flex: 1; min-width: 0;">
+                    <a href="{{ .String "url" }}" target="_blank" style="color: #fff; text-decoration: none; font-size: 12px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;">
+                      {{ .String "title" }}
+                    </a>
+                    <div style="color: #888; font-size: 10px; margin-top: 3px;">
+                      {{ .Int "score" }} pts · {{ .Int "comments" }} comments
+                    </div>
+                  </div>
+                </div>
+                {{ end }}
+              </div>
+              {{ end }}

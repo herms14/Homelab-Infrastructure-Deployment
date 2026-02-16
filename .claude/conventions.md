@@ -235,6 +235,7 @@ tf-proxmox/
 | OPNsense Exporter | 9198 | 192.168.91.30 | Active |
 | Omada Exporter | 9202 | 192.168.0.103 | Active |
 | Docker Exporter | 9417 | docker hosts | Active |
+| Node Exporter (Immich) | 9100 | 192.168.40.22 | Active |
 
 ---
 

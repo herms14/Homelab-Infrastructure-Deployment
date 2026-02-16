@@ -1,0 +1,79 @@
+---
+# Update Glance Finance Page with Ghostfolio Integration
+# Run: ansible-playbook -i "192.168.40.12," update-finance-page.yml
+
+- name: Update Glance Finance Page
+  hosts: all
+  become: yes
+  vars:
+    ansible_user: hermes-admin
+    ansible_ssh_private_key_file: ~/.ssh/homelab_ed25519
+    glance_config_dir: /opt/glance/config
+    gitops_config: "{{ playbook_dir }}/../../../gitops-repos/glance-homelab/config/glance.yml"
+
+  tasks:
+    - name: Display update info
+      debug:
+        msg: |
+          ==========================================
+          Updating Glance Finance Page
+          ==========================================
+          This will update the Finance page with:
+          - Ghostfolio Portfolio iframe
+          - Savings Forecast widget
+          - Insurance Policies widget
+          - Investment Forecast widget
+          ==========================================
+
+    - name: Backup current Glance config
+      copy:
+        src: "{{ glance_config_dir }}/glance.yml"
+        dest: "{{ glance_config_dir }}/glance.yml.bak.{{ ansible_date_time.iso8601_basic }}"
+        remote_src: yes
+
+    - name: Copy updated Glance config
+      copy:
+        src: "{{ gitops_config }}"
+        dest: "{{ glance_config_dir }}/glance.yml"
+        owner: hermes-admin
+        group: hermes-admin
+        mode: '0644'
+
+    - name: Restart Glance container to apply changes
+      command: docker restart glance
+      register: restart_result
+
+    - name: Wait for Glance to be healthy
+      uri:
+        url: "http://localhost:8080"
+        status_code: 200
+      register: result
+      until: result.status == 200
+      retries: 15
+      delay: 5
+
+    - name: Display success message
+      debug:
+        msg: |
+          ==========================================
+          Finance Page Updated Successfully!
+          ==========================================
+
+          Access the updated Finance page at:
+          https://glance.hrmsmrflrii.xyz
+
+          New Features:
+          - Ghostfolio Portfolio Overview (embedded)
+          - Savings Forecast with 5/10 year projections
+          - Insurance Policies tracker
+          - Investment Forecast widget
+          - Stock & Crypto market tickers
+
+          NEXT STEPS:
+          1. Visit https://ghostfolio.hrmsmrflrii.xyz
+          2. Create your admin account
+          3. Add your stock/crypto holdings
+          4. Configure savings at /opt/finance-forecast-api/config/savings.json
+          5. Add insurance policies at /opt/finance-forecast-api/config/insurance.json
+
+          ==========================================

@@ -1,0 +1,20 @@
+# Ghostfolio Finance Tracker Route
+http:
+  routers:
+    ghostfolio:
+      rule: Host(`ghostfolio.hrmsmrflrii.xyz`)
+      service: ghostfolio
+      entryPoints:
+        - websecure
+      tls:
+        certResolver: letsencrypt
+
+  services:
+    ghostfolio:
+      loadBalancer:
+        servers:
+          - url: http://192.168.40.26:3333
+        healthCheck:
+          path: /api/v1/health
+          interval: 30s
+          timeout: 5s

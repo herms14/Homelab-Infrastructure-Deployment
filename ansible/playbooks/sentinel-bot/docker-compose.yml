@@ -62,6 +62,9 @@ services:
       # Domain
       - DOMAIN=${DOMAIN:-hrmsmrflrii.xyz}
 
+      # Command sync (set to true to sync slash commands on startup)
+      - SYNC_COMMANDS=${SYNC_COMMANDS:-false}
+
     # Port mapping
     ports:
       - "5050:5050"

@@ -207,7 +207,7 @@ class HomelabCog(commands.Cog, name="Homelab"):
         await status_msg.edit(embed=progress.embed)
 
         proxmox_issues = []
-        for node_name, node_ip in [('node01', self.config.ssh.node01_ip), ('node02', self.config.ssh.node02_ip)]:
+        for node_name, node_ip in [('node01', self.config.ssh.node01_ip), ('node02', self.config.ssh.node02_ip), ('node03', self.config.ssh.node03_ip)]:
             result = await self.ssh.pve_node_status(node_ip)
             if result.success:
                 try:
@@ -314,7 +314,8 @@ class HomelabCog(commands.Cog, name="Homelab"):
 
         nodes = [
             ('node01', self.config.ssh.node01_ip),
-            ('node02', self.config.ssh.node02_ip)
+            ('node02', self.config.ssh.node02_ip),
+            ('node03', self.config.ssh.node03_ip)
         ]
 
         progress = ProgressEmbed(":house: Checking Cluster Status...", len(nodes))
@@ -366,7 +367,8 @@ class HomelabCog(commands.Cog, name="Homelab"):
         # All hosts to check
         proxmox_nodes = [
             ('node01', self.config.ssh.node01_ip),
-            ('node02', self.config.ssh.node02_ip)
+            ('node02', self.config.ssh.node02_ip),
+            ('node03', self.config.ssh.node03_ip)
         ]
         docker_hosts_list = [
             ('utilities', self.config.ssh.docker_utilities_ip),
@@ -440,6 +442,7 @@ class HomelabCog(commands.Cog, name="Homelab"):
         node_ips = {
             'node01': self.config.ssh.node01_ip,
             'node02': self.config.ssh.node02_ip,
+            'node03': self.config.ssh.node03_ip,
         }
 
         if name.lower() not in node_ips:
@@ -594,7 +597,7 @@ class HomelabCog(commands.Cog, name="Homelab"):
 
         # Try both nodes
         node_ip = None
-        for ip in [self.config.ssh.node01_ip, self.config.ssh.node02_ip]:
+        for ip in [self.config.ssh.node01_ip, self.config.ssh.node02_ip, self.config.ssh.node03_ip]:
             result = await self.ssh.pve_vm_status(ip, vmid)
             if result.success:
                 node_ip = ip
@@ -656,7 +659,7 @@ class HomelabCog(commands.Cog, name="Homelab"):
         # Try both nodes to find the container
         node_ip = None
         container_name = None
-        for ip in [self.config.ssh.node01_ip, self.config.ssh.node02_ip]:
+        for ip in [self.config.ssh.node01_ip, self.config.ssh.node02_ip, self.config.ssh.node03_ip]:
             result = await self.ssh.pve_lxc_status(ip, ctid)
             if result.success:
                 node_ip = ip

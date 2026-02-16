@@ -9,6 +9,7 @@ This guide documents resolved issues and common problems organized by category f
 ## Table of Contents
 
 - [Proxmox Cluster Issues](#proxmox-cluster-issues)
+  - [Backup Jobs Failing - VM Locked (Stale Backup Lock)](#backup-jobs-failing---vm-locked-stale-backup-lock)
 - [Kubernetes Issues](#kubernetes-issues)
 - [Authentication Issues](#authentication-issues)
   - [GitLab SSO DNS Resolution Failure](#gitlab-sso-failed-to-open-tcp-connection-dns-resolution)
@@ -21,6 +22,7 @@ This guide documents resolved issues and common problems organized by category f
   - [Glance Reddit Widget Timeout Error](#glance-reddit-widget-timeout-error)
   - [Glance Template Error - Wrong Number of Args](#glance-template-error---wrong-number-of-args)
 - [Service-Specific Issues](#service-specific-issues)
+  - [Immich Disk Full - Redis RDB Failure Cascade](#immich-disk-full---redis-rdb-failure-cascade)
 - [Network Issues](#network-issues)
 - [Common Issues](#common-issues)
 - [Diagnostic Commands](#diagnostic-commands)
@@ -109,6 +111,141 @@ ssh root@192.168.20.22 "pvesh get /cluster/resources --type node"
 ssh root@192.168.20.22 "pvesh get /cluster/resources --type node"
 ssh root@192.168.20.22 "pvecm status"
 ```
+
+---
+
+### Backup Jobs Failing - VM Locked (Stale Backup Lock)
+
+**Resolved**: January 2026
+
+**Symptoms**:
+- Backup jobs report "job errors" in email notifications
+- Proxmox cluster tasks show `status: job errors` for vzdump
+- Specific VM backup fails with: `ERROR: Backup of VM XXX failed - VM is locked (backup)`
+- VM status shows "stopped" or "running" but has a stale lock
+
+**Root Cause**: VMs get locked during backup operations to prevent modifications. If a backup is interrupted (node reboot, network timeout, PBS connection lost), the lock remains orphaned.
+
+**Diagnosis**:
+```bash
+# Check cluster tasks for backup errors
+ssh root@192.168.20.20 "pvesh get /cluster/tasks --output-format json | jq '.[] | select(.type==\"vzdump\" and .status!=\"OK\") | {node, status, starttime}'"
+
+# Find which VMs are locked across all nodes
+ssh root@192.168.20.20 "grep -l 'lock:' /etc/pve/nodes/*/qemu-server/*.conf /etc/pve/nodes/*/lxc/*.conf 2>/dev/null"
+
+# Check specific VM lock
+ssh root@<node> "qm status <vmid>"
+ssh root@<node> "cat /etc/pve/nodes/<node>/qemu-server/<vmid>.conf | grep lock"
+
+# Check lock file timestamp (when lock was created)
+ssh root@<node> "ls -la /var/lock/qemu-server/lock-<vmid>.conf"
+```
+
+**Fix**:
+```bash
+# Unlock a VM
+ssh root@<node> "qm unlock <vmid>"
+
+# Unlock an LXC container
+ssh root@<node> "pct unlock <ctid>"
+
+# Verify lock is removed
+ssh root@<node> "cat /etc/pve/nodes/<node>/qemu-server/<vmid>.conf | grep lock"
+# Should return nothing (no lock)
+```
+
+**Example Session**:
+```bash
+# Found VM 121 locked on node02
+ssh root@192.168.20.21 "cat /etc/pve/nodes/node02/qemu-server/121.conf | grep lock"
+# Output: lock: backup
+
+# Unlock it
+ssh root@192.168.20.21 "qm unlock 121"
+# Output: (nothing = success)
+
+# Verify backup works
+ssh root@192.168.20.21 "vzdump 121 --storage pbs-daily --mode snapshot --compress zstd 2>&1 | tail -5"
+# Should show: "Backup job finished successfully"
+```
+
+**Cleanup Leftover Vzdump Snapshots**:
+If a backup was interrupted during the snapshot phase, LVM snapshots may be left behind:
+```bash
+# Check for leftover vzdump snapshots
+ssh root@<node> "lvs | grep vzdump"
+
+# Remove leftover snapshot (if found)
+ssh root@<node> "lvremove -f /dev/pve/snap_vm-<vmid>-disk-0_vzdump"
+```
+
+**Prevention**:
+- Ensure PBS is accessible before scheduled backups
+- Monitor backup job completion emails
+- After node reboots, check for orphaned locks:
+  ```bash
+  grep -l 'lock:' /etc/pve/nodes/*/qemu-server/*.conf /etc/pve/nodes/*/lxc/*.conf 2>/dev/null
+  ```
+- Consider adding a cron job to check for stale locks
+
+**Related Commands Reference**:
+| Command | Purpose |
+|---------|---------|
+| `qm unlock <vmid>` | Unlock a VM |
+| `pct unlock <ctid>` | Unlock an LXC container |
+| `qm status <vmid>` | Check VM status (shows if locked) |
+| `pvesh get /cluster/tasks` | View recent cluster tasks |
+| `grep -l 'lock:' /etc/pve/nodes/*` | Find all locked VMs/CTs |
+
+---
+
+### PBS-to-NAS Sync (Offsite Backup)
+
+**Purpose**: Daily sync of PBS backups to Synology NAS for offsite/redundant storage.
+
+**Schedule**: Daily at 2:00 AM via cron
+
+**Configuration**:
+| Component | Value |
+|-----------|-------|
+| Script | `/usr/local/bin/pbs-backup-to-nas.sh` |
+| Log File | `/var/log/pbs-nas-backup.log` |
+| NAS Mount | `/mnt/nas-backup` → `192.168.20.31:/volume2/ProxmoxData` |
+| Lock File | `/var/run/pbs-nas-backup.lock` |
+
+**What Gets Synced**:
+```
+PBS Server (192.168.20.50)          →    Synology NAS (192.168.20.31)
+├── /backup (main datastore)        →    /volume2/ProxmoxData/pbs-offsite/main/
+└── /backup-ssd (daily datastore)   →    /volume2/ProxmoxData/pbs-offsite/daily/
+```
+
+**Manually Run Sync**:
+```bash
+# Run the sync script
+ssh root@192.168.20.50 "/usr/local/bin/pbs-backup-to-nas.sh"
+
+# Run and watch logs
+ssh root@192.168.20.50 "/usr/local/bin/pbs-backup-to-nas.sh && tail -30 /var/log/pbs-nas-backup.log"
+```
+
+**Check Sync Status**:
+```bash
+# View recent sync logs
+ssh root@192.168.20.50 "tail -50 /var/log/pbs-nas-backup.log"
+
+# Check sync sizes on NAS
+ssh root@192.168.20.50 "du -sh /mnt/nas-backup/pbs-offsite/*"
+
+# Check if NAS is mounted
+ssh root@192.168.20.50 "mountpoint -q /mnt/nas-backup && echo 'Mounted' || echo 'Not mounted'"
+```
+
+**Troubleshooting**:
+- **"Backup already running"**: Check for stale lock file: `rm /var/run/pbs-nas-backup.lock`
+- **"Failed to mount NAS"**: Check NFS connectivity: `showmount -e 192.168.20.31`
+- **Sync taking too long**: Check rsync progress in another terminal: `ps aux | grep rsync`
 
 ---
 
@@ -978,6 +1115,69 @@ time curl -s "http://192.168.40.12:5053/api/feed" | head -c 100
 ---
 
 ## Service-Specific Issues
+
+### Immich Disk Full - Redis RDB Failure Cascade
+
+**Resolved**: February 2026
+
+**Symptoms**:
+- `photos.hrmsmrflrii.xyz` returns 502 Bad Gateway
+- `immich-server` container shows `(unhealthy)` status
+- `immich-redis` logs show `MISCONF Redis is configured to save RDB snapshots, but it's currently unable to persist to disk`
+- Root disk at 100%: `df -h /` shows 0 available on 192.168.40.22
+
+**Root Cause**: The Immich host (192.168.40.22) has a 19GB root disk. Without Docker log rotation, journal limits, or periodic image pruning, the disk gradually filled to 100%. When Redis could no longer write RDB snapshots, it refused all write operations, which cascaded to crash the Immich server.
+
+**Diagnosis**:
+```bash
+# Check disk usage
+ssh hermes-admin@192.168.40.22 "df -h /"
+
+# Check container status
+ssh hermes-admin@192.168.40.22 "docker ps --filter name=immich --format 'table {{.Names}}\t{{.Status}}'"
+
+# Check Redis logs for RDB errors
+ssh hermes-admin@192.168.40.22 "docker logs immich-redis --tail 20 2>&1 | grep -i 'MISCONF\|error'"
+
+# Check what's consuming space
+ssh hermes-admin@192.168.40.22 "docker system df"
+```
+
+**Fix**:
+```bash
+# 1. Free space - prune unused Docker images
+ssh hermes-admin@192.168.40.22 "docker image prune -af"
+
+# 2. Vacuum journal logs
+ssh hermes-admin@192.168.40.22 "sudo journalctl --vacuum-size=100M"
+
+# 3. Verify space reclaimed
+ssh hermes-admin@192.168.40.22 "df -h /"
+
+# 4. Restart Immich stack
+ssh hermes-admin@192.168.40.22 "cd /opt/immich && docker compose restart"
+```
+
+**Verification**:
+```bash
+# Wait 30s, then check health
+ssh hermes-admin@192.168.40.22 "docker ps --filter name=immich --format 'table {{.Names}}\t{{.Status}}'"
+# All containers should show (healthy)
+
+# Test API
+ssh hermes-admin@192.168.40.22 "curl -s http://localhost:2283/api/server/ping"
+# Expected: {"res":"pong"}
+```
+
+**Prevention** (all implemented via Ansible playbooks):
+- Docker log rotation: `/etc/docker/daemon.json` (10MB max, 3 files)
+- Journal size limit: `/etc/systemd/journald.conf.d/size-limit.conf` (100MB max)
+- node_exporter deployed on port 9100 for Prometheus monitoring
+- Grafana dashboard (`immich-host-health`) with disk/memory/CPU panels
+- Grafana alerts: Disk >80% warning, >90% critical, 24h fill prediction → Discord
+- Playbook: `ansible/playbooks/immich/harden-immich-disk.yml`
+
+---
 
 ### Immich Container Restart Loop - Missing Directory Structure
 

@@ -721,8 +721,7 @@ Displays Proxmox cluster metrics and container monitoring via three embedded Gra
 | Row | Panels |
 |-----|--------|
 | Cluster Status | Quorum status, Nodes online, Total VMs, Total Containers |
-| CPU Temperature | Per-node temperature gauges (node01, node02, node03) |
-| Temperature History | 24-hour line chart for all 3 nodes |
+| CPU Temperatures Over Time | Full-width time series chart showing all 3 nodes with legend (lastNotNull, mean, max) |
 | Drive Temperatures | NVMe and GPU temperature bar gauges |
 | Resource Usage | Top VMs by CPU, Top VMs by Memory |
 | VM Timeline | State timeline showing VM status history |
@@ -1288,6 +1287,17 @@ Displays:
 - Daily datastore size on NAS
 - NAS target path
 - Sync schedule
+
+**Backup Schedule** (Updated January 16, 2026):
+
+| Backup Type | Schedule | Datastore | Retention |
+|-------------|----------|-----------|-----------|
+| Daily Backups | 21:00 (9 PM) | pbs-daily (NVMe) | 7 days |
+| Main/Weekly Backups | Fridays at midnight | pbs-main (HDD) | 4 weeks |
+| NAS Direct Backup | Sundays at 01:00 | ProxmoxData | 4 weeks |
+| PBS-to-NAS Sync | 02:00 AM daily | N/A (rsync) | Mirrors PBS |
+
+The schedule footer on the Backup page displays: "Daily backups run at 21:00 (9 PM) • Main backups run Fridays at midnight • NAS sync at 2:00 AM"
 
 **Backups on NAS Widget** (Added January 12, 2026):
 

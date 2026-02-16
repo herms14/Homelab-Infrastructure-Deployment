@@ -1,0 +1,763 @@
+---
+# Gaming PC & Steam Widgets Deployment
+# Updates Glance dashboard with Gaming PC metrics and Steam profile widgets
+#
+# Prerequisites:
+# 1. LibreHardwareMonitor running on Gaming PC with HTTP server enabled
+#    - Download: https://github.com/LibreHardwareMonitor/LibreHardwareMonitor/releases
+#    - Enable: Options > HTTP Server > Run HTTP Server (port 8085)
+#    - Set to run on startup
+#
+# 2. Steam Stats API deployed (run deploy-steam-stats-api.yml first)
+#
+# Usage:
+#   ansible-playbook glance/deploy-gaming-steam-widgets.yml
+#
+# Gaming PC IP: 192.168.10.10
+# LibreHardwareMonitor Port: 8085 (default)
+
+- name: Deploy Gaming PC and Steam Widgets to Glance
+  hosts: docker-lxc-glance
+  become: yes
+  vars:
+    glance_path: /opt/glance
+    gaming_pc_ip: 192.168.10.10
+    lhm_port: 8085  # LibreHardwareMonitor HTTP Server port
+    steam_stats_url: http://192.168.40.10:5055
+
+  tasks:
+    - name: Read current Glance configuration
+      slurp:
+        src: "{{ glance_path }}/config/glance.yml"
+      register: current_config
+
+    - name: Parse current configuration
+      set_fact:
+        glance_config: "{{ current_config.content | b64decode | from_yaml }}"
+
+    - name: Create updated Glance configuration with Gaming PC and Steam widgets
+      copy:
+        dest: "{{ glance_path }}/config/glance.yml"
+        mode: '0644'
+        content: |
+          server:
+            port: 8080
+            assets-path: /app/assets
+
+          theme:
+            # Default: Catppuccin Mocha - Soft, pastel dark theme
+            background-color: 240 21 15
+            contrast-multiplier: 1.2
+            primary-color: 267 84 81
+            positive-color: 115 54 76
+            negative-color: 343 81 75
+            custom-css-file: /app/assets/custom-themes.css
+
+            # Theme Presets - Selectable from the theme picker icon (top-right)
+            presets:
+              # Deep blue professional dark theme
+              midnight-blue:
+                background-color: 213 58 10
+                primary-color: 227 95 67
+                positive-color: 162 82 40
+                negative-color: 0 94 65
+                contrast-multiplier: 1.2
+
+              # Arctic, cool blue-gray palette
+              nord:
+                background-color: 220 16 22
+                primary-color: 193 43 67
+                positive-color: 92 28 65
+                negative-color: 354 42 56
+                contrast-multiplier: 1.1
+
+              # Popular purple-based dark theme
+              dracula:
+                background-color: 231 15 18
+                primary-color: 265 89 78
+                positive-color: 135 94 65
+                negative-color: 0 100 67
+                contrast-multiplier: 1.2
+
+              # Classic code editor theme
+              monokai:
+                background-color: 70 8 15
+                primary-color: 338 95 56
+                positive-color: 80 76 53
+                negative-color: 338 95 56
+                contrast-multiplier: 1.3
+
+              # Soft pastel dark theme (Catppuccin Mocha)
+              catppuccin-mocha:
+                background-color: 240 21 15
+                primary-color: 267 84 81
+                positive-color: 115 54 76
+                negative-color: 343 81 75
+                contrast-multiplier: 1.2
+
+              # Warm retro theme
+              gruvbox-dark:
+                background-color: 0 0 16
+                primary-color: 43 95 58
+                positive-color: 61 66 44
+                negative-color: 5 96 59
+                contrast-multiplier: 1.2
+
+              # Ethan Schoonover's classic
+              solarized-dark:
+                background-color: 192 100 11
+                primary-color: 205 69 49
+                positive-color: 68 100 30
+                negative-color: 1 71 52
+                contrast-multiplier: 1.1
+
+              # VSCode-inspired Japanese theme
+              tokyo-night:
+                background-color: 235 21 13
+                primary-color: 218 87 73
+                positive-color: 85 56 61
+                negative-color: 348 86 70
+                contrast-multiplier: 1.2
+
+              # Neon futuristic theme
+              cyberpunk:
+                background-color: 240 33 8
+                primary-color: 300 100 50
+                positive-color: 158 100 50
+                negative-color: 340 100 50
+                contrast-multiplier: 1.4
+
+              # Original default dark theme
+              classic-dark:
+                background-color: 240 8 9
+                primary-color: 43 50 70
+                positive-color: 43 50 70
+                negative-color: 0 70 70
+                contrast-multiplier: 1.0
+
+          pages:
+            - name: Home
+              columns:
+                - size: small
+                  widgets:
+                    - type: clock
+                      hour-format: "24h"
+                      timezone: Asia/Manila
+
+                    - type: weather
+                      location: Manila, Philippines
+                      units: metric
+                      hour-format: "24h"
+
+                    - type: bookmarks
+                      title: Quick Links
+                      groups:
+                        - title: Infrastructure
+                          links:
+                            - title: Proxmox
+                              url: https://proxmox.hrmsmrflrii.xyz
+                            - title: Traefik
+                              url: https://traefik.hrmsmrflrii.xyz
+                            - title: OPNsense
+                              url: https://192.168.91.30
+                            - title: Portainer
+                              url: https://portainer.hrmsmrflrii.xyz
+
+                        - title: Services
+                          links:
+                            - title: Jellyfin
+                              url: https://jellyfin.hrmsmrflrii.xyz
+                            - title: GitLab
+                              url: https://gitlab.hrmsmrflrii.xyz
+                            - title: Immich
+                              url: https://photos.hrmsmrflrii.xyz
+                            - title: n8n
+                              url: https://n8n.hrmsmrflrii.xyz
+
+                - size: full
+                  widgets:
+                    # ============================================
+                    # Steam Profile Widget - Recently Played Games
+                    # ============================================
+                    - type: custom-api
+                      title: 🎮 Steam - Recently Played
+                      cache: 5m
+                      url: {{ steam_stats_url }}/stats
+                      template: |
+                        <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;">
+                          <!-- Profile Header -->
+                          <div style="display: flex; align-items: center; margin-bottom: 15px; padding: 10px; background: rgba(102, 192, 244, 0.1); border-radius: 8px;">
+                            {{ "{{" }} if .JSON.String "profile.avatar" {{ "}}" }}
+                            <img src="{{ "{{" }} .JSON.String "profile.avatar" {{ "}}" }}" style="width: 48px; height: 48px; border-radius: 8px; margin-right: 12px;">
+                            {{ "{{" }} end {{ "}}" }}
+                            <div style="flex: 1;">
+                              <div style="font-weight: 600; font-size: 16px; color: #66c0f4;">{{ "{{" }} .JSON.String "profile.name" {{ "}}" }}</div>
+                              <div style="font-size: 12px; color: #888;">
+                                {{ "{{" }} .JSON.Int "total_games" {{ "}}" }} games owned
+                                {{ "{{" }} if gt (.JSON.Int "wishlist_sale_count") 0 {{ "}}" }}
+                                · <span style="color: #4ade80;">{{ "{{" }} .JSON.Int "wishlist_sale_count" {{ "}}" }} wishlist items on sale!</span>
+                                {{ "{{" }} end {{ "}}" }}
+                              </div>
+                            </div>
+                            <div style="padding: 4px 8px; border-radius: 4px; font-size: 11px; {{ "{{" }} if eq (.JSON.String "profile.status") "Online" {{ "}}" }}background: #22c55e; color: #fff;{{ "{{" }} else {{ "}}" }}background: #666; color: #ccc;{{ "{{" }} end {{ "}}" }}">
+                              {{ "{{" }} .JSON.String "profile.status" {{ "}}" }}
+                            </div>
+                          </div>
+
+                          <!-- Recently Played Games -->
+                          <div style="display: flex; flex-direction: column; gap: 10px;">
+                            {{ "{{" }} range .JSON.Array "recent_games" {{ "}}" }}
+                            <div style="display: flex; background: rgba(255,255,255,0.03); border-radius: 8px; overflow: hidden; transition: transform 0.2s;">
+                              <img src="{{ "{{" }} .String "thumbnail" {{ "}}" }}" style="width: 184px; height: 69px; object-fit: cover; flex-shrink: 0;">
+                              <div style="padding: 8px 12px; flex: 1; display: flex; flex-direction: column; justify-content: center;">
+                                <div style="font-weight: 600; font-size: 13px; color: #fff; margin-bottom: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                                  {{ "{{" }} .String "name" {{ "}}" }}
+                                </div>
+                                <div style="display: flex; gap: 15px; font-size: 11px; color: #888;">
+                                  <span>🕐 {{ "{{" }} .String "last_played" {{ "}}" }}</span>
+                                  <span>⏱ {{ "{{" }} .String "playtime_total" {{ "}}" }} total</span>
+                                  {{ "{{" }} if gt (.Int "playtime_2weeks_minutes") 0 {{ "}}" }}
+                                  <span style="color: #66c0f4;">📊 {{ "{{" }} .String "playtime_2weeks" {{ "}}" }} last 2 weeks</span>
+                                  {{ "{{" }} end {{ "}}" }}
+                                </div>
+                              </div>
+                            </div>
+                            {{ "{{" }} end {{ "}}" }}
+                          </div>
+
+                          <!-- Wishlist Sales -->
+                          {{ "{{" }} if gt (len (.JSON.Array "wishlist_on_sale")) 0 {{ "}}" }}
+                          <div style="margin-top: 15px; padding-top: 15px; border-top: 1px solid rgba(255,255,255,0.1);">
+                            <div style="font-size: 12px; color: #4ade80; margin-bottom: 10px; font-weight: 600;">🏷️ Wishlist Sales</div>
+                            <div style="display: flex; flex-wrap: wrap; gap: 8px;">
+                              {{ "{{" }} range .JSON.Array "wishlist_on_sale" {{ "}}" }}
+                              <div style="background: rgba(74, 222, 128, 0.1); border: 1px solid rgba(74, 222, 128, 0.3); border-radius: 6px; padding: 6px 10px; font-size: 11px;">
+                                <span style="color: #fff;">{{ "{{" }} .String "name" {{ "}}" }}</span>
+                                <span style="color: #4ade80; font-weight: 600; margin-left: 6px;">-{{ "{{" }} .Int "discount" {{ "}}" }}%</span>
+                              </div>
+                              {{ "{{" }} end {{ "}}" }}
+                            </div>
+                          </div>
+                          {{ "{{" }} end {{ "}}" }}
+                        </div>
+
+                    - type: custom-api
+                      title: Hermes Miraflor II Life Progress
+                      cache: 1h
+                      url: http://192.168.40.10:5051/progress
+                      template: |
+                        <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; padding: 10px;">
+                          <div style="text-align: center; margin-bottom: 15px;">
+                            <span style="color: #f87171; font-weight: 600; font-size: 18px;">{{ "{{" }} .JSON.Int "remaining_days" | formatNumber {{ "}}" }}</span>
+                            <span style="color: #888; font-size: 14px;"> days remaining until age {{ "{{" }} .JSON.Int "target_age" {{ "}}" }}</span>
+                          </div>
+                          <div style="display: flex; align-items: center; margin-bottom: 12px;">
+                            <span style="width: 60px; font-weight: bold; color: #f87171;">Year</span>
+                            <div style="flex: 1; height: 24px; background: #333; border-radius: 4px; position: relative; margin: 0 15px; overflow: hidden;">
+                              <div style="width: {{ "{{" }} .JSON.Float "year" {{ "}}" }}%; height: 100%; background: linear-gradient(90deg, #ef4444, #f87171); border-radius: 4px;"></div>
+                            </div>
+                            <span style="width: 50px; text-align: right; font-weight: 500;">{{ "{{" }} .JSON.Float "year" | printf "%.0f" {{ "}}" }}%</span>
+                          </div>
+                          <div style="display: flex; align-items: center; margin-bottom: 12px;">
+                            <span style="width: 60px; font-weight: bold; color: #facc15;">Month</span>
+                            <div style="flex: 1; height: 24px; background: #333; border-radius: 4px; position: relative; margin: 0 15px; overflow: hidden;">
+                              <div style="width: {{ "{{" }} .JSON.Float "month" {{ "}}" }}%; height: 100%; background: linear-gradient(90deg, #eab308, #facc15); border-radius: 4px;"></div>
+                            </div>
+                            <span style="width: 50px; text-align: right; font-weight: 500;">{{ "{{" }} .JSON.Float "month" | printf "%.0f" {{ "}}" }}%</span>
+                          </div>
+                          <div style="display: flex; align-items: center; margin-bottom: 12px;">
+                            <span style="width: 60px; font-weight: bold; color: #4ade80;">Day</span>
+                            <div style="flex: 1; height: 24px; background: #333; border-radius: 4px; position: relative; margin: 0 15px; overflow: hidden;">
+                              <div style="width: {{ "{{" }} .JSON.Float "day" {{ "}}" }}%; height: 100%; background: linear-gradient(90deg, #22c55e, #4ade80); border-radius: 4px;"></div>
+                            </div>
+                            <span style="width: 50px; text-align: right; font-weight: 500;">{{ "{{" }} .JSON.Float "day" | printf "%.0f" {{ "}}" }}%</span>
+                          </div>
+                          <div style="display: flex; align-items: center; margin-bottom: 15px;">
+                            <span style="width: 60px; font-weight: bold; color: #4ade80;">Life</span>
+                            <div style="flex: 1; height: 24px; background: #333; border-radius: 4px; position: relative; margin: 0 15px; overflow: hidden;">
+                              <div style="width: {{ "{{" }} .JSON.Float "life" {{ "}}" }}%; height: 100%; background: linear-gradient(90deg, #22c55e, #4ade80); border-radius: 4px;"></div>
+                            </div>
+                            <span style="width: 50px; text-align: right; font-weight: 500;">{{ "{{" }} .JSON.Float "life" | printf "%.0f" {{ "}}" }}%</span>
+                          </div>
+                          <div style="text-align: center; padding: 12px; background: rgba(255,255,255,0.05); border-radius: 8px;">
+                            <em style="color: #aaa; font-size: 13px; line-height: 1.5;">"{{ "{{" }} .JSON.String "quote" {{ "}}" }}"</em>
+                          </div>
+                        </div>
+
+                    # ============================================
+                    # Gaming PC Metrics Widget
+                    # Reads from LibreHardwareMonitor HTTP Server
+                    # ============================================
+                    - type: custom-api
+                      title: 🖥️ Gaming PC - {{ gaming_pc_ip }}
+                      cache: 30s
+                      url: http://{{ gaming_pc_ip }}:{{ lhm_port }}/data.json
+                      template: |
+                        <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; padding: 10px;">
+                          <!-- This template parses LibreHardwareMonitor's nested JSON structure -->
+                          <!-- The data is in Children[0].Children array for each hardware component -->
+
+                          {{ "{{" }} $root := .JSON {{ "}}" }}
+                          {{ "{{" }} range $root.Array "Children" {{ "}}" }}
+                            {{ "{{" }} $pc := . {{ "}}" }}
+                            {{ "{{" }} range $pc.Array "Children" {{ "}}" }}
+                              {{ "{{" }} $hw := . {{ "}}" }}
+                              {{ "{{" }} $hwType := $hw.String "ImageURL" {{ "}}" }}
+
+                              <!-- CPU Section -->
+                              {{ "{{" }} if contains ($hw.String "Text") "CPU" {{ "}}" }}
+                              <div style="margin-bottom: 15px; padding: 12px; background: rgba(239, 68, 68, 0.1); border-radius: 8px; border-left: 3px solid #ef4444;">
+                                <div style="font-weight: 600; color: #ef4444; margin-bottom: 10px; font-size: 14px;">🔥 CPU - {{ "{{" }} $hw.String "Text" {{ "}}" }}</div>
+                                <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px;">
+                                  {{ "{{" }} range $hw.Array "Children" {{ "}}" }}
+                                    {{ "{{" }} range .Array "Children" {{ "}}" }}
+                                      {{ "{{" }} if and (contains (.String "Text") "Package") (contains (.String "Text") "Temperature") {{ "}}" }}
+                                      <div style="background: rgba(0,0,0,0.2); padding: 8px; border-radius: 6px;">
+                                        <div style="font-size: 10px; color: #888;">CPU Temp</div>
+                                        <div style="font-size: 18px; font-weight: 600; color: #f87171;">{{ "{{" }} .String "Value" {{ "}}" }}</div>
+                                      </div>
+                                      {{ "{{" }} end {{ "}}" }}
+                                      {{ "{{" }} if contains (.String "Text") "Total" {{ "}}" }}
+                                        {{ "{{" }} if contains (.String "Text") "Load" {{ "}}" }}
+                                        <div style="background: rgba(0,0,0,0.2); padding: 8px; border-radius: 6px;">
+                                          <div style="font-size: 10px; color: #888;">CPU Load</div>
+                                          <div style="font-size: 18px; font-weight: 600; color: #fff;">{{ "{{" }} .String "Value" {{ "}}" }}</div>
+                                        </div>
+                                        {{ "{{" }} end {{ "}}" }}
+                                      {{ "{{" }} end {{ "}}" }}
+                                    {{ "{{" }} end {{ "}}" }}
+                                  {{ "{{" }} end {{ "}}" }}
+                                </div>
+                              </div>
+                              {{ "{{" }} end {{ "}}" }}
+
+                              <!-- GPU Section -->
+                              {{ "{{" }} if or (contains ($hw.String "Text") "GPU") (contains ($hw.String "Text") "NVIDIA") (contains ($hw.String "Text") "AMD") (contains ($hw.String "Text") "Radeon") (contains ($hw.String "Text") "GeForce") {{ "}}" }}
+                              <div style="margin-bottom: 15px; padding: 12px; background: rgba(74, 222, 128, 0.1); border-radius: 8px; border-left: 3px solid #4ade80;">
+                                <div style="font-weight: 600; color: #4ade80; margin-bottom: 10px; font-size: 14px;">🎮 GPU - {{ "{{" }} $hw.String "Text" {{ "}}" }}</div>
+                                <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px;">
+                                  {{ "{{" }} range $hw.Array "Children" {{ "}}" }}
+                                    {{ "{{" }} range .Array "Children" {{ "}}" }}
+                                      {{ "{{" }} if and (contains (.String "Text") "Core") (contains (.String "Text") "Temperature") {{ "}}" }}
+                                      <div style="background: rgba(0,0,0,0.2); padding: 8px; border-radius: 6px;">
+                                        <div style="font-size: 10px; color: #888;">GPU Temp</div>
+                                        <div style="font-size: 18px; font-weight: 600; color: #4ade80;">{{ "{{" }} .String "Value" {{ "}}" }}</div>
+                                      </div>
+                                      {{ "{{" }} end {{ "}}" }}
+                                      {{ "{{" }} if and (contains (.String "Text") "Core") (contains (.String "Text") "Load") {{ "}}" }}
+                                      <div style="background: rgba(0,0,0,0.2); padding: 8px; border-radius: 6px;">
+                                        <div style="font-size: 10px; color: #888;">GPU Load</div>
+                                        <div style="font-size: 18px; font-weight: 600; color: #fff;">{{ "{{" }} .String "Value" {{ "}}" }}</div>
+                                      </div>
+                                      {{ "{{" }} end {{ "}}" }}
+                                      {{ "{{" }} if contains (.String "Text") "Memory Used" {{ "}}" }}
+                                      <div style="background: rgba(0,0,0,0.2); padding: 8px; border-radius: 6px;">
+                                        <div style="font-size: 10px; color: #888;">VRAM Used</div>
+                                        <div style="font-size: 16px; font-weight: 600; color: #fff;">{{ "{{" }} .String "Value" {{ "}}" }}</div>
+                                      </div>
+                                      {{ "{{" }} end {{ "}}" }}
+                                    {{ "{{" }} end {{ "}}" }}
+                                  {{ "{{" }} end {{ "}}" }}
+                                </div>
+                              </div>
+                              {{ "{{" }} end {{ "}}" }}
+
+                              <!-- RAM Section -->
+                              {{ "{{" }} if contains ($hw.String "Text") "Memory" {{ "}}" }}
+                                {{ "{{" }} if not (contains ($hw.String "Text") "GPU") {{ "}}" }}
+                                <div style="margin-bottom: 15px; padding: 12px; background: rgba(96, 165, 250, 0.1); border-radius: 8px; border-left: 3px solid #60a5fa;">
+                                  <div style="font-weight: 600; color: #60a5fa; margin-bottom: 10px; font-size: 14px;">💾 Memory</div>
+                                  <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px;">
+                                    {{ "{{" }} range $hw.Array "Children" {{ "}}" }}
+                                      {{ "{{" }} range .Array "Children" {{ "}}" }}
+                                        {{ "{{" }} if contains (.String "Text") "Used" {{ "}}" }}
+                                        <div style="background: rgba(0,0,0,0.2); padding: 8px; border-radius: 6px;">
+                                          <div style="font-size: 10px; color: #888;">Used</div>
+                                          <div style="font-size: 16px; font-weight: 600; color: #60a5fa;">{{ "{{" }} .String "Value" {{ "}}" }}</div>
+                                        </div>
+                                        {{ "{{" }} end {{ "}}" }}
+                                        {{ "{{" }} if contains (.String "Text") "Available" {{ "}}" }}
+                                        <div style="background: rgba(0,0,0,0.2); padding: 8px; border-radius: 6px;">
+                                          <div style="font-size: 10px; color: #888;">Available</div>
+                                          <div style="font-size: 16px; font-weight: 600; color: #fff;">{{ "{{" }} .String "Value" {{ "}}" }}</div>
+                                        </div>
+                                        {{ "{{" }} end {{ "}}" }}
+                                        {{ "{{" }} if contains (.String "Text") "Load" {{ "}}" }}
+                                        <div style="background: rgba(0,0,0,0.2); padding: 8px; border-radius: 6px;">
+                                          <div style="font-size: 10px; color: #888;">Usage</div>
+                                          <div style="font-size: 16px; font-weight: 600; color: #fff;">{{ "{{" }} .String "Value" {{ "}}" }}</div>
+                                        </div>
+                                        {{ "{{" }} end {{ "}}" }}
+                                      {{ "{{" }} end {{ "}}" }}
+                                    {{ "{{" }} end {{ "}}" }}
+                                  </div>
+                                </div>
+                                {{ "{{" }} end {{ "}}" }}
+                              {{ "{{" }} end {{ "}}" }}
+
+                              <!-- Fans Section -->
+                              {{ "{{" }} if or (contains ($hw.String "ImageURL") "fan") (contains ($hw.String "Text") "Fan") {{ "}}" }}
+                              {{ "{{" }} else {{ "}}" }}
+                                {{ "{{" }} range $hw.Array "Children" {{ "}}" }}
+                                  {{ "{{" }} if contains (.String "Text") "Fan" {{ "}}" }}
+                                  <div style="margin-bottom: 15px; padding: 12px; background: rgba(168, 85, 247, 0.1); border-radius: 8px; border-left: 3px solid #a855f7;">
+                                    <div style="font-weight: 600; color: #a855f7; margin-bottom: 10px; font-size: 14px;">🌀 Fans</div>
+                                    <div style="display: flex; flex-wrap: wrap; gap: 8px;">
+                                      {{ "{{" }} range .Array "Children" {{ "}}" }}
+                                        {{ "{{" }} if gt (len (.String "Value")) 0 {{ "}}" }}
+                                        <div style="background: rgba(0,0,0,0.2); padding: 8px 12px; border-radius: 6px; min-width: 80px;">
+                                          <div style="font-size: 10px; color: #888;">{{ "{{" }} .String "Text" {{ "}}" }}</div>
+                                          <div style="font-size: 14px; font-weight: 600; color: #a855f7;">{{ "{{" }} .String "Value" {{ "}}" }}</div>
+                                        </div>
+                                        {{ "{{" }} end {{ "}}" }}
+                                      {{ "{{" }} end {{ "}}" }}
+                                    </div>
+                                  </div>
+                                  {{ "{{" }} end {{ "}}" }}
+                                {{ "{{" }} end {{ "}}" }}
+                              {{ "{{" }} end {{ "}}" }}
+
+                              <!-- Storage Section -->
+                              {{ "{{" }} if or (contains ($hw.String "Text") "Storage") (contains ($hw.String "Text") "SSD") (contains ($hw.String "Text") "HDD") (contains ($hw.String "Text") "NVMe") {{ "}}" }}
+                              <div style="margin-bottom: 15px; padding: 12px; background: rgba(251, 191, 36, 0.1); border-radius: 8px; border-left: 3px solid #fbbf24;">
+                                <div style="font-weight: 600; color: #fbbf24; margin-bottom: 10px; font-size: 14px;">💿 {{ "{{" }} $hw.String "Text" {{ "}}" }}</div>
+                                <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px;">
+                                  {{ "{{" }} range $hw.Array "Children" {{ "}}" }}
+                                    {{ "{{" }} range .Array "Children" {{ "}}" }}
+                                      {{ "{{" }} if contains (.String "Text") "Temperature" {{ "}}" }}
+                                      <div style="background: rgba(0,0,0,0.2); padding: 8px; border-radius: 6px;">
+                                        <div style="font-size: 10px; color: #888;">Temp</div>
+                                        <div style="font-size: 16px; font-weight: 600; color: #fbbf24;">{{ "{{" }} .String "Value" {{ "}}" }}</div>
+                                      </div>
+                                      {{ "{{" }} end {{ "}}" }}
+                                      {{ "{{" }} if contains (.String "Text") "Used Space" {{ "}}" }}
+                                      <div style="background: rgba(0,0,0,0.2); padding: 8px; border-radius: 6px;">
+                                        <div style="font-size: 10px; color: #888;">Used</div>
+                                        <div style="font-size: 16px; font-weight: 600; color: #fff;">{{ "{{" }} .String "Value" {{ "}}" }}</div>
+                                      </div>
+                                      {{ "{{" }} end {{ "}}" }}
+                                    {{ "{{" }} end {{ "}}" }}
+                                  {{ "{{" }} end {{ "}}" }}
+                                </div>
+                              </div>
+                              {{ "{{" }} end {{ "}}" }}
+
+                            {{ "{{" }} end {{ "}}" }}
+                          {{ "{{" }} end {{ "}}" }}
+                        </div>
+
+                    - type: monitor
+                      title: Service Health
+                      cache: 1m
+                      sites:
+                        - title: Proxmox Node 01
+                          url: https://192.168.20.20:8006
+                          icon: si:proxmox
+                          allow-insecure: true
+                        - title: Proxmox Node 02
+                          url: https://192.168.20.21:8006
+                          icon: si:proxmox
+                          allow-insecure: true
+                        - title: Proxmox Node 03
+                          url: https://192.168.20.22:8006
+                          icon: si:proxmox
+                          allow-insecure: true
+                        - title: Traefik
+                          url: http://192.168.40.20:8082/ping
+                          icon: si:traefikproxy
+                        - title: Jellyfin
+                          url: http://192.168.40.11:8096/health
+                          icon: si:jellyfin
+                        - title: Radarr
+                          url: http://192.168.40.11:7878/ping
+                          icon: si:radarr
+                        - title: Sonarr
+                          url: http://192.168.40.11:8989/ping
+                          icon: si:sonarr
+                        - title: GitLab
+                          url: https://gitlab.hrmsmrflrii.xyz/users/sign_in
+                          icon: si:gitlab
+                        - title: Immich
+                          url: http://192.168.40.22:2283/api/server/ping
+                          icon: di:immich
+                        - title: Authentik
+                          url: http://192.168.40.21:9000/-/health/ready/
+                          icon: si:authentik
+
+                    - type: monitor
+                      title: Kubernetes Cluster
+                      cache: 1m
+                      sites:
+                        - title: K8s Controller 01
+                          url: https://192.168.20.32:6443/healthz
+                          icon: si:kubernetes
+                          allow-insecure: true
+                        - title: K8s Controller 02
+                          url: https://192.168.20.33:6443/healthz
+                          icon: si:kubernetes
+                          allow-insecure: true
+                        - title: K8s Controller 03
+                          url: https://192.168.20.34:6443/healthz
+                          icon: si:kubernetes
+                          allow-insecure: true
+                        - title: K8s Worker 01
+                          url: http://192.168.20.40:10248/healthz
+                          icon: si:kubernetes
+                        - title: K8s Worker 02
+                          url: http://192.168.20.41:10248/healthz
+                          icon: si:kubernetes
+                        - title: K8s Worker 03
+                          url: http://192.168.20.42:10248/healthz
+                          icon: si:kubernetes
+                        - title: K8s Worker 04
+                          url: http://192.168.20.43:10248/healthz
+                          icon: si:kubernetes
+                        - title: K8s Worker 05
+                          url: http://192.168.20.44:10248/healthz
+                          icon: si:kubernetes
+                        - title: K8s Worker 06
+                          url: http://192.168.20.45:10248/healthz
+                          icon: si:kubernetes
+
+                - size: small
+                  widgets:
+                    - type: markets
+                      title: Markets
+                      markets:
+                        - symbol: BTC-USD
+                          name: Bitcoin
+                        - symbol: MSFT
+                          name: Microsoft
+                        - symbol: AAPL
+                          name: Apple
+                        - symbol: SPY
+                          name: S&P 500
+
+                    - type: rss
+                      title: Tech News
+                      style: horizontal-cards
+                      feeds:
+                        - url: https://www.reddit.com/r/homelab/.rss
+                          title: r/homelab
+                        - url: https://www.reddit.com/r/selfhosted/.rss
+                          title: r/selfhosted
+                      limit: 5
+
+            - name: Media
+              columns:
+                - size: full
+                  widgets:
+                    - type: custom-api
+                      title: Arr Stack Downloads
+                      cache: 30s
+                      url: http://192.168.40.11:7878/api/v3/queue
+                      headers:
+                        X-Api-Key: "${RADARR_API_KEY}"
+                      template: |
+                        {{ "{{" }} range .data.records {{ "}}" }}
+                        {{ "{{" }} .title {{ "}}" }} - {{ "{{" }} .status {{ "}}" }}
+                        {{ "{{" }} end {{ "}}" }}
+
+                    - type: iframe
+                      title: Radarr Calendar
+                      source: http://192.168.40.11:7878/calendar
+                      height: 300
+
+                - size: small
+                  widgets:
+                    - type: bookmarks
+                      title: Media Apps
+                      groups:
+                        - title: Arr Stack
+                          links:
+                            - title: Radarr
+                              url: https://radarr.hrmsmrflrii.xyz
+                            - title: Sonarr
+                              url: https://sonarr.hrmsmrflrii.xyz
+                            - title: Lidarr
+                              url: https://lidarr.hrmsmrflrii.xyz
+                            - title: Prowlarr
+                              url: https://prowlarr.hrmsmrflrii.xyz
+                            - title: Bazarr
+                              url: https://bazarr.hrmsmrflrii.xyz
+                            - title: Jellyseerr
+                              url: https://jellyseerr.hrmsmrflrii.xyz
+
+            - name: Sports
+              columns:
+                - size: full
+                  widgets:
+                    - type: custom-api
+                      title: NBA Scores
+                      cache: 5m
+                      url: https://site.api.espn.com/apis/site/v2/sports/basketball/nba/scoreboard
+                      template: |
+                        {{ "{{" }} range .events {{ "}}" }}
+                        {{ "{{" }} .name {{ "}}" }} - {{ "{{" }} .status.type.shortDetail {{ "}}" }}
+                        {{ "{{" }} range .competitions {{ "}}" }}
+                          {{ "{{" }} range .competitors {{ "}}" }}
+                            {{ "{{" }} .team.displayName {{ "}}" }}: {{ "{{" }} .score {{ "}}" }}
+                          {{ "{{" }} end {{ "}}" }}
+                        {{ "{{" }} end {{ "}}" }}
+                        {{ "{{" }} end {{ "}}" }}
+
+                    - type: custom-api
+                      title: NFL Scores
+                      cache: 5m
+                      url: https://site.api.espn.com/apis/site/v2/sports/football/nfl/scoreboard
+                      template: |
+                        {{ "{{" }} range .events {{ "}}" }}
+                        {{ "{{" }} .name {{ "}}" }} - {{ "{{" }} .status.type.shortDetail {{ "}}" }}
+                        {{ "{{" }} end {{ "}}" }}
+
+            - name: Network
+              columns:
+                - size: full
+                  widgets:
+                    - type: monitor
+                      title: Network Devices
+                      cache: 1m
+                      sites:
+                        - title: Core Router (ER605)
+                          url: http://192.168.0.1
+                          icon: di:tplink
+                        - title: Core Switch (SG3210)
+                          url: http://192.168.90.2
+                          icon: di:tplink
+                        - title: Morpheus Switch (SG2210P)
+                          url: http://192.168.90.3
+                          icon: di:tplink
+                        - title: Atreus Switch (ES20GP)
+                          url: http://192.168.90.51
+                          icon: di:tplink
+                        - title: OPNsense Firewall
+                          url: https://192.168.91.30
+                          allow-insecure: true
+                          icon: si:opnsense
+                        - title: Synology NAS
+                          url: http://192.168.20.31:5000
+                          icon: si:synology
+
+                    - type: custom-api
+                      title: OPNsense Unbound Statistics
+                      cache: 1m
+                      url: https://192.168.91.30/api/unbound/diagnostics/stats
+                      headers:
+                        Authorization: "Basic ${OPNSENSE_API_CREDENTIALS}"
+                      allow-insecure: true
+                      template: |
+                        Total Queries: {{ "{{" }} .data.total.num.queries {{ "}}" }}
+                        Cache Hits: {{ "{{" }} .data.total.num.cachehits {{ "}}" }}
+                        Blocked: {{ "{{" }} .data.total.num.zero_ttl {{ "}}" }}
+
+            - name: Storage
+              columns:
+                - size: full
+                  widgets:
+                    - type: iframe
+                      title: Synology NAS Dashboard
+                      source: https://grafana.hrmsmrflrii.xyz/d/synology-nas/synology-nas?orgId=1&kiosk&refresh=30s
+                      height: 800
+
+            - name: Containers
+              columns:
+                - size: full
+                  widgets:
+                    - type: iframe
+                      title: Container Monitoring
+                      source: https://grafana.hrmsmrflrii.xyz/d/container-monitoring/container-monitoring?orgId=1&kiosk&refresh=30s
+                      height: 800
+
+            - name: Reddit
+              columns:
+                - size: full
+                  widgets:
+                    - type: custom-api
+                      title: Reddit Feed
+                      cache: 5m
+                      url: http://192.168.40.10:5053/api/feed
+                      template: |
+                        <div style="margin-bottom: 15px; text-align: right;">
+                          <a href="http://192.168.40.10:5053" target="_blank" style="color: #ff4500; font-size: 12px; text-decoration: none; padding: 5px 10px; border: 1px solid #ff4500; border-radius: 6px;">
+                            ⚙ Settings
+                          </a>
+                        </div>
+                        {{ "{{" }} range .JSON.Array "groups" {{ "}}" }}
+                        <div style="margin-bottom: 20px;">
+                          <div style="color: #ff4500; font-size: 14px; font-weight: 600; margin-bottom: 10px; padding-bottom: 6px; border-bottom: 1px solid rgba(255,69,0,0.3);">
+                            r/{{ "{{" }} .String "name" {{ "}}" }}
+                          </div>
+                          {{ "{{" }} range .Array "posts" {{ "}}" }}
+                          <div style="display: flex; padding: 8px; margin-bottom: 6px; background: rgba(255,255,255,0.03); border-radius: 6px;">
+                            {{ "{{" }} if .String "thumbnail" {{ "}}" }}
+                            <img src="{{ "{{" }} .String "thumbnail" {{ "}}" }}" style="width: 60px; height: 60px; object-fit: cover; border-radius: 4px; margin-right: 10px; flex-shrink: 0;" onerror="this.style.display='none'">
+                            {{ "{{" }} end {{ "}}" }}
+                            <div style="flex: 1; min-width: 0;">
+                              <a href="{{ "{{" }} .String "url" {{ "}}" }}" target="_blank" style="color: #fff; text-decoration: none; font-size: 12px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;">
+                                {{ "{{" }} .String "title" {{ "}}" }}
+                              </a>
+                              <div style="color: #888; font-size: 10px; margin-top: 3px;">
+                                {{ "{{" }} .Int "score" {{ "}}" }} pts · {{ "{{" }} .Int "comments" {{ "}}" }} comments
+                              </div>
+                            </div>
+                          </div>
+                          {{ "{{" }} end {{ "}}" }}
+                        </div>
+                        {{ "{{" }} end {{ "}}" }}
+        mode: '0644'
+
+    - name: Restart Glance to apply changes
+      community.docker.docker_compose_v2:
+        project_src: "{{ glance_path }}"
+        state: present
+        pull: always
+
+    - name: Wait for Glance to be ready
+      uri:
+        url: "http://localhost:8080"
+        status_code: [200]
+      register: glance_status
+      until: glance_status.status == 200
+      retries: 30
+      delay: 2
+
+    - name: Display deployment information
+      debug:
+        msg: |
+          ===========================================
+          Gaming PC & Steam Widgets Deployed!
+          ===========================================
+
+          New Widgets Added to Home Page:
+          -------------------------------
+          1. 🎮 Steam - Recently Played
+             - Shows your Steam profile
+             - Top 3 recently played games with thumbnails
+             - Total games owned
+             - Wishlist items on sale
+
+          2. 🖥️ Gaming PC Metrics
+             - CPU temperature and load
+             - GPU temperature, load, and VRAM
+             - Memory usage
+             - Fan speeds
+             - Storage usage
+
+          Prerequisites:
+          --------------
+          1. LibreHardwareMonitor on Gaming PC ({{ gaming_pc_ip }}):
+             - Download: https://github.com/LibreHardwareMonitor/LibreHardwareMonitor/releases
+             - Enable: Options > HTTP Server > Run HTTP Server
+             - Port: {{ lhm_port }}
+             - Run as Administrator for full sensor access
+
+          2. Steam Stats API ({{ steam_stats_url }}):
+             - Deploy: ansible-playbook glance/deploy-steam-stats-api.yml \
+                        -e "steam_api_key=YOUR_KEY steam_id=YOUR_STEAM64_ID"
+
+          To get Steam credentials:
+          -------------------------
+          1. Steam API Key: https://steamcommunity.com/dev/apikey
+          2. Steam64 ID: https://steamid.io/ (paste your profile URL)
+
+          Access URL: https://glance.hrmsmrflrii.xyz

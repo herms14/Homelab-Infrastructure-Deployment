@@ -51,48 +51,111 @@ ssh root@192.168.40.12 "cd /opt/glance && docker compose restart"
 
 > **Note**: Browser caching may prevent CSS changes from appearing immediately. Always perform a hard refresh after updating CSS.
 
-## Dashboard Tab Structure (9 Tabs)
+## Dashboard Tab Structure (11 Pages)
 
-| Tab | Protected | Contents |
-|-----|-----------|----------|
-| **Home** | Yes | Clock, Weather, Bookmarks, Life Progress, Service Health, Markets, Tech News |
-| **Compute** | Yes | Proxmox Cluster Dashboard (1100px) + Container Monitoring Dashboard (1400px) |
-| **Storage** | Yes | Synology NAS Storage Dashboard (1350px) |
-| **Network** | Yes | Omada Network Dashboard (2200px) + Speedtest Widget |
-| **Backup** | Yes | PBS Backup Status Dashboard, Drive Health, NAS Backup Sync, Backups on NAS |
-| **Media** | Yes | Media Stats Grid, Recent Movies, RSS Feeds, Media Apps Bookmarks |
-| **Web** | No | Tech News RSS, AI/ML News, Crypto News, Stock Markets |
-| **Reddit** | No | Dynamic Reddit Feed (via Reddit Manager API) |
-| **Sports** | Yes | NBA Games, Standings, Yahoo Fantasy League |
+| Tab | Icon | Protected | Contents |
+|-----|------|-----------|----------|
+| **Home** | 🏠 | Yes | Clock, Weather, Bookmarks, Life Progress, GitHub Contributions, Markets |
+| **Services** | 🛠 | Yes | All health monitors (Proxmox, PBS, NAS, Docker containers) |
+| **Compute** | 💻 | Yes | Proxmox Cluster Dashboard (2400px) + Container Monitoring Dashboard (1800px) |
+| **Storage** | 💾 | Yes | Synology NAS Storage Dashboard (1350px) |
+| **Backup** | 📦 | Yes | PBS Backup Status Dashboard, Drive Health, NAS Backup Sync, Backups on NAS |
+| **Network** | 🌐 | Yes | Omada Network Dashboard (2200px) + Speedtest Widget |
+| **Media** | 🎬 | Yes | Media Stats Grid, Recent Movies, RSS Feeds, Media Apps Bookmarks |
+| **News** | 📰 | No | Hacker News, Tech RSS feeds, headline aggregation |
+| **Finance** | 💰 | No | Stock markets, crypto prices, financial widgets |
+| **Reddit** | 🤖 | No | Dynamic Reddit Feed (via Reddit Manager API) |
+| **Sports** | 🏀 | Yes | NBA Games, Standings, Yahoo Fantasy League |
 
 > [!warning] Protected Pages
-> **Home**, **Compute**, **Storage**, **Network**, **Backup**, **Media**, and **Sports** tabs are finalized layouts. Do not modify without explicit permission.
+> **Home**, **Services**, **Compute**, **Storage**, **Network**, **Backup**, **Media**, and **Sports** tabs are finalized layouts. Do not modify without explicit permission.
+
+### UI Redesign (January 20, 2026)
+
+Major UI improvements implemented:
+- **Page icons/emojis** added for better navigation
+- **New Services page** consolidating all health monitors (removed duplicates from Home)
+- **Split Web page** into dedicated News and Finance pages
+- **Standardized styling**: padding (12px), border-radius (8px) across all widgets
+- **Optimized iframe heights**: Reduced Proxmox (3200→2400px), Container (2500→1800px)
+- **Improved cache times**: Life Progress (1h→6h), GitHub (6h→12h)
+- **35 themes** available (25 new themes added)
 
 ## Embedded Grafana Dashboards
 
 | Dashboard | UID | Height | Tab | Protected |
 |-----------|-----|--------|-----|-----------|
 | Network Utilization | `network-utilization` | 1100px | Network | Yes |
-| Proxmox Cluster Health | `proxmox-cluster-health` | 1100px | Compute | Yes |
+| Proxmox Cluster Health | `proxmox-cluster-health` | 2400px | Compute | Yes |
 | Proxmox Cluster Overview | `proxmox-compute` | 1100px | Compute | Yes |
 | Container Monitoring | `containers-modern` | 1400px | Compute | Yes |
-| Container Status History | `container-status` | 1250px | Compute | Yes |
+| Container Status History | `container-status` | 1800px | Compute | Yes |
 | Synology NAS Storage | `synology-nas-modern` | 1350px | Storage | Yes |
 | Omada Network | `omada-network` | 2200px | Network | Yes |
 | PBS Backup Status | `pbs-backup-status` | 600px | Backup | Yes |
 
 ### Proxmox Cluster Health Dashboard (Added January 11, 2026)
 
-Comprehensive cluster monitoring with hardware temperature tracking:
+Comprehensive cluster monitoring with hardware temperature tracking and **separate Linux/Windows VM views** (added January 14, 2026).
+
+**Dashboard Layout:**
+```
+┌─────────────────────────────────────────────────────────────────────────────────┐
+│ [Quorum] [Nodes] [VMs] [Containers] [Not Backed Up] [Cluster CPU] [Cluster Mem] │  Row 1: Cluster Status
+├─────────────────────────────────────────────────────────────────────────────────┤
+│ [CPU Temperatures Over Time - Full-width time series with legend]              │  Row 2: Temperature
+├─────────────────────────────────────────────────────────────────────────────────┤
+│ [NVMe Temperatures]              [GPU Temperatures]                            │  Row 3: Drive Temps
+├─────────────────────────────────────────────────────────────────────────────────┤
+│ [Top VMs by CPU]                  [Top VMs by Memory]                           │  Row 3: Resource Usage
+├─────────────────────────────────────────────────────────────────────────────────┤
+│ [Storage Pool Usage Bar Gauges - local-lvm, local-nvme, etc.]                   │  Row 4: Storage
+├─────────────────────────────────────────────────────────────────────────────────┤
+│ [Linux VMs: 16]  [CPU Usage Bars]              [Memory Usage Bars]              │  Row 5: Linux VM Stats
+├─────────────────────────────────────────────────────────────────────────────────┤
+│ [Linux VM Status Timeline - Running/Stopped over time, h:10]                    │  Row 6: Linux Timeline
+├─────────────────────────────────────────────────────────────────────────────────┤
+│ [Windows VMs: 15]  [CPU Usage Bars]            [Memory Usage Bars]              │  Row 7: Windows VM Stats
+├─────────────────────────────────────────────────────────────────────────────────┤
+│ [Windows VM Status Timeline - Running/Stopped over time, h:10]                  │  Row 8: Windows Timeline
+└─────────────────────────────────────────────────────────────────────────────────┘
+```
+
+**Glance Iframe Height**: 2400px (optimized from 3200px for better viewport utilization)
 
 | Panel | Description |
 |-------|-------------|
-| Cluster Status | Quorum, Nodes Online, VMs, Containers |
-| CPU Temperature | Per-node gauges (node01, node02, node03) |
-| Temperature History | 24-hour line chart for all nodes |
+| Cluster Status | Quorum, Nodes Online, VMs, Containers, Not Backed Up |
+| CPU Temperatures Over Time | Full-width time series showing all 3 nodes with table legend (lastNotNull, mean, max) |
 | Drive Temperatures | NVMe and GPU temps |
 | Resource Usage | Top VMs by CPU, Top VMs by Memory |
 | Storage | Pool usage bar gauges |
+| **Linux VMs** | Count (orange), CPU bars, Memory bars, Status timeline |
+| **Windows VMs** | Count (blue), CPU bars, Memory bars, Status timeline |
+
+#### Linux/Windows VM Separation (Added January 14, 2026)
+
+VMs are categorized by naming convention:
+- **Linux VMs**: Names start with lowercase letter (regex: `name=~"[a-z].*"`)
+- **Windows VMs**: Names start with uppercase letter (regex: `name=~"[A-Z].*"`)
+
+**VM Count Panels:**
+| Panel | Color | Query |
+|-------|-------|-------|
+| Linux VMs | Orange (#f97316) | `count(max by (id) (pve_guest_info{type="qemu", name=~"[a-z].*"}))` |
+| Windows VMs | Blue (#3b82f6) | `count(max by (id) (pve_guest_info{type="qemu", name=~"[A-Z].*"}))` |
+
+**Current Counts**: 16 Linux VMs, 15 Windows VMs (31 total)
+
+**Status Timeline Configuration:**
+- Timeline height: 10 (increased from 6 for better readability)
+- Shows VM running/stopped state over time
+- Green = Running, Red = Stopped
+- Panel width: Full width (24)
+
+**Not Backed Up Count Fix:**
+> [!tip] Query Correction
+> The "Not Backed Up" count was fixed from `sum(pve_not_backed_up_total)` to `max(pve_not_backed_up_total)`. Using `sum` incorrectly added the same metric from all 3 Proxmox nodes (26 × 3 = 78). Using `max` correctly returns 26.
 
 **Data Sources**:
 - `proxmox-nodes` job: node_exporter v1.7.0 on port 9100 (all 3 nodes)
@@ -295,53 +358,122 @@ This shows ~7% actual usage instead of ~95% (which incorrectly treated cache as 
 | `memCached` | Cached memory in KB (reclaimable) |
 | `sysUpTime` | System uptime |
 
-## Backup Tab (Added January 12, 2026)
+## Backup Tab (Updated January 15, 2026)
 
 > [!warning] Do Not Modify
 > The Backup tab layout is finalized. Do not modify without explicit permission.
 
-The Backup tab provides comprehensive visibility into PBS (Proxmox Backup Server) operations and NAS backup sync status.
+The Backup tab provides comprehensive visibility into PBS (Proxmox Backup Server) operations, backup job durations, and NAS backup sync status with VM/CT names.
 
 ### Layout Structure
 
 ```
-┌─────────────────────────────────────────────────────────────────────────────────┐
-│                     PBS Backup Status Dashboard (Grafana)                        │
-│  ┌──────────┬──────────┬──────────┬──────────────┬──────────────┐               │
-│  │ PBS Up   │ Snapshots│  Daily   │    Main      │ Backup Count │               │
-│  │ (green)  │  (blue)  │  Usage   │   Usage      │  Bar Chart   │               │
-│  └──────────┴──────────┴──────────┴──────────────┴──────────────┘               │
-├──────────────────────────────┬──────────────────────────────────────────────────┤
-│     DRIVE HEALTH STATUS      │              NAS BACKUP STATUS                    │
-│     (custom-api widget)      │              (custom-api widgets)                 │
-│                              │                                                   │
-│  Seagate 4TB: ●● Healthy     │  NAS Backup Sync        │  Backups on NAS         │
-│  Kingston 1TB: ●● Healthy    │  ✓ Synced (green)       │  14 Protected           │
-│                              │  Last: 2026-01-12       │  7 VMs | 7 CTs          │
-│                              │  7.2 TB / 16.0 TB       │  ┌─────────────────┐    │
-│                              │                         │  │ VM 100 Jan-12   │    │
-│                              │                         │  │ VM 101 Jan-12   │    │
-│                              │                         │  │ CT 200 Jan-12   │    │
-│                              │                         │  └─────────────────┘    │
-└──────────────────────────────┴─────────────────────────┴─────────────────────────┘
+┌────────────────────────────┬─────────────────────────────────────────────────────────┐
+│     SIDEBAR (small)        │                    MAIN (full)                           │
+├────────────────────────────┼─────────────────────────────────────────────────────────┤
+│ Backup Services Monitor    │  BACKUP JOBS OVERVIEW                                    │
+│  • PBS Server (8007)       │  ┌──────────────┬──────────────┬──────────────┐         │
+│  • Backup API (9102)       │  │ 📦 DAILY     │ 🗄️ MAIN      │ ☁️ NAS SYNC   │         │
+│                            │  │ OK (green)   │ OK (green)   │ OK (green)   │         │
+│ Drive Health Status        │  │ 2026-01-14   │ 2026-01-14   │ 2026-01-15   │         │
+│  Seagate 4TB: HEALTHY      │  │ Duration:    │ Duration:    │ Duration:    │         │
+│  Kingston 1TB: HEALTHY     │  │ 3h 39m       │ 4h 49m       │ 28m 51s      │         │
+│                            │  │ 90 snapshots │ 57 snapshots │ 907G + 292G  │         │
+│ Quick Links                │  └──────────────┴──────────────┴──────────────┘         │
+│  • PBS Web UI              ├─────────────────────────────────────────────────────────┤
+│  • Grafana Dashboard       │  VM & CONTAINER BACKUP STATUS                            │
+│                            │  23 Protected VMs/Containers (10 VMs | 13 CTs)           │
+│                            │  ┌─────────────────────────────────────────────────┐    │
+│                            │  │ [VM] pbs-server          2026-01-14 17:48  main │    │
+│                            │  │ [CT] docker-lxc-glance   2026-01-14 18:33 daily │    │
+│                            │  │ [CT] pihole-lxc          2026-01-14 18:30 daily │    │
+│                            │  │ ...scrollable list with VM names...            │    │
+│                            │  └─────────────────────────────────────────────────┘    │
+│                            ├─────────────────────────────────────────────────────────┤
+│                            │  PBS GRAFANA DASHBOARD (iframe, height: 1400px)          │
+│                            │  - Full Prometheus/Grafana PBS metrics                   │
+│                            └─────────────────────────────────────────────────────────┘
+└────────────────────────────┴─────────────────────────────────────────────────────────┘
 ```
 
 ### Widgets
 
-| Widget | Type | API Endpoint | Cache |
-|--------|------|--------------|-------|
-| PBS Backup Status | Grafana iframe | `grafana.hrmsmrflrii.xyz/d/pbs-backup-status` | N/A |
-| Drive Health Status | custom-api | `http://192.168.20.22:9101/health` | 5m |
-| NAS Backup Sync | custom-api | `http://192.168.40.13:9102/status` | 10m |
-| Backups on NAS | custom-api | `http://192.168.40.13:9102/backups` | 10m |
+| Widget | Type | API Endpoint | Cache | Column |
+|--------|------|--------------|-------|--------|
+| Backup Services | monitor | PBS:8007, API:9102 | 1m | Sidebar |
+| Drive Health Status | custom-api | `http://192.168.20.22:9101/health` | 5m | Sidebar |
+| Quick Links | bookmarks | - | - | Sidebar |
+| Backup Jobs Overview | custom-api | `http://192.168.40.13:9102/status` | 5m | Main |
+| VM & Container Backup Status | custom-api | `http://192.168.40.13:9102/backups` | 10m | Main |
+| PBS Grafana Dashboard | iframe | `grafana.hrmsmrflrii.xyz/d/pbs-backup-status` | - | Main |
+
+### Backup Schedule (Updated January 20, 2026)
+
+| Backup Type | Schedule | Datastore | Retention |
+|-------------|----------|-----------|-----------|
+| Daily Backups | 19:00 (7 PM) | pbs-daily (NVMe) | 7 days |
+| Main/Weekly Backups | Fridays at 02:00 AM | pbs-main (HDD) | 4 weeks |
+| NAS Direct Backup | Sundays at 01:00 | ProxmoxData | 4 weeks |
+| PBS-to-NAS Sync | 02:00 AM daily | N/A (rsync) | Mirrors PBS |
+
+The schedule footer on the Backup page displays: "Daily backups run at 19:00 (7 PM) • Main backups run Fridays at 02:00 AM • NAS sync at 02:00 AM"
+
+### Backup Jobs Overview Widget
+
+Displays three cards with backup job status and **durations**:
+
+| Card | Color | Fields |
+|------|-------|--------|
+| 📦 DAILY BACKUPS | Green (#22c55e) | Status, Last backup, Duration, Snapshot count |
+| 🗄️ MAIN BACKUPS | Purple (#8b5cf6) | Status, Last backup, Duration, Snapshot count |
+| ☁️ NAS SYNC | Blue (#3b82f6) | Status, Last sync, Duration, NAS storage sizes |
+
+**Status Indicators**:
+| Status | Badge Color |
+|--------|-------------|
+| success | Green (#22c55e) |
+| stale | Orange (#f59e0b) |
+| running | Blue (#3b82f6) |
+| error | Red (#ef4444) |
+| N/A | Gray (#666) |
+
+**Stale Thresholds**:
+- Daily backups: >26 hours since last backup
+- Main backups: >8 days since last backup
+
+### VM & Container Backup Status Widget
+
+Lists all protected VMs/CTs with **names** and last backup times.
+
+| Feature | Description |
+|---------|-------------|
+| **VM Names** | Human-readable names instead of just VMIDs |
+| **Type Badges** | Blue [VM] or Orange [CT] indicator |
+| **Border Color** | Blue left border for VMs, Orange for CTs |
+| **Sorting** | By VMID ascending |
+| **Max Height** | 500px with overflow scroll |
+
+**Response Format** (from API):
+```json
+{
+  "backups": [
+    {"vmid": "100", "name": "pbs-server", "type": "VM", "datastore": "main", "last_backup": "2026-01-14 17:48"},
+    {"vmid": "101", "name": "docker-lxc-glance", "type": "CT", "datastore": "daily", "last_backup": "2026-01-14 18:33"}
+  ],
+  "total_count": 23,
+  "vm_count": 10,
+  "ct_count": 13,
+  "cached": true
+}
+```
 
 ### PBS Grafana Dashboard
 
 | Setting | Value |
 |---------|-------|
 | **UID** | `pbs-backup-status` |
-| **Height** | 600px |
-| **URL** | `https://grafana.hrmsmrflrii.xyz/d/pbs-backup-status/pbs-backup-status?kiosk&theme=transparent&refresh=60s` |
+| **Height** | 1400px (updated to eliminate scrolling) |
+| **URL** | `https://grafana.hrmsmrflrii.xyz/d/pbs-backup-status/pbs-backup-status?orgId=1&kiosk&theme=transparent&refresh=1m` |
 | **Dashboard JSON** | `dashboards/pbs-backup-status.json` |
 
 **Panels**:
@@ -363,54 +495,9 @@ Monitors SMART health of PBS storage drives via custom API running on node03.
 | **Service** | `smart-health-api.service` on node03 |
 | **Drives Monitored** | Seagate 4TB HDD (main datastore), Kingston 1TB NVMe (daily datastore) |
 
-### NAS Backup Sync Widget
-
-Shows PBS-to-NAS rsync status.
-
-| Property | Value |
-|----------|-------|
-| **API Endpoint** | http://192.168.40.13:9102/status |
-| **Container** | `nas-backup-status-api` on docker-vm-core-utilities01 |
-| **Port** | 9102 |
-
-**Displayed Fields**:
-| Field | Description |
-|-------|-------------|
-| Sync Status | ✓ Synced (green) or ✗ Not Synced (red) |
-| Last Sync | Timestamp of last successful rsync |
-| NAS Usage | Used / Total storage on NAS backup volume |
-
-### Backups on NAS Widget
-
-Lists all VMs and CTs backed up on the Synology NAS.
-
-| Property | Value |
-|----------|-------|
-| **API Endpoint** | http://192.168.40.13:9102/backups |
-| **Container** | `nas-backup-status-api` on docker-vm-core-utilities01 |
-| **Port** | 9102 |
-
-**Response Format**:
-```json
-{
-  "backups": [
-    {"vmid": "100", "type": "VM", "datastore": "daily", "last_backup": "2026-01-12 14:30"},
-    {"vmid": "200", "type": "CT", "datastore": "main", "last_backup": "2026-01-11 02:00"}
-  ],
-  "total_count": 14,
-  "vm_count": 7,
-  "ct_count": 7
-}
-```
-
-**Display**:
-- Total protected count with breakdown (VMs | CTs)
-- Scrollable list with type indicator (blue=VM, orange=CT)
-- Last backup timestamp for each
-
 ### NAS Backup Status API
 
-Python Flask/Gunicorn API that queries PBS via SSH.
+Python Flask/Gunicorn API that queries PBS via SSH with background caching.
 
 | Property | Value |
 |----------|-------|
@@ -422,15 +509,17 @@ Python Flask/Gunicorn API that queries PBS via SSH.
 **Endpoints**:
 | Endpoint | Description |
 |----------|-------------|
-| `/status` | Sync status, last sync time, datastore sizes |
-| `/backups` | List of all VMs/CTs backed up on NAS with timestamps |
-| `/health` | Health check |
+| `/status` | Sync status, last sync time, datastore sizes, **job durations** |
+| `/backups` | List of all VMs/CTs backed up on NAS **with names** |
+| `/job-status` | Just the job status portion (daily, main) |
+| `/health` | Health check with cache status |
+| `/refresh` | Force cache refresh |
 
 **Test Commands**:
 ```bash
-curl http://192.168.40.13:9102/status
-curl http://192.168.40.13:9102/backups
-curl http://192.168.40.13:9102/health
+curl http://192.168.40.13:9102/status | jq .
+curl http://192.168.40.13:9102/backups | jq .
+curl http://192.168.40.13:9102/job-status | jq .
 ```
 
 ### Deployment
@@ -440,9 +529,18 @@ curl http://192.168.40.13:9102/health
 ansible-playbook glance/deploy-nas-backup-status-api.yml
 
 # Verify API is working
-curl http://192.168.40.13:9102/status
-curl http://192.168.40.13:9102/backups
+curl http://192.168.40.13:9102/status | jq .
+curl http://192.168.40.13:9102/backups | jq .
 ```
+
+### Files
+
+| File | Purpose |
+|------|---------|
+| `ansible/playbooks/glance/files/backup-page.yml` | Glance backup page configuration |
+| `ansible/playbooks/glance/files/nas-backup-api-app.py` | Python API source code |
+| `ansible/playbooks/glance/deploy-nas-backup-status-api.yml` | API deployment playbook |
+| `ansible/playbooks/glance/deploy-smart-health-api.yml` | SMART health API deployment |
 
 See also: [[23 - PBS Monitoring]] for detailed PBS monitoring documentation.
 
@@ -1199,6 +1297,515 @@ The Reddit tab provides a dynamic Reddit feed aggregator with thumbnails and nat
 ```bash
 ansible-playbook glance/deploy-web-reddit-update.yml
 ```
+
+## Gaming PC & Steam Integration (Added January 16, 2026)
+
+The dashboard includes widgets for monitoring a gaming PC (on Compute page sidebar) and displaying Steam profile statistics (on Home page sidebar).
+
+### Architecture Overview
+
+```
+┌─────────────────────────────────────────────────────────────────────┐
+│                        Glance Dashboard                              │
+├──────────────────────────────────┬──────────────────────────────────┤
+│  Home Page Sidebar               │  Compute Page Sidebar             │
+│  ┌─────────────────────────┐     │  ┌─────────────────────────┐     │
+│  │   Steam Top Played      │     │  │     Gaming PC           │     │
+│  │   (Top 5 games)         │     │  │   (CPU/GPU/Memory)      │     │
+│  │   http://192.168.40.13: │     │  │   http://192.168.40.13: │     │
+│  │   5055/stats            │     │  │   5056/stats            │     │
+│  └─────────────────────────┘     │  └─────────────────────────┘     │
+└──────────────────────────────────┴──────────────────────────────────┘
+                                  │
+                                  ▼
+                    docker-vm-core-utilities01
+                         192.168.40.13
+              ┌─────────────────────────────────┐
+              │  Steam Stats API (port 5055)    │
+              │  Gaming PC Stats API (port 5056)│
+              └────────────────┬────────────────┘
+                               │
+                               ▼
+              ┌─────────────────────────────────┐
+              │  Gaming PC (192.168.40.13)      │
+              │  LibreHardwareMonitor :8085     │
+              └─────────────────────────────────┘
+```
+
+### Gaming PC Stats API (Middleware)
+
+A Python Flask API that fetches and simplifies LibreHardwareMonitor JSON data for Glance.
+
+| Property | Value |
+|----------|-------|
+| **Host** | docker-vm-core-utilities01 (192.168.40.13) |
+| **Port** | 5056 |
+| **Container** | gaming-pc-stats |
+| **Endpoint** | `http://192.168.40.13:5056/stats` |
+| **Cache** | 10 seconds |
+
+**Why a Middleware API?**
+- LibreHardwareMonitor's JSON is deeply nested and complex
+- Glance's template engine doesn't support `hasPrefix`, `hasSuffix`, `contains` functions
+- The middleware pre-processes the data into a clean, flat JSON structure
+
+**API Response:**
+```json
+{
+  "online": true,
+  "hostname": "GAMING-PC",
+  "cpu": {"temp": "65°C", "load": "25%", "name": "AMD Ryzen 7 9800X3D"},
+  "gpu": {"temp": "55°C", "load": "10%", "vram": "2.1 GB", "name": "NVIDIA RTX 4080"},
+  "memory": {"load": "45%", "used": "28.8 GB", "available": "35.2 GB"},
+  "fans": [{"name": "CPU Fan", "speed": "1200 RPM"}],
+  "storage": [{"name": "Samsung 990 Pro", "temp": "45°C", "used": "512 GB"}]
+}
+```
+
+### Gaming PC Widget (Compute Page Sidebar)
+
+Displays real-time hardware metrics in a compact sidebar format.
+
+| Setting | Value |
+|---------|-------|
+| **Widget Location** | Compute page, right sidebar |
+| **API Endpoint** | `http://192.168.40.13:5056/stats` |
+| **Cache** | 30 seconds |
+
+**Metrics Displayed:**
+| Category | Metrics |
+|----------|---------|
+| CPU | Temperature, Load % |
+| GPU | Temperature, Load % |
+| Memory | Used, Usage % |
+| Storage | NVMe/SSD temperatures |
+
+**Visual Design:**
+- CPU: Red/Orange theme (#ef4444)
+- GPU: Green theme (#4ade80)
+- Memory: Blue theme (#60a5fa)
+- Storage: Yellow/Amber theme (#fbbf24)
+- Offline state: Shows "💤 PC Offline" message
+
+### LibreHardwareMonitor Setup (Windows)
+
+1. **Download**: https://github.com/LibreHardwareMonitor/LibreHardwareMonitor/releases
+2. **Run as Administrator** (required for full sensor access)
+3. **Enable HTTP Server**: Options → HTTP Server → Run HTTP Server
+4. **Configure Port**: Default 8085
+5. **Auto-start** (optional): Options → Run on Windows Startup
+
+**Test Connection:**
+```bash
+# Test raw LHM endpoint
+curl http://192.168.40.13:8085/data.json | jq .
+
+# Test Gaming PC Stats API (middleware)
+curl http://192.168.40.13:5056/stats | jq .
+curl http://192.168.40.13:5056/health
+```
+
+### Steam Profile Widget (Home Page Sidebar)
+
+Displays top 5 most played Steam games with playtime statistics.
+
+| Setting | Value |
+|---------|-------|
+| **Widget Location** | Home page, right sidebar |
+| **API Endpoint** | `http://192.168.40.13:5055/stats` |
+| **Cache** | 1 hour |
+
+**Features Displayed:**
+| Feature | Description |
+|---------|-------------|
+| Profile | Avatar, username |
+| Game Count | Total games owned |
+| Top 5 Games | Most played games sorted by total playtime |
+
+**Game Display:**
+- Thumbnail image (46x22px from Steam CDN)
+- Game title (truncated if too long)
+- Total playtime (Xh Xm format)
+
+### Steam Stats API
+
+Python Flask API that aggregates Steam profile data.
+
+| Property | Value |
+|----------|-------|
+| **Host** | docker-vm-core-utilities01 (192.168.40.13) |
+| **Port** | 5055 |
+| **Container** | steam-stats |
+| **Config** | `/opt/steam-stats/` |
+
+**Environment Variables:**
+| Variable | Description |
+|----------|-------------|
+| `STEAM_API_KEY` | Steam Web API key |
+| `STEAM_ID` | Steam64 ID (17-digit number) |
+
+**API Response:**
+```json
+{
+  "profile": {
+    "name": "username",
+    "avatar": "https://...",
+    "status": "Online"
+  },
+  "total_games": 250,
+  "top_played": [
+    {
+      "name": "Cities: Skylines",
+      "thumbnail": "https://cdn.cloudflare.steamstatic.com/steam/apps/255710/header.jpg",
+      "playtime": "594h 30m",
+      "playtime_hours": 594.5
+    },
+    {
+      "name": "Wallpaper Engine",
+      "playtime": "408h 15m"
+    }
+  ],
+  "recent_games": [...],
+  "wishlist_on_sale": [...],
+  "wishlist_sale_count": 3
+}
+```
+
+### Getting Steam Credentials
+
+1. **Steam API Key**: https://steamcommunity.com/dev/apikey
+   - Log in with your Steam account
+   - Enter any domain name (e.g., "homelab.local")
+   - Copy the API key
+
+2. **Steam64 ID**: https://steamid.io/
+   - Paste your Steam profile URL
+   - Copy the `steamID64` (17-digit number)
+
+### Deployment
+
+```bash
+# Deploy Steam Stats API (replace with your credentials)
+ansible-playbook ansible/playbooks/glance/deploy-steam-stats-api.yml \
+  -e "steam_api_key=YOUR_STEAM_API_KEY" \
+  -e "steam_id=YOUR_STEAM64_ID"
+
+# Deploy Gaming PC Stats API
+ansible-playbook ansible/playbooks/glance/deploy-gaming-pc-api.yml
+```
+
+### Test Commands
+
+```bash
+# Test Gaming PC Stats API
+curl http://192.168.40.13:5056/stats | jq .
+curl http://192.168.40.13:5056/health
+
+# Test Steam Stats API
+curl http://192.168.40.13:5055/stats | jq .
+curl http://192.168.40.13:5055/health
+
+# Test raw LibreHardwareMonitor (if accessible)
+curl http://192.168.40.13:8085/data.json | jq '.Children[0].Text'
+```
+
+### Files Reference
+
+| File | Purpose |
+|------|---------|
+| `ansible/playbooks/glance/deploy-steam-stats-api.yml` | Steam API deployment |
+| `ansible/playbooks/glance/deploy-gaming-pc-api.yml` | Gaming PC middleware API deployment |
+| `ansible/playbooks/glance/add-gaming-widgets.py` | Widget insertion script |
+| `ansible/playbooks/glance/fix-gaming-widget-v2.py` | Widget location fix script |
+
+### Troubleshooting
+
+**Gaming PC widget shows "PC Offline":**
+- Verify LibreHardwareMonitor is running as Administrator
+- Check HTTP server is enabled (Options → HTTP Server)
+- Test middleware API: `curl http://192.168.40.13:5056/stats`
+- Check container logs: `docker logs gaming-pc-stats`
+- Ensure Windows Firewall allows port 8085
+
+**Gaming PC widget shows stale data:**
+- The API caches data for 10 seconds
+- Wait for cache to expire or restart the container
+
+**Steam widget shows error:**
+- Verify API key is valid: https://steamcommunity.com/dev/apikey
+- Check Steam64 ID is correct: https://steamid.io/
+- Test API: `curl http://192.168.40.13:5055/health`
+- Check container logs: `docker logs steam-stats`
+
+**Wishlist not showing:**
+- Steam wishlist must be set to **Public** in privacy settings
+- Check: Steam → Edit Profile → Privacy Settings → Game Details → Public
+
+## Power Control API (Added January 22, 2026)
+
+The Power Control API provides cluster management capabilities directly from the Glance dashboard, including shutdown, Wake-on-LAN, and PBS backup triggers.
+
+### Quick Reference
+
+| Item | Value |
+|------|-------|
+| **Dashboard URL** | https://power.hrmsmrflrii.xyz |
+| **Internal URL** | http://192.168.40.13:5057 |
+| **Container** | power-control-api |
+| **Host** | docker-vm-core-utilities01 (192.168.40.13) |
+| **GitHub** | https://github.com/herms14/glance-dashboard |
+
+### Architecture
+
+```
+┌─────────────────────────────────────────────────────────────────────┐
+│                        Glance Dashboard                              │
+│                    (Services Page - iframe)                          │
+│              https://power.hrmsmrflrii.xyz                          │
+└─────────────────────────────────────────────────────────────────────┘
+                              │
+                              ▼ (HTTPS via Traefik)
+┌─────────────────────────────────────────────────────────────────────┐
+│                    Power Control API (port 5057)                     │
+│                    docker-vm-core-utilities01                        │
+│              ┌─────────────────────────────────────┐                │
+│              │  Flask/Gunicorn + Embedded UI       │                │
+│              │  - Node status monitoring           │                │
+│              │  - Shutdown orchestration           │                │
+│              │  - Wake-on-LAN packets              │                │
+│              │  - PBS backup triggers              │                │
+│              └─────────────────────────────────────┘                │
+└─────────────────────────────────────────────────────────────────────┘
+                              │
+              ┌───────────────┼───────────────┐
+              ▼               ▼               ▼
+         ┌─────────┐    ┌─────────┐    ┌─────────┐
+         │ node01  │    │ node02  │    │ node03  │
+         │ SSH:22  │    │ SSH:22  │    │ SSH:22  │
+         └─────────┘    └─────────┘    └─────────┘
+```
+
+### API Endpoints
+
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/` | GET | Embedded HTML/CSS/JS UI |
+| `/status` | GET | Current status of all nodes (online/offline, shutdown state) |
+| `/shutdown` | POST | Initiate graceful shutdown of selected nodes |
+| `/wol` | POST | Send Wake-on-LAN magic packet to selected nodes |
+| `/backup` | POST | Trigger PBS backup job (manual) |
+
+### Node Configuration
+
+| Node | IP Address | MAC Address | SSH User |
+|------|------------|-------------|----------|
+| node01 | 192.168.20.20 | `ec:8e:b5:6d:43:54` | root |
+| node02 | 192.168.20.21 | `ec:8e:b5:6d:7b:18` | root |
+| node03 | 192.168.20.22 | `a0:36:bc:e1:f9:08` | root |
+
+### Traefik Route Configuration
+
+The API is exposed via HTTPS through Traefik at `power.hrmsmrflrii.xyz`:
+
+**File**: `/opt/traefik/config/dynamic/power-control.yml` (on Traefik host)
+
+```yaml
+http:
+  routers:
+    power-control:
+      rule: "Host(`power.hrmsmrflrii.xyz`)"
+      entryPoints:
+        - websecure
+      service: power-control
+      tls:
+        certResolver: letsencrypt
+  services:
+    power-control:
+      loadBalancer:
+        servers:
+          - url: "http://192.168.40.13:5057"
+```
+
+### Bugs Fixed (January 22, 2026)
+
+| Bug | Symptom | Root Cause | Fix |
+|-----|---------|------------|-----|
+| **Shutdown command not executing** | Nodes received command but stayed online | `shutdown -h now` unreliable on Proxmox VE | Changed to `systemctl poweroff` with nohup |
+| **Mixed Content error** | Browser blocked iframe | HTTPS page loading HTTP iframe | Added Traefik route for HTTPS |
+| **Missing confirmTitle ID** | JS error on modal open | HTML element missing `id` attribute | Added `id="confirmTitle"` |
+| **setLoading null error** | JS error on button click | Missing status elements | Simplified function to only handle buttons |
+| **Empty nodes array on shutdown** | API returned 400 Bad Request | `cancelConfirm()` cleared array before API call | Reordered to save nodes first |
+
+### Shutdown Command Fix
+
+The original shutdown command didn't work reliably on Proxmox VE:
+
+```python
+# BEFORE (unreliable):
+client.exec_command("shutdown -h now 'Shutdown initiated from Glance Dashboard'")
+
+# AFTER (working):
+client.exec_command("nohup sh -c 'sleep 2 && systemctl poweroff' > /dev/null 2>&1 &")
+```
+
+**Why this works:**
+- `systemctl poweroff` is the proper systemd shutdown command
+- `nohup` ensures the command persists after SSH disconnects
+- 2-second delay allows SSH session to close cleanly
+- Background execution prevents blocking
+
+### Deployment
+
+```bash
+# Deploy/update the Power Control API
+ansible-playbook ansible/playbooks/glance/deploy-power-control-api.yml
+
+# Restart container after code changes
+ssh hermes-admin@192.168.40.13 "cd /opt/power-control-api && docker compose restart"
+
+# Add Traefik route (one-time setup)
+ssh root@192.168.40.20 "cat > /opt/traefik/config/dynamic/power-control.yml << 'EOF'
+http:
+  routers:
+    power-control:
+      rule: \"Host(\`power.hrmsmrflrii.xyz\`)\"
+      entryPoints:
+        - websecure
+      service: power-control
+      tls:
+        certResolver: letsencrypt
+  services:
+    power-control:
+      loadBalancer:
+        servers:
+          - url: \"http://192.168.40.13:5057\"
+EOF"
+```
+
+### Test Commands
+
+```bash
+# Test API status
+curl http://192.168.40.13:5057/status | jq .
+
+# Test shutdown (specific nodes)
+curl -X POST http://192.168.40.13:5057/shutdown \
+  -H "Content-Type: application/json" \
+  -d '{"nodes": ["node02", "node03"]}'
+
+# Test Wake-on-LAN
+curl -X POST http://192.168.40.13:5057/wol \
+  -H "Content-Type: application/json" \
+  -d '{"nodes": ["node02"]}'
+
+# Check container logs
+ssh hermes-admin@192.168.40.13 "docker logs power-control-api"
+```
+
+### Files Reference
+
+| File | Purpose |
+|------|---------|
+| `ansible/playbooks/glance/files/power-control-api.py` | API source with embedded UI |
+| `ansible/playbooks/glance/deploy-power-control-api.yml` | Ansible deployment playbook |
+| `gitops-repos/glance-homelab/apis/power-control-api.py` | GitHub version (GitOps) |
+| `/opt/traefik/config/dynamic/power-control.yml` | Traefik HTTPS route |
+
+### Troubleshooting
+
+**Shutdown not working:**
+1. Check SSH connectivity: `ssh root@192.168.20.2X "hostname"`
+2. Verify API container: `docker logs power-control-api`
+3. Test command manually: `ssh root@192.168.20.21 "systemctl poweroff"`
+
+**Wake-on-LAN not working:**
+1. Verify WoL enabled in BIOS
+2. Check MAC address in API config
+3. Test with `wakeonlan` command: `wakeonlan ec:8e:b5:6d:7b:18`
+
+**UI not loading in Glance:**
+1. Check Traefik route exists: `ls /opt/traefik/config/dynamic/power-control.yml`
+2. Verify DNS resolves: `nslookup power.hrmsmrflrii.xyz`
+3. Test HTTPS URL directly: `curl -I https://power.hrmsmrflrii.xyz/`
+
+## Service Version Manager API
+
+### Overview
+
+The Service Version Manager API powers the Glance Services page with real-time health status, version tracking, and one-click Docker container updates across all homelab hosts.
+
+### Service Details
+
+| Item | Value |
+|------|-------|
+| **Container** | service-version-api |
+| **Port** | 5070 |
+| **Host** | docker-vm-core-utilities01 (192.168.40.13) |
+| **Health** | http://192.168.40.13:5070/health |
+| **All Services** | http://192.168.40.13:5070/api/services |
+| **Summary** | http://192.168.40.13:5070/api/summary |
+| **Source** | `ansible/playbooks/glance/files/service-version-api.py` |
+| **Playbook** | `ansible/playbooks/glance/deploy-service-version-api.yml` |
+
+### API Endpoints
+
+| Endpoint | Method | Purpose |
+|----------|--------|---------|
+| `/api/services` | GET | All services grouped by category |
+| `/api/services/<category>` | GET | Services for one category |
+| `/api/summary` | GET | Summary counts for sidebar widget |
+| `/api/update/<name>` | POST | Trigger Docker update (requires `X-API-Key`) |
+| `/api/update-status/<id>` | GET | Poll update task progress |
+| `/health` | GET | Health check |
+| `/refresh` | POST/GET | Force cache refresh |
+
+### Categories
+
+| Category Key | Display Name | Count |
+|-------------|-------------|-------|
+| `infrastructure` | Critical Infrastructure | 6 |
+| `auth` | Auth & Identity | 3 |
+| `core_apps` | Core Applications | 13 |
+| `media` | Media Stack | 15 |
+| `monitoring` | Monitoring & Observability | 7 |
+| `apis_bots` | Custom APIs & Bots | 9 |
+
+### How Version Tracking Works
+
+1. **Health checks** (every 60s): HTTP requests to service health endpoints, or `docker inspect` for containers without HTTP endpoints
+2. **Version detection** (every 1h): `docker inspect` to get current image digest + OCI version label
+3. **Upstream comparison**: Query Docker Hub / GHCR Registry v2 API for latest manifest digest; compare with local digest
+4. **Update mechanism**: SSH to host, `docker compose pull <service> && docker compose up -d --force-recreate <service>`
+
+### Safety Features
+
+- **Blacklisted services**: `traefik`, `authentik-server`, `authentik-worker`, `glance` cannot be updated via one-click
+- **API key** required for all update operations
+- **Per-service mutex** prevents concurrent updates
+- **Custom-built APIs** (registry: local) show health only, no version comparison
+- **Non-Docker services** (Proxmox nodes, NAS, PBS) show health only
+
+### Deployment
+
+```bash
+ansible-playbook -i inventory.ini glance/deploy-service-version-api.yml
+```
+
+### Troubleshooting
+
+**API not responding:**
+1. Check container status: `ssh docker-utils 'docker ps | grep service-version'`
+2. Check logs: `ssh docker-utils 'docker logs service-version-api --tail 50'`
+3. Rebuild: `ssh docker-utils 'cd /opt/service-version-api && docker compose up -d --build'`
+
+**Version showing "unknown":**
+- Container may not have OCI labels and uses `:latest` tag
+- Check manually: `docker inspect <container> --format '{{index .Config.Labels "org.opencontainers.image.version"}}'`
+
+**Update button not working:**
+- Check API key matches in environment variable and Glance template
+- Check SSH connectivity from API container to target host
+- View update task: `curl http://192.168.40.13:5070/api/update-status/<task_id>`
 
 ## Related Documentation
 

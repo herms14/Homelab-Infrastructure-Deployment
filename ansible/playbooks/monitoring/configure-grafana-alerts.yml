@@ -1,0 +1,349 @@
+---
+# Configure Grafana Alerting with Discord Webhook for Immich Host
+# Sets up contact point, notification policy, and alert rules
+#
+# Targets: docker-vm-utilities01 (192.168.40.13) - Grafana host
+#
+# Usage:
+#   ansible-playbook monitoring/configure-grafana-alerts.yml -i "192.168.40.13," -u hermes-admin --become \
+#     -e "discord_webhook_url=https://discord.com/api/webhooks/YOUR_WEBHOOK_ID/YOUR_WEBHOOK_TOKEN"
+#
+# Prerequisites:
+#   - Grafana running on 192.168.40.13:3030
+#   - Prometheus scraping node-immich target
+#   - Discord webhook URL for #infrastructure-alerts channel
+#
+# Alert Rules Created:
+#   1. Immich Disk Critical (>90%) - severity=critical, fires after 5m
+#   2. Immich Disk Warning (>80%) - severity=warning, fires after 10m
+#   3. Immich Disk Filling Fast (predict 24h) - severity=warning, fires after 15m
+
+- name: Configure Grafana Alerting for Immich Host
+  hosts: all
+  become: true
+  gather_facts: false
+  vars:
+    grafana_url: "http://localhost:3030"
+    grafana_user: "admin"
+    grafana_password: "admin"
+    # Override this with: -e "discord_webhook_url=https://discord.com/api/webhooks/..."
+    discord_webhook_url: "{{ lookup('env', 'DISCORD_WEBHOOK_URL') | default('REPLACE_WITH_DISCORD_WEBHOOK_URL', true) }}"
+    alert_folder_title: "Homelab Alerts"
+
+  tasks:
+    # =========================================================================
+    # Phase 1: Verify prerequisites
+    # =========================================================================
+    - name: Verify Grafana is accessible
+      uri:
+        url: "{{ grafana_url }}/api/health"
+        method: GET
+        status_code: 200
+      register: grafana_health
+      retries: 3
+      delay: 5
+
+    - name: Validate Discord webhook URL is set
+      assert:
+        that:
+          - discord_webhook_url != "REPLACE_WITH_DISCORD_WEBHOOK_URL"
+          - "'discord.com/api/webhooks' in discord_webhook_url"
+        fail_msg: |
+          Discord webhook URL not configured!
+          Run with: -e "discord_webhook_url=https://discord.com/api/webhooks/YOUR_ID/YOUR_TOKEN"
+        success_msg: "Discord webhook URL is configured"
+
+    # =========================================================================
+    # Phase 2: Create alert folder
+    # =========================================================================
+    - name: Check if alert folder exists
+      uri:
+        url: "{{ grafana_url }}/api/folders"
+        method: GET
+        user: "{{ grafana_user }}"
+        password: "{{ grafana_password }}"
+        force_basic_auth: true
+      register: existing_folders
+
+    - name: Create alert folder
+      uri:
+        url: "{{ grafana_url }}/api/folders"
+        method: POST
+        user: "{{ grafana_user }}"
+        password: "{{ grafana_password }}"
+        force_basic_auth: true
+        body_format: json
+        body:
+          uid: "homelab-alerts"
+          title: "{{ alert_folder_title }}"
+        status_code: [200, 409, 412]
+      register: alert_folder
+
+    # =========================================================================
+    # Phase 3: Create Discord contact point
+    # =========================================================================
+    - name: Get existing contact points
+      uri:
+        url: "{{ grafana_url }}/api/v1/provisioning/contact-points"
+        method: GET
+        user: "{{ grafana_user }}"
+        password: "{{ grafana_password }}"
+        force_basic_auth: true
+      register: existing_contact_points
+
+    - name: Create Discord contact point
+      uri:
+        url: "{{ grafana_url }}/api/v1/provisioning/contact-points"
+        method: POST
+        user: "{{ grafana_user }}"
+        password: "{{ grafana_password }}"
+        force_basic_auth: true
+        headers:
+          X-Disable-Provenance: "true"
+        body_format: json
+        body:
+          name: "Discord Infrastructure Alerts"
+          type: "discord"
+          settings:
+            url: "{{ discord_webhook_url }}"
+            message: |
+              {{ '{{' }} if eq .Status "firing" {{ '}}' }}**ALERT FIRING**{{ '{{' }} else {{ '}}' }}**RESOLVED**{{ '{{' }} end {{ '}}' }}
+
+              {{ '{{' }} range .Alerts {{ '}}' }}
+              **{{ '{{' }} .Labels.alertname {{ '}}' }}** ({{ '{{' }} .Labels.severity {{ '}}' }})
+              Host: {{ '{{' }} .Labels.host {{ '}}' }} ({{ '{{' }} .Labels.instance {{ '}}' }})
+              {{ '{{' }} .Annotations.summary {{ '}}' }}
+              Value: {{ '{{' }} .Annotations.value {{ '}}' }}
+              {{ '{{' }} end {{ '}}' }}
+            avatar_url: "https://grafana.com/static/img/fav32.png"
+            use_discord_username: true
+          disableResolveMessage: false
+        status_code: [200, 202]
+      register: contact_point_result
+      when: existing_contact_points.json | selectattr('name', 'equalto', 'Discord Infrastructure Alerts') | list | length == 0
+
+    # =========================================================================
+    # Phase 4: Update notification policy
+    # =========================================================================
+    - name: Configure notification policy to route to Discord
+      uri:
+        url: "{{ grafana_url }}/api/v1/provisioning/policies"
+        method: PUT
+        user: "{{ grafana_user }}"
+        password: "{{ grafana_password }}"
+        force_basic_auth: true
+        headers:
+          X-Disable-Provenance: "true"
+        body_format: json
+        body:
+          receiver: "grafana-default-email"
+          group_by: ["grafana_folder", "alertname"]
+          group_wait: "30s"
+          group_interval: "5m"
+          repeat_interval: "4h"
+          routes:
+            - receiver: "Discord Infrastructure Alerts"
+              matchers:
+                - "severity=~critical|warning"
+              group_by: ["alertname", "host"]
+              group_wait: "30s"
+              group_interval: "5m"
+              repeat_interval: "4h"
+              continue: false
+        status_code: [200, 202]
+
+    # =========================================================================
+    # Phase 5: Create alert rules
+    # =========================================================================
+    - name: Create Immich Disk Critical alert rule (>90%)
+      uri:
+        url: "{{ grafana_url }}/api/v1/provisioning/alert-rules"
+        method: POST
+        user: "{{ grafana_user }}"
+        password: "{{ grafana_password }}"
+        force_basic_auth: true
+        headers:
+          X-Disable-Provenance: "true"
+        body_format: json
+        body:
+          title: "Immich Disk Critical"
+          ruleGroup: "immich-host-alerts"
+          folderUID: "homelab-alerts"
+          condition: "threshold"
+          for: "5m"
+          annotations:
+            summary: "Immich host disk usage is critically high (>90%)"
+            value: "{{ '{{' }} $values.disk_usage {{ '}}' }}% used"
+            description: "The Immich host (192.168.40.22) root disk is above 90%. Immediate action required to prevent service outage."
+          labels:
+            severity: "critical"
+            host: "immich"
+            service: "immich"
+          noDataState: "NoData"
+          execErrState: "Error"
+          data:
+            - refId: "disk_usage"
+              relativeTimeRange:
+                from: 300
+                to: 0
+              datasourceUid: "PBFA97CFB590B2093"
+              model:
+                expr: '100 - (node_filesystem_avail_bytes{job="node-immich", mountpoint="/", fstype!="tmpfs"} / node_filesystem_size_bytes{job="node-immich", mountpoint="/", fstype!="tmpfs"} * 100)'
+                refId: "disk_usage"
+            - refId: "threshold"
+              relativeTimeRange:
+                from: 300
+                to: 0
+              datasourceUid: "__expr__"
+              model:
+                type: "threshold"
+                expression: "disk_usage"
+                conditions:
+                  - evaluator:
+                      type: "gt"
+                      params:
+                        - 90
+                    operator:
+                      type: "and"
+                    reducer:
+                      type: "last"
+                refId: "threshold"
+        status_code: [201, 409]
+      register: critical_rule
+
+    - name: Create Immich Disk Warning alert rule (>80%)
+      uri:
+        url: "{{ grafana_url }}/api/v1/provisioning/alert-rules"
+        method: POST
+        user: "{{ grafana_user }}"
+        password: "{{ grafana_password }}"
+        force_basic_auth: true
+        headers:
+          X-Disable-Provenance: "true"
+        body_format: json
+        body:
+          title: "Immich Disk Warning"
+          ruleGroup: "immich-host-alerts"
+          folderUID: "homelab-alerts"
+          condition: "threshold"
+          for: "10m"
+          annotations:
+            summary: "Immich host disk usage is high (>80%)"
+            value: "{{ '{{' }} $values.disk_usage {{ '}}' }}% used"
+            description: "The Immich host (192.168.40.22) root disk is above 80%. Consider cleaning up Docker images and logs."
+          labels:
+            severity: "warning"
+            host: "immich"
+            service: "immich"
+          noDataState: "NoData"
+          execErrState: "Error"
+          data:
+            - refId: "disk_usage"
+              relativeTimeRange:
+                from: 600
+                to: 0
+              datasourceUid: "PBFA97CFB590B2093"
+              model:
+                expr: '100 - (node_filesystem_avail_bytes{job="node-immich", mountpoint="/", fstype!="tmpfs"} / node_filesystem_size_bytes{job="node-immich", mountpoint="/", fstype!="tmpfs"} * 100)'
+                refId: "disk_usage"
+            - refId: "threshold"
+              relativeTimeRange:
+                from: 600
+                to: 0
+              datasourceUid: "__expr__"
+              model:
+                type: "threshold"
+                expression: "disk_usage"
+                conditions:
+                  - evaluator:
+                      type: "gt"
+                      params:
+                        - 80
+                    operator:
+                      type: "and"
+                    reducer:
+                      type: "last"
+                refId: "threshold"
+        status_code: [201, 409]
+      register: warning_rule
+
+    - name: Create Immich Disk Filling Fast alert rule (predict 24h)
+      uri:
+        url: "{{ grafana_url }}/api/v1/provisioning/alert-rules"
+        method: POST
+        user: "{{ grafana_user }}"
+        password: "{{ grafana_password }}"
+        force_basic_auth: true
+        headers:
+          X-Disable-Provenance: "true"
+        body_format: json
+        body:
+          title: "Immich Disk Filling Fast"
+          ruleGroup: "immich-host-alerts"
+          folderUID: "homelab-alerts"
+          condition: "threshold"
+          for: "15m"
+          annotations:
+            summary: "Immich host disk predicted to fill within 24 hours"
+            value: "Predicted to reach 0 bytes free within 24h"
+            description: "Based on the disk usage trend over the last 6 hours, the Immich host (192.168.40.22) root disk is predicted to fill completely within 24 hours."
+          labels:
+            severity: "warning"
+            host: "immich"
+            service: "immich"
+          noDataState: "NoData"
+          execErrState: "Error"
+          data:
+            - refId: "prediction"
+              relativeTimeRange:
+                from: 21600
+                to: 0
+              datasourceUid: "PBFA97CFB590B2093"
+              model:
+                expr: 'predict_linear(node_filesystem_avail_bytes{job="node-immich", mountpoint="/", fstype!="tmpfs"}[6h], 24*3600)'
+                refId: "prediction"
+            - refId: "threshold"
+              relativeTimeRange:
+                from: 21600
+                to: 0
+              datasourceUid: "__expr__"
+              model:
+                type: "threshold"
+                expression: "prediction"
+                conditions:
+                  - evaluator:
+                      type: "lt"
+                      params:
+                        - 0
+                    operator:
+                      type: "and"
+                    reducer:
+                      type: "last"
+                refId: "threshold"
+        status_code: [201, 409]
+      register: predict_rule
+
+    # =========================================================================
+    # Summary
+    # =========================================================================
+    - name: Display summary
+      debug:
+        msg:
+          - "=========================================="
+          - "  Grafana Alerting Configuration Complete"
+          - "=========================================="
+          - ""
+          - "Contact Point: Discord Infrastructure Alerts"
+          - "Notification Policy: severity=critical|warning -> Discord"
+          - ""
+          - "Alert Rules:"
+          - "  1. Immich Disk Critical (>90%) - fires after 5m"
+          - "  2. Immich Disk Warning (>80%) - fires after 10m"
+          - "  3. Immich Disk Filling Fast (24h prediction) - fires after 15m"
+          - ""
+          - "Verify:"
+          - "  - Grafana Alerting UI: http://192.168.40.13:3030/alerting/list"
+          - "  - Contact Points: http://192.168.40.13:3030/alerting/notifications"
+          - ""
+          - "Test Discord integration:"
+          - "  curl -X POST '{{ grafana_url }}/api/v1/provisioning/contact-points/test'"

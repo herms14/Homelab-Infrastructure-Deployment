@@ -1,0 +1,153 @@
+---
+# Add Immich node_exporter Scrape Target to Prometheus
+# Configures Prometheus on docker-vm-utilities01 to scrape node_exporter on Immich host
+#
+# Targets: docker-vm-utilities01 (192.168.40.13) - monitoring host
+#
+# Usage:
+#   ansible-playbook monitoring/add-immich-node-exporter.yml -i "192.168.40.13," -u hermes-admin --become
+#
+# Prerequisites:
+#   - node_exporter running on 192.168.40.22:9100
+#   - Prometheus running on 192.168.40.13
+
+- name: Add Immich node_exporter to Prometheus Scrape Targets
+  hosts: all
+  become: true
+  gather_facts: false
+  vars:
+    prometheus_config: /opt/monitoring/prometheus/prometheus.yml
+    prometheus_container: prometheus
+    immich_host: "192.168.40.22"
+    node_exporter_port: 9100
+    grafana_host: "192.168.40.13"
+    grafana_port: 3030
+    dashboard_json_src: "../../../dashboards/immich-host-health.json"
+
+  tasks:
+    # =========================================================================
+    # Phase 1: Verify node_exporter is reachable
+    # =========================================================================
+    - name: Verify node_exporter on Immich host is reachable
+      uri:
+        url: "http://{{ immich_host }}:{{ node_exporter_port }}/metrics"
+        method: GET
+        status_code: 200
+        timeout: 10
+      register: node_exporter_check
+      retries: 3
+      delay: 5
+
+    - name: Confirm node_exporter is alive
+      debug:
+        msg: "node_exporter on {{ immich_host }}:{{ node_exporter_port }} is reachable"
+
+    # =========================================================================
+    # Phase 2: Add Prometheus scrape target
+    # =========================================================================
+    - name: Add Immich node_exporter scrape job to Prometheus config
+      blockinfile:
+        path: "{{ prometheus_config }}"
+        marker: "  # {mark} ANSIBLE MANAGED - Immich node_exporter"
+        insertafter: "scrape_configs:"
+        block: |2
+            - job_name: 'node-immich'
+              scrape_interval: 30s
+              static_configs:
+                - targets: ['{{ immich_host }}:{{ node_exporter_port }}']
+                  labels:
+                    host: 'immich'
+                    instance: 'immich-vm01'
+      register: prometheus_config_update
+
+    - name: Restart Prometheus to pick up new scrape target
+      command: docker restart {{ prometheus_container }}
+      when: prometheus_config_update.changed
+
+    - name: Wait for Prometheus to be ready
+      uri:
+        url: "http://localhost:9090/-/ready"
+        method: GET
+        status_code: 200
+      register: prometheus_ready
+      retries: 10
+      delay: 3
+      until: prometheus_ready.status == 200
+
+    # =========================================================================
+    # Phase 3: Verify scrape target is up
+    # =========================================================================
+    - name: Wait for Prometheus to scrape the new target
+      pause:
+        seconds: 35
+      when: prometheus_config_update.changed
+
+    - name: Check Prometheus targets for node-immich job
+      uri:
+        url: "http://localhost:9090/api/v1/targets"
+        method: GET
+        return_content: true
+      register: prometheus_targets
+
+    - name: Verify node-immich target is active
+      assert:
+        that:
+          - "'node-immich' in prometheus_targets.content"
+        fail_msg: "node-immich scrape target not found in Prometheus targets!"
+        success_msg: "node-immich scrape target is active in Prometheus"
+
+    # =========================================================================
+    # Phase 4: Deploy Grafana dashboard
+    # =========================================================================
+    - name: Create Grafana dashboards directory
+      file:
+        path: /opt/monitoring/grafana/dashboards
+        state: directory
+        owner: root
+        group: root
+        mode: "0755"
+
+    - name: Copy Immich Host Health dashboard JSON
+      copy:
+        src: "{{ dashboard_json_src }}"
+        dest: /opt/monitoring/grafana/dashboards/immich-host-health.json
+        owner: root
+        group: root
+        mode: "0644"
+
+    - name: Import dashboard via Grafana API
+      uri:
+        url: "http://localhost:{{ grafana_port }}/api/dashboards/db"
+        method: POST
+        user: admin
+        password: admin
+        force_basic_auth: true
+        body_format: json
+        body:
+          dashboard: "{{ lookup('file', dashboard_json_src) | from_json }}"
+          folderId: 0
+          overwrite: true
+        status_code: 200
+      register: dashboard_import
+      ignore_errors: true
+
+    - name: Display dashboard import result
+      debug:
+        msg: "Dashboard import: {{ 'SUCCESS' if dashboard_import.status == 200 else 'FAILED (will use file provisioning)' }}"
+
+    # =========================================================================
+    # Summary
+    # =========================================================================
+    - name: Display summary
+      debug:
+        msg:
+          - "=========================================="
+          - "  Prometheus + Dashboard Setup Complete"
+          - "=========================================="
+          - ""
+          - "Prometheus scrape: node-immich -> {{ immich_host }}:{{ node_exporter_port }}"
+          - "Dashboard: http://{{ grafana_host }}:{{ grafana_port }}/d/immich-host-health"
+          - ""
+          - "Verify:"
+          - "  curl http://{{ immich_host }}:{{ node_exporter_port }}/metrics | grep node_filesystem"
+          - "  curl http://localhost:9090/api/v1/targets | jq '.data.activeTargets[] | select(.labels.job==\"node-immich\")'"

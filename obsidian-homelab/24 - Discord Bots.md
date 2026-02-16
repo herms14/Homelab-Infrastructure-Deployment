@@ -77,9 +77,9 @@ Sentinel Bot (discord.py 2.3+)
 |---------|-------------|
 | `/help` | Show all Sentinel commands in a formatted embed |
 | `/insight` | Health check: memory usage, container errors, storage, failed downloads |
-| `/homelab status` | Cluster overview with resource bars |
-| `/homelab uptime` | Uptime for all nodes/VMs/LXCs |
-| `/node <name> status` | Detailed status for a node |
+| `/homelab status` | Cluster overview with resource bars (all 3 nodes) |
+| `/homelab uptime` | Uptime for all 3 Proxmox nodes and Docker hosts |
+| `/node <name> status` | Detailed status for a node (node01, node02, node03) |
 | `/node <name> vms` | List VMs on a node |
 | `/node <name> lxc` | List LXC containers on a node |
 | `/node <name> restart` | Restart Proxmox node (with confirmation) |
@@ -92,11 +92,32 @@ Sentinel Bot (discord.py 2.3+)
 
 | Command | Description |
 |---------|-------------|
-| `/check` | Scan all containers for updates |
+| `/check` | Scan all containers for updates (pulls images to detect) |
 | `/update <container>` | Update specific container |
-| `/updateall` | Update all with pending updates |
-| `/updateall-except <list>` | Update all except specified |
+| `/updateall` | Check and update all containers with available updates |
 | `/containers` | List monitored containers |
+| `/restart <container>` | Restart a container |
+| `/logs <container> [lines]` | View container logs |
+| `/vmcheck` | Check VMs for apt updates |
+
+**`/check` Workflow** (January 2026):
+1. Inspects each container's current image
+2. Pulls latest image from registry
+3. Reports containers with newer images available
+
+**Error Detection**: Shows specific messages for common issues:
+- "Docker unavailable" - Docker daemon not running on host
+- "Container 'X' not found" - Container doesn't exist
+- "Connection failed" - SSH connection issue
+
+**Monitored Hosts**: 46 containers across 6 hosts (utilities, media, glance, traefik, authentik, immich)
+
+**`/updateall` Workflow** (Fixed January 2026):
+1. Checks all containers for updates (pulls images)
+2. Shows list of containers with updates
+3. **Recreates containers** using `docker compose up -d --force-recreate` (not just restart)
+
+> **Important**: The January 2026 fix changed from `docker restart` to `docker compose recreate`. A simple restart doesn't apply new images - containers must be recreated to use pulled updates.
 
 #### Media (`#media-downloads`)
 
@@ -273,6 +294,9 @@ PROMETHEUS_URL=http://192.168.40.13:9090
 
 # Webhook
 WEBHOOK_PORT=5050
+
+# Command Sync (set to true once to register new commands)
+SYNC_COMMANDS=false
 ```
 
 ### Management
@@ -372,8 +396,17 @@ The old bots have been stopped and removed:
 
 ### Commands not syncing
 1. Discord slash commands take up to 1 hour to propagate
-2. Restart bot to force sync
-3. Check logs for "Slash commands synced" message
+2. Set `SYNC_COMMANDS=true` in `.env` and restart the bot
+3. Check logs for "Commands synced to guild" message
+4. Set `SYNC_COMMANDS=false` after sync completes
+
+```bash
+# Force command sync
+ssh hermes-admin@192.168.40.13 "cd /opt/sentinel-bot && sudo sed -i 's/SYNC_COMMANDS=false/SYNC_COMMANDS=true/' .env && sudo docker compose restart"
+
+# After sync, disable it again
+ssh hermes-admin@192.168.40.13 "cd /opt/sentinel-bot && sudo sed -i 's/SYNC_COMMANDS=true/SYNC_COMMANDS=false/' .env"
+```
 
 ### Token issues
 1. Regenerate token in Discord Developer Portal
@@ -395,6 +428,27 @@ If issues persist:
 2. Test webhook: `curl http://192.168.40.13:5050/health`
 3. Check firewall allows port 5050
 
+### Container updates not applying (Fixed January 2026)
+**Symptom**: `/updateall` reports success but containers still run old images
+
+**Root Cause**: The original code used `docker restart` after pulling images. However, `docker restart` does NOT apply new images - it just restarts the container with its existing image.
+
+**Fix Applied**: Changed update logic to use docker-compose commands:
+- `docker compose pull <service>` - Pull the new image
+- `docker compose up -d --force-recreate <service>` - Recreate container with new image
+
+**Configuration Required**: Each container must have its compose directory mapped in `config.py`:
+```python
+COMPOSE_DIRS = {
+    'grafana': '/opt/docker/monitoring',
+    'jellyfin': '/opt/docker/media',
+    'glance': '/opt/glance',
+    # ... etc
+}
+```
+
+If a container shows "No compose dir configured", add its mapping to `COMPOSE_DIRS` in `config.py`.
+
 ---
 
 ## Related Documents
@@ -408,5 +462,5 @@ If issues persist:
 ---
 
 *Created: December 26, 2025*
-*Updated: January 13, 2026*
+*Updated: January 21, 2026*
 *Bot: Sentinel (consolidated)*

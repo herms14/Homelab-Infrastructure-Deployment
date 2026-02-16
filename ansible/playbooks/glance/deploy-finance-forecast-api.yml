@@ -1,0 +1,194 @@
+---
+# Deploy Finance Forecast API for Glance Dashboard
+# Run: ansible-playbook -i "192.168.40.12," deploy-finance-forecast-api.yml
+
+- name: Deploy Finance Forecast API
+  hosts: all
+  become: yes
+  vars:
+    ansible_user: hermes-admin
+    ansible_ssh_private_key_file: ~/.ssh/homelab_ed25519
+    api_dir: /opt/finance-forecast-api
+    api_port: 5060
+
+  tasks:
+    - name: Display deployment info
+      debug:
+        msg: |
+          ==========================================
+          Deploying Finance Forecast API
+          ==========================================
+          Host: {{ inventory_hostname }}
+          Directory: {{ api_dir }}
+          Port: {{ api_port }}
+          ==========================================
+
+    - name: Create API directory
+      file:
+        path: "{{ api_dir }}"
+        state: directory
+        owner: hermes-admin
+        group: hermes-admin
+        mode: '0755'
+
+    - name: Create config directory
+      file:
+        path: "{{ api_dir }}/config"
+        state: directory
+        owner: hermes-admin
+        group: hermes-admin
+        mode: '0755'
+
+    - name: Copy Finance Forecast API script
+      copy:
+        src: files/finance-forecast-api.py
+        dest: "{{ api_dir }}/finance-forecast-api.py"
+        owner: hermes-admin
+        group: hermes-admin
+        mode: '0755'
+
+    - name: Create requirements.txt
+      copy:
+        dest: "{{ api_dir }}/requirements.txt"
+        content: |
+          flask==3.0.0
+          flask-cors==4.0.0
+          gunicorn==21.2.0
+        owner: hermes-admin
+        group: hermes-admin
+        mode: '0644'
+
+    - name: Create Dockerfile
+      copy:
+        dest: "{{ api_dir }}/Dockerfile"
+        content: |
+          FROM python:3.11-slim
+
+          WORKDIR /app
+
+          COPY requirements.txt .
+          RUN pip install --no-cache-dir -r requirements.txt
+
+          COPY finance-forecast-api.py .
+
+          ENV CONFIG_DIR=/app/config
+          EXPOSE 5060
+
+          CMD ["gunicorn", "--bind", "0.0.0.0:5060", "--workers", "2", "finance-forecast-api:app"]
+        owner: hermes-admin
+        group: hermes-admin
+        mode: '0644'
+
+    - name: Create docker-compose.yml
+      copy:
+        dest: "{{ api_dir }}/docker-compose.yml"
+        content: |
+          services:
+            finance-forecast-api:
+              build: .
+              container_name: finance-forecast-api
+              restart: unless-stopped
+              ports:
+                - "{{ api_port }}:5060"
+              volumes:
+                - ./config:/app/config
+              environment:
+                - CONFIG_DIR=/app/config
+              healthcheck:
+                test: ["CMD", "curl", "-f", "http://localhost:5060/api/health"]
+                interval: 30s
+                timeout: 10s
+                retries: 3
+              labels:
+                - "com.centurylinklabs.watchtower.enable=false"
+        owner: hermes-admin
+        group: hermes-admin
+        mode: '0644'
+
+    - name: Create default insurance config
+      copy:
+        dest: "{{ api_dir }}/config/insurance.json"
+        content: |
+          {
+            "policies": [
+              {
+                "name": "Health Insurance",
+                "provider": "Update Provider Name",
+                "policy_number": "XXXX-XXXX",
+                "coverage": "$500,000",
+                "premium": "$200/month",
+                "renewal_date": "2026-12-31",
+                "type": "health",
+                "status": "active"
+              },
+              {
+                "name": "Car Insurance",
+                "provider": "Update Provider Name",
+                "policy_number": "XXXX-XXXX",
+                "coverage": "Full Coverage",
+                "premium": "$150/month",
+                "renewal_date": "2026-06-30",
+                "type": "auto",
+                "status": "active"
+              }
+            ]
+          }
+        owner: hermes-admin
+        group: hermes-admin
+        mode: '0644'
+        force: no
+
+    - name: Create default savings config
+      copy:
+        dest: "{{ api_dir }}/config/savings.json"
+        content: |
+          {
+            "current_balance": 10000,
+            "monthly_contribution": 500,
+            "interest_rate": 0.05,
+            "name": "Savings Account"
+          }
+        owner: hermes-admin
+        group: hermes-admin
+        mode: '0644'
+        force: no
+
+    - name: Build and start Finance Forecast API
+      command: docker compose up -d --build
+      args:
+        chdir: "{{ api_dir }}"
+
+    - name: Wait for API to be healthy
+      uri:
+        url: "http://localhost:{{ api_port }}/api/health"
+        status_code: 200
+      register: result
+      until: result.status == 200
+      retries: 30
+      delay: 5
+
+    - name: Display success message
+      debug:
+        msg: |
+          ==========================================
+          Finance Forecast API Deployed Successfully!
+          ==========================================
+
+          API URL: http://{{ inventory_hostname }}:{{ api_port }}
+
+          ENDPOINTS:
+          - GET /api/health - Health check
+          - GET /api/savings-forecast - Savings projections
+          - GET /api/investment-forecast - Investment projections
+          - GET /api/insurance - Insurance policies
+          - GET /api/net-worth-summary - Net worth overview
+          - POST /api/savings-config - Update savings config
+          - POST /api/insurance - Update insurance policies
+
+          CONFIG FILES:
+          - {{ api_dir }}/config/insurance.json
+          - {{ api_dir }}/config/savings.json
+
+          Edit these files to configure your financial data.
+
+          ==========================================
