@@ -466,14 +466,108 @@ Configure notifications in Uptime Kuma dashboard:
 
 ### Grafana Alerts
 
-Configure alert rules in Grafana:
+Grafana alerting uses a **3-step evaluation pipeline** for each alert rule:
 
-**Example Alert** (High CPU):
 ```
-Alert Name: High CPU Usage
-Query: 100 - (avg(irate(node_cpu_seconds_total{mode="idle"}[5m])) * 100)
-Condition: WHEN avg() OF query(A, 5m, now) IS ABOVE 80
+Query (A) → Reduce (B) → Threshold (C)
+  ↓              ↓              ↓
+Time series   Single value   Boolean (fire/ok)
 ```
+
+> **Critical**: Skipping the Reduce step causes `DatasourceError` — Grafana can only evaluate thresholds against single values, not raw time series data.
+
+#### Contact Points
+
+Discord webhook integration for alert notifications:
+
+```
+Grafana → Contact Point (Discord) → #infrastructure-alerts channel
+```
+
+**Setup via API:**
+```bash
+# Create Discord contact point
+curl -X POST 'http://localhost:3030/api/v1/provisioning/contact-points' \
+  -u admin:admin \
+  -H 'Content-Type: application/json' \
+  -H 'X-Disable-Provenance: true' \
+  -d '{
+    "name": "Discord Infrastructure Alerts",
+    "type": "discord",
+    "settings": {
+      "url": "https://discord.com/api/webhooks/YOUR_ID/YOUR_TOKEN"
+    }
+  }'
+```
+
+#### Notification Policies
+
+Routes alerts based on severity labels:
+
+| Matcher | Receiver | Group By | Repeat |
+|---------|----------|----------|--------|
+| `severity=~critical\|warning` | Discord Infrastructure Alerts | alertname, host | 4h |
+| *(default)* | grafana-default-email | grafana_folder, alertname | 4h |
+
+#### Alert Rules — Immich Host
+
+| Rule | Condition | For | Severity |
+|------|-----------|-----|----------|
+| Immich Disk Critical | Disk usage > 90% | 5m | critical |
+| Immich Disk Warning | Disk usage > 80% | 10m | warning |
+| Immich Disk Filling Fast | `predict_linear` < 0 bytes in 24h | 15m | warning |
+
+**Alert Rule Data Pipeline (each rule follows this pattern):**
+
+| Step | RefId | Type | Expression | Purpose |
+|------|-------|------|------------|---------|
+| 1 | A | Prometheus query | `100 - (avail/size * 100)` | Returns time series |
+| 2 | B | Reduce (`last`) | References `A` | Reduces to single value |
+| 3 | threshold | Threshold (`gt 90`) | References `B` | Fires if condition met |
+
+**Key settings:**
+- `execErrState: "OK"` — prevents false alerts when evaluation errors occur (e.g., Prometheus temporarily unreachable)
+- `noDataState: "NoData"` — shows "No Data" status instead of firing when metrics are missing
+- `datasourceUid: "PBFA97CFB590B2093"` — Prometheus data source UID
+- `job: "node-immich"` — Prometheus job label for the Immich host scrape target
+
+#### Managing Alert Rules via API
+
+```bash
+# List all alert rules
+curl -s 'http://localhost:3030/api/v1/provisioning/alert-rules' -u admin:admin | python3 -m json.tool
+
+# Delete an alert rule by UID
+curl -X DELETE 'http://localhost:3030/api/v1/provisioning/alert-rules/RULE_UID' \
+  -u admin:admin -H 'X-Disable-Provenance: true'
+
+# Test a contact point
+curl -X POST 'http://localhost:3030/api/v1/provisioning/contact-points/test' \
+  -u admin:admin -H 'Content-Type: application/json'
+```
+
+#### Deployment
+
+```bash
+# Deploy all alert configuration via Ansible
+ansible-playbook monitoring/configure-grafana-alerts.yml -i "192.168.40.13," \
+  -u hermes-admin --become \
+  -e "discord_webhook_url=https://discord.com/api/webhooks/YOUR_ID/YOUR_TOKEN"
+```
+
+**Verify:**
+- Alert rules: https://grafana.hrmsmrflrii.xyz/alerting/list
+- Contact points: https://grafana.hrmsmrflrii.xyz/alerting/notifications
+- Alert history: https://grafana.hrmsmrflrii.xyz/alerting/history
+
+#### Troubleshooting Alerts
+
+| Issue | Cause | Fix |
+|-------|-------|-----|
+| `DatasourceError` on all rules | Missing Reduce step in pipeline | Add Reduce (refId B) between Query and Threshold |
+| False alerts when Prometheus is down | `execErrState: "Error"` | Change to `execErrState: "OK"` |
+| Alert shows "No Data" | Prometheus not scraping target | Check `https://prometheus.hrmsmrflrii.xyz/targets` |
+| Duplicate alerts after re-deploy | Rules created with POST, not idempotent | Delete existing rules first, or use PUT with UID |
 
 ---
 

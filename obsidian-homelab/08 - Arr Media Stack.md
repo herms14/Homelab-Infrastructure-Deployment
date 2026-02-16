@@ -212,11 +212,24 @@ Mount: /mnt/media (NFS from 192.168.20.31)
 1. Go to Settings → Languages
 2. Create language profile
 
-### Jellyseerr
+### Jellyseerr (now Seerr)
+
+> **Updated February 2026:** Jellyseerr was rebranded to **Seerr** at v3.0. Image changed from `fallenbagel/jellyseerr:latest` to `ghcr.io/seerr-team/seerr:latest`.
+
+**Current Version:** 3.0.1
+**Docker Image:** `ghcr.io/seerr-team/seerr:latest`
+**Port:** 5056 → 5055 (internal)
+**URL:** https://jellyseerr.hrmsmrflrii.xyz
+
 1. Complete setup wizard at http://192.168.40.11:5056
 2. Connect to Jellyfin
 3. Add Radarr: `radarr:7878` with API key
 4. Add Sonarr: `sonarr:8989` with API key
+
+**Upgrade from v2.x:**
+- Seerr runs as UID 1000 (not root) — fix permissions with `chown -R 1000:1000`
+- Add `init: true` to docker-compose service
+- Migration runs automatically on first startup
 
 ---
 
