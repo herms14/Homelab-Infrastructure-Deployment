@@ -86,7 +86,7 @@ Infrastructure:
 | Cog | File | Channel | Commands |
 |-----|------|---------|----------|
 | **Homelab** | `cogs/homelab.py` | #homelab-infrastructure | `/homelab`, `/node`, `/vm`, `/lxc` |
-| **Updates** | `cogs/updates.py` | #container-updates | `/check`, `/update`, `/restart`, `/logs`, `/vmcheck`, `/updateall`, `/checknow`, `/updateschedule` |
+| **Updates** | `cogs/updates.py` | #container-updates | `/check`, `/update`, `/updateall`, `/containers`, `/restart`, `/logs`, `/vmcheck` |
 | **Media** | `cogs/media.py` | #media-downloads | `/downloads`, `/download`, `/search`, `/library`, `/recent` |
 | **GitLab** | `cogs/gitlab.py` | #project-management | `/todo`, `/issues`, `/close`, `/quick`, `/project` |
 | **Tasks** | `cogs/tasks.py` | #claude-tasks | `/task`, `/queue`, `/status`, `/done`, `/cancel`, `/taskstats` |
@@ -104,9 +104,9 @@ Infrastructure:
 |---------|-------------|
 | `/help` | Show all Sentinel commands in a formatted embed |
 | `/insight` | Health check: memory, errors, storage, failed downloads |
-| `/homelab status` | Cluster overview (CPU, RAM, uptime per node) |
-| `/homelab uptime` | Uptime for all Proxmox nodes and Docker hosts |
-| `/node <name> status` | Detailed status for a Proxmox node |
+| `/homelab status` | Cluster overview (CPU, RAM, uptime per node) - all 3 nodes |
+| `/homelab uptime` | Uptime for all 3 Proxmox nodes and Docker hosts |
+| `/node <name> status` | Detailed status for a Proxmox node (node01, node02, node03) |
 | `/node <name> vms` | List VMs on a node with status |
 | `/node <name> lxc` | List LXC containers on a node |
 | `/node <name> restart` | Restart a Proxmox node (with confirmation) |
@@ -171,47 +171,46 @@ Send completion report
 
 | Command | Description |
 |---------|-------------|
-| `/check` | Scan all containers for available updates |
+| `/check` | Scan all containers for available updates (pulls images to detect) |
 | `/update <container>` | Update a specific container |
-| `/restart <container>` | Restart a container |
+| `/updateall` | Check and update all containers with available updates |
 | `/containers` | List all monitored containers |
+| `/restart <container>` | Restart a container |
 | `/logs <container> [lines]` | View container logs (default 50 lines) |
 | `/vmcheck` | Check all VMs for apt package updates |
-| `/updateall` | **Check and update ALL VMs, containers, and LXCs** (with approval) |
-| `/checknow` | Manually trigger scheduled update check |
-| `/updateschedule` | Show automatic update check schedule |
 
-**Automated Infrastructure Update System** (Added January 2026):
+**`/check` Command Workflow** (Updated January 2026):
 
-The `/updateall` command provides comprehensive infrastructure updates:
-1. **VMs**: apt upgrade on all service VMs (8 hosts)
-2. **Docker Containers**: Pull latest images and restart (35+ containers)
-3. **LXC Containers**: apt upgrade inside LXC containers (4 LXCs)
+The `/check` command performs actual update detection:
+1. Inspects each container's current image and digest
+2. Pulls the latest image from the registry
+3. Compares to detect if a newer image was downloaded
+4. Reports containers with updates available
 
-**Workflow**:
+**Error Detection**: Shows specific messages for common issues:
+- "Docker unavailable" - Docker daemon not running on host
+- "Container 'X' not found" - Container doesn't exist (config mismatch)
+- "Connection failed" - SSH connection issue
+
+**`/updateall` Command Workflow**:
+
 ```
 /updateall
     │
     ▼
-Phase 1: Check all resources
+Phase 1: Check all containers for updates
     │
     ▼
-Show summary with update counts
+Show list of containers with updates
     │
     ▼
-Wait for 👍 approval
+Phase 2: Restart containers (images already pulled)
     │
     ▼
-Apply updates (VMs → Containers → LXCs)
-    │
-    ▼
-Send completion report
+Report success/failure for each container
 ```
 
-**Scheduled Automatic Checks**:
-- Bot automatically checks for updates at **6:00 AM** and **6:00 PM UTC** daily
-- If updates found, sends notification to #container-updates with thumbs up reaction
-- Updates only applied after user approval
+**Note**: The `/check` and `/updateall` commands pull images during the check phase. When `/updateall` runs, it restarts containers that had new images pulled during the check.
 
 **Reaction-Based Approval Flow**:
 1. Bot posts update notification with container list
@@ -336,19 +335,11 @@ Base URL: `http://192.168.40.13:5050`
 
 | Task | Schedule | Channel |
 |------|----------|---------|
-| **Infrastructure Update Check** | 6:00 AM & 6:00 PM UTC daily | #container-updates |
 | Container Update Report | 7:00 PM daily | #container-updates |
 | Download Progress Check | Every 60 seconds | #media-downloads |
 | Failed Download Check | Every 5 minutes | #media-downloads |
 | Onboarding Status Report | 9:00 AM daily | #new-service-onboarding |
 | Stale Task Cleanup | Every 30 minutes | (internal) |
-
-**Infrastructure Update Check Details**:
-- Checks all VMs for apt package updates
-- Checks all LXC containers for apt package updates
-- If updates found, sends notification with approval reaction
-- User approves with thumbs up to apply updates
-- Comprehensive report sent after completion
 
 ---
 
@@ -482,6 +473,9 @@ API_KEY=sentinel-secret-key
 
 # Domain
 DOMAIN=hrmsmrflrii.xyz
+
+# Command Sync (set to true once to register new commands)
+SYNC_COMMANDS=false
 ```
 
 ### SSH Host Configuration
@@ -490,14 +484,22 @@ Container hosts for SSH operations:
 
 ```python
 CONTAINER_HOSTS = {
+    # docker-vm-core-utilities01 (192.168.40.13) - 20 containers
     'grafana': '192.168.40.13',
     'prometheus': '192.168.40.13',
     'uptime-kuma': '192.168.40.13',
     'n8n': '192.168.40.13',
+    'sentinel-bot': '192.168.40.13',
+    'life-progress': '192.168.40.13',
+    # ... more on this host
+
+    # docker-vm-media01 (192.168.40.11) - 13 containers
     'jellyfin': '192.168.40.11',
     'radarr': '192.168.40.11',
     'sonarr': '192.168.40.11',
-    # ... 35+ monitored containers
+    # ... more on this host
+
+    # 46 total containers across 6 hosts
 }
 
 VM_HOSTS = {
@@ -637,13 +639,17 @@ ssh docker-vm-core-utilities01 "cd /opt/sentinel-bot && sudo docker compose logs
 
 Discord slash commands can take up to 1 hour to propagate globally. Command sync is now **skipped by default** on restart to avoid rate limits. To force sync:
 
-1. Set environment variable: `SYNC_COMMANDS=true`
+1. Edit `.env` file and set `SYNC_COMMANDS=true`
 2. Restart the container
 3. Check logs for "Commands synced to guild"
+4. Set `SYNC_COMMANDS=false` after sync completes
 
 ```bash
 # Force command sync
-ssh docker-vm-core-utilities01 "cd /opt/sentinel-bot && sudo docker compose down && sudo SYNC_COMMANDS=true docker compose up -d"
+ssh docker-vm-core-utilities01 "cd /opt/sentinel-bot && sudo sed -i 's/SYNC_COMMANDS=false/SYNC_COMMANDS=true/' .env && sudo docker compose restart"
+
+# After sync completes, disable it again
+ssh docker-vm-core-utilities01 "cd /opt/sentinel-bot && sudo sed -i 's/SYNC_COMMANDS=true/SYNC_COMMANDS=false/' .env"
 ```
 
 If commands still don't appear, re-invite bot with `applications.commands` scope.
@@ -731,6 +737,6 @@ docker rm argus-bot chronos-bot
 
 ---
 
-*Last Updated: January 2026*
+*Last Updated: January 21, 2026*
 *Bot: Sentinel*
 *Deployment: docker-vm-core-utilities01 (192.168.40.13)*

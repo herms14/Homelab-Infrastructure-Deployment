@@ -211,6 +211,21 @@ class SSHManager:
         """Pull images for a docker compose project."""
         return await self.run(host, f'cd {compose_dir} && docker compose pull', timeout=300)
 
+    async def docker_compose_pull_service(self, host: str, compose_dir: str, service: str) -> SSHResult:
+        """Pull image for a specific service in a docker compose project."""
+        return await self.run(host, f'cd {compose_dir} && docker compose pull {service}', timeout=300)
+
+    async def docker_compose_recreate(self, host: str, compose_dir: str, service: str) -> SSHResult:
+        """
+        Recreate a specific service container with pulled image.
+        Uses --force-recreate to ensure the new image is used.
+        """
+        return await self.run(
+            host,
+            f'cd {compose_dir} && docker compose up -d --force-recreate {service}',
+            timeout=180
+        )
+
     # ==================== Proxmox Commands ====================
 
     async def pve_node_status(self, node_ip: str) -> SSHResult:
@@ -313,3 +328,125 @@ class SSHManager:
         # Escape content for shell
         escaped = content.replace("'", "'\\''")
         return await self.run(host, f"echo '{escaped}' > {path}")
+
+    # ==================== Power Management Commands ====================
+
+    async def pve_is_node_online(self, node_ip: str, timeout: int = 5) -> bool:
+        """Check if a Proxmox node is reachable and responding."""
+        try:
+            result = await self.run_proxmox(node_ip, 'echo ok', timeout=timeout)
+            return result.success and 'ok' in result.output
+        except Exception:
+            return False
+
+    async def pve_get_running_vms(self, node_ip: str) -> list:
+        """Get list of running VMs on a Proxmox node."""
+        result = await self.run_proxmox(
+            node_ip,
+            'pvesh get /nodes/$(hostname)/qemu --output-format json'
+        )
+        if not result.success:
+            return []
+
+        try:
+            import json
+            vms = json.loads(result.stdout)
+            return [
+                {'vmid': vm['vmid'], 'name': vm.get('name', f'VM{vm["vmid"]}'), 'status': vm.get('status', 'unknown')}
+                for vm in vms if vm.get('status') == 'running'
+            ]
+        except (json.JSONDecodeError, KeyError):
+            return []
+
+    async def pve_get_all_vms(self, node_ip: str) -> list:
+        """Get list of all VMs (including stopped) on a Proxmox node."""
+        result = await self.run_proxmox(
+            node_ip,
+            'pvesh get /nodes/$(hostname)/qemu --output-format json'
+        )
+        if not result.success:
+            return []
+
+        try:
+            import json
+            vms = json.loads(result.stdout)
+            return [
+                {'vmid': vm['vmid'], 'name': vm.get('name', f'VM{vm["vmid"]}'), 'status': vm.get('status', 'unknown')}
+                for vm in vms
+            ]
+        except (json.JSONDecodeError, KeyError):
+            return []
+
+    async def pve_get_running_lxcs(self, node_ip: str) -> list:
+        """Get list of running LXC containers on a Proxmox node."""
+        result = await self.run_proxmox(
+            node_ip,
+            'pvesh get /nodes/$(hostname)/lxc --output-format json'
+        )
+        if not result.success:
+            return []
+
+        try:
+            import json
+            lxcs = json.loads(result.stdout)
+            return [
+                {'ctid': lxc['vmid'], 'name': lxc.get('name', f'CT{lxc["vmid"]}'), 'status': lxc.get('status', 'unknown')}
+                for lxc in lxcs if lxc.get('status') == 'running'
+            ]
+        except (json.JSONDecodeError, KeyError):
+            return []
+
+    async def lxc_is_running(self, node_ip: str, ctid: int) -> bool:
+        """Check if a specific LXC container is running."""
+        result = await self.pve_lxc_status(node_ip, ctid)
+        if not result.success:
+            return False
+
+        try:
+            import json
+            data = json.loads(result.stdout)
+            return data.get('status') == 'running'
+        except (json.JSONDecodeError, KeyError):
+            return False
+
+    async def pve_shutdown_node(self, node_ip: str) -> SSHResult:
+        """Shutdown a Proxmox node."""
+        return await self.run_proxmox(node_ip, 'shutdown -h now', timeout=30)
+
+    async def send_wol(self, mac_address: str, broadcast: str = '255.255.255.255') -> SSHResult:
+        """
+        Send a Wake-on-LAN magic packet.
+        Requires wakeonlan or etherwake to be installed on a running host.
+        """
+        # Try wakeonlan first, then etherwake
+        # This runs from docker-utilities which should be online
+        host = self.config.docker_utilities_ip
+
+        # Try wakeonlan command
+        result = await self.run(
+            host,
+            f'wakeonlan -i {broadcast} {mac_address} 2>/dev/null || etherwake -b {mac_address} 2>/dev/null || echo "WoL command not available"'
+        )
+        return result
+
+    async def wait_for_node_online(self, node_ip: str, timeout: int = 300) -> bool:
+        """
+        Wait for a node to come online (respond to SSH).
+
+        Args:
+            node_ip: IP address of the node
+            timeout: Maximum seconds to wait (default 5 minutes)
+
+        Returns:
+            True if node came online, False if timeout
+        """
+        import time
+        start = time.time()
+        check_interval = 10  # Check every 10 seconds
+
+        while (time.time() - start) < timeout:
+            if await self.pve_is_node_online(node_ip):
+                return True
+            await asyncio.sleep(check_interval)
+
+        return False

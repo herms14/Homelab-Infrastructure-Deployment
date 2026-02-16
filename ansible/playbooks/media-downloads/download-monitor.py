@@ -23,11 +23,11 @@ SONARR_URL = os.getenv("SONARR_URL", "http://192.168.40.11:8989")
 SONARR_API_KEY = os.getenv("SONARR_API_KEY", "")
 DISCORD_WEBHOOK_URL = os.getenv("DISCORD_WEBHOOK_URL", "")
 JELLYFIN_URL = os.getenv("JELLYFIN_URL", "https://jellyfin.hrmsmrflrii.xyz")
-POLL_INTERVAL = int(os.getenv("POLL_INTERVAL", "30"))  # seconds
+POLL_INTERVAL = int(os.getenv("POLL_INTERVAL", "60"))  # seconds
 LOG_LEVEL = os.getenv("LOG_LEVEL", "INFO")
 
-# Progress thresholds for notifications
-PROGRESS_THRESHOLDS = [50, 80, 100]
+# Progress thresholds for notifications (only completion - reduces spam)
+PROGRESS_THRESHOLDS = [100]
 
 # Logging setup
 logging.basicConfig(
@@ -76,6 +76,12 @@ class DownloadTracker:
             self.notified_milestones.pop(download_id, None)
             return True
         return False
+
+    def warm_up(self, download_id: str):
+        """Pre-populate tracker on startup without triggering notifications."""
+        self.known_downloads.add(download_id)
+        # Mark all thresholds as already notified so we don't spam on restart
+        self.notified_milestones[download_id] = set(PROGRESS_THRESHOLDS)
 
     def cleanup_stale(self, active_ids: Set[str]):
         """Remove tracking for downloads that are no longer active."""
@@ -298,30 +304,24 @@ def process_sonarr_downloads(tracker: DownloadTracker):
 
 
 def check_completed_downloads(tracker: DownloadTracker, prev_radarr: Set[str], prev_sonarr: Set[str]):
-    """Check for downloads that completed (disappeared from queue)."""
-    current_radarr = set()
-    current_sonarr = set()
+    """Clean up tracker for downloads that disappeared from queue.
 
-    # Get current queue items
-    for item in get_radarr_queue():
-        current_radarr.add(f"radarr_{item.get('id')}")
+    Note: Actual completion notifications are handled by Radarr/Sonarr webhooks
+    to avoid duplicate notifications. This only cleans up internal state.
+    """
+    current_radarr = {f"radarr_{item.get('id')}" for item in get_radarr_queue()}
+    current_sonarr = {f"sonarr_{item.get('id')}" for item in get_sonarr_queue()}
 
-    for item in get_sonarr_queue():
-        current_sonarr.add(f"sonarr_{item.get('id')}")
+    # Clean up completed downloads from tracker (no notification - webhooks handle that)
+    for download_id in (prev_radarr - current_radarr):
+        if download_id in tracker.known_downloads:
+            tracker.mark_completed(download_id)
+            logger.info(f"Radarr download left queue: {download_id}")
 
-    # Find completed Radarr downloads
-    completed_radarr = prev_radarr - current_radarr
-    for download_id in completed_radarr:
-        if download_id in tracker.known_downloads and tracker.mark_completed(download_id):
-            # We don't have the movie info anymore, but we can send a generic completion
-            # In a more sophisticated setup, we'd cache the movie info
-            logger.info(f"Radarr download completed: {download_id}")
-
-    # Find completed Sonarr downloads
-    completed_sonarr = prev_sonarr - current_sonarr
-    for download_id in completed_sonarr:
-        if download_id in tracker.known_downloads and tracker.mark_completed(download_id):
-            logger.info(f"Sonarr download completed: {download_id}")
+    for download_id in (prev_sonarr - current_sonarr):
+        if download_id in tracker.known_downloads:
+            tracker.mark_completed(download_id)
+            logger.info(f"Sonarr download left queue: {download_id}")
 
 
 def setup_completion_webhooks():
@@ -476,15 +476,17 @@ def main():
     # Start webhook server for completion notifications
     webhook_server = run_webhook_server()
 
-    # Send startup notification
-    send_discord_notification(
-        title="Download Monitor Online",
-        description="Media download monitor is now active and watching for new downloads.",
-        color=0x9b59b6  # Purple
-    )
-
     tracker = DownloadTracker()
-    prev_radarr_ids: Set[str] = set()
+
+    # Warm-up: pre-populate tracker with current queue to avoid restart spam
+    logger.info("Warming up - scanning existing queue...")
+    for item in get_radarr_queue():
+        tracker.warm_up(f"radarr_{item.get('id')}")
+    for item in get_sonarr_queue():
+        tracker.warm_up(f"sonarr_{item.get('id')}")
+    logger.info(f"Warm-up complete: {len(tracker.known_downloads)} existing downloads tracked")
+
+    prev_radarr_ids: Set[str] = set(tracker.known_downloads)
     prev_sonarr_ids: Set[str] = set()
 
     while True:
@@ -493,8 +495,8 @@ def main():
             radarr_ids = process_radarr_downloads(tracker)
             sonarr_ids = process_sonarr_downloads(tracker)
 
-            # Check for completions (items that disappeared from queue)
-            # Note: Webhook-based completion is more reliable
+            # Clean up tracker state for completed downloads
+            # (Completion notifications are sent via Radarr/Sonarr webhooks, not polling)
             check_completed_downloads(tracker, prev_radarr_ids, prev_sonarr_ids)
 
             prev_radarr_ids = radarr_ids

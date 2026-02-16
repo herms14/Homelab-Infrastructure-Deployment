@@ -178,15 +178,20 @@ CONTAINER_HOSTS = {
     'speedtest-tracker': '192.168.40.13',
     'n8n': '192.168.40.13',
     'jaeger': '192.168.40.13',
-    'otel-collector': '192.168.40.13',
     'cadvisor': '192.168.40.13',
-    'docker-stats-exporter': '192.168.40.13',
     'sentinel-bot': '192.168.40.13',
-    'life-progress-api': '192.168.40.13',
-    'lagident': '192.168.40.13',
+    'life-progress': '192.168.40.13',
     'karakeep': '192.168.40.13',
     'wizarr': '192.168.40.13',
     'tracearr': '192.168.40.13',
+    'paperless': '192.168.40.13',
+    'pbs-exporter': '192.168.40.13',
+    'pve-exporter': '192.168.40.13',
+    'snmp-exporter': '192.168.40.13',
+    'homelab-chronicle': '192.168.40.13',
+    'power-control-api': '192.168.40.13',
+    'steam-stats': '192.168.40.13',
+    'gaming-pc-stats': '192.168.40.13',
 
     # docker-vm-media01 (192.168.40.11)
     'jellyfin': '192.168.40.11',
@@ -201,6 +206,7 @@ CONTAINER_HOSTS = {
     'autobrr': '192.168.40.11',
     'deluge': '192.168.40.11',
     'sabnzbd': '192.168.40.11',
+    'metube': '192.168.40.11',
 
     # docker-lxc-glance (192.168.40.12)
     'glance': '192.168.40.12',
@@ -208,6 +214,7 @@ CONTAINER_HOSTS = {
     'reddit-manager': '192.168.40.12',
     'nba-stats-api': '192.168.40.12',
     'pihole-stats-api': '192.168.40.12',
+    'proxmox-nodes-api': '192.168.40.12',
 
     # traefik-vm01 (192.168.40.20)
     'traefik': '192.168.40.20',
@@ -218,10 +225,7 @@ CONTAINER_HOSTS = {
 
     # immich-vm01 (192.168.40.22)
     'immich-server': '192.168.40.22',
-    'immich-machine-learning': '192.168.40.22',
-
-    # gitlab-vm01 (192.168.40.23)
-    'gitlab': '192.168.40.23',
+    'immich-ml': '192.168.40.22',
 }
 
 # VM host mapping (for apt updates)
@@ -241,4 +245,99 @@ PROXMOX_NODES = {
     'node01': '192.168.20.20',
     'node02': '192.168.20.21',
     'node03': '192.168.20.22',
+}
+
+# LXC Container mapping (ctid -> (node_ip, name))
+LXC_CONTAINERS = {
+    100: ('192.168.20.20', 'pi-hole'),
+    101: ('192.168.20.20', 'docker-lxc-glance'),
+    # Add more LXC containers as needed
+}
+
+# Wake-on-LAN MAC addresses for nodes
+WOL_MAC_ADDRESSES = {
+    'node01': 'TBD',  # Fill in actual MAC address
+    'node02': 'TBD',  # Fill in actual MAC address
+    'node03': 'TBD',  # Fill in actual MAC address
+}
+
+# WoL broadcast address
+WOL_BROADCAST = '192.168.20.255'
+
+# Node shutdown order (services first, then infrastructure)
+NODE_SHUTDOWN_ORDER = ['node02', 'node03', 'node01']
+
+# Node startup order (infrastructure first, then services)
+NODE_STARTUP_ORDER = ['node01', 'node02', 'node03']
+
+# LXC startup order (name, node_ip, ctid) - Pi-hole first for DNS
+LXC_STARTUP_ORDER = [
+    ('pi-hole', '192.168.20.20', 100),
+    ('docker-lxc-glance', '192.168.20.20', 101),
+    # Add more in startup priority order
+]
+
+# Critical LXCs that should be kept running (name -> (node_ip, ctid))
+CRITICAL_LXCS = {
+    'pi-hole': ('192.168.20.20', 100),
+}
+
+# Compose directory mapping for container updates
+# Maps container names to their docker-compose directories
+COMPOSE_DIRS = {
+    # docker-vm-core-utilities01 (192.168.40.13)
+    'grafana': '/opt/docker/monitoring',
+    'prometheus': '/opt/docker/monitoring',
+    'uptime-kuma': '/opt/docker/uptime-kuma',
+    'speedtest-tracker': '/opt/docker/speedtest-tracker',
+    'n8n': '/opt/docker/n8n',
+    'jaeger': '/opt/docker/monitoring',
+    'cadvisor': '/opt/docker/monitoring',
+    'sentinel-bot': '/opt/sentinel-bot',
+    'life-progress': '/opt/docker/life-progress',
+    'karakeep': '/opt/docker/karakeep',
+    'wizarr': '/opt/docker/wizarr',
+    'tracearr': '/opt/docker/tracearr',
+    'paperless': '/opt/docker/paperless',
+    'pbs-exporter': '/opt/docker/monitoring',
+    'pve-exporter': '/opt/docker/monitoring',
+    'snmp-exporter': '/opt/docker/monitoring',
+    'homelab-chronicle': '/opt/docker/homelab-chronicle',
+    'power-control-api': '/opt/docker/power-control-api',
+    'steam-stats': '/opt/docker/steam-stats',
+    'gaming-pc-stats': '/opt/docker/gaming-pc-stats',
+
+    # docker-vm-media01 (192.168.40.11)
+    'jellyfin': '/opt/docker/media',
+    'radarr': '/opt/docker/media',
+    'sonarr': '/opt/docker/media',
+    'lidarr': '/opt/docker/media',
+    'prowlarr': '/opt/docker/media',
+    'bazarr': '/opt/docker/media',
+    'jellyseerr': '/opt/docker/media',
+    'overseerr': '/opt/docker/media',
+    'tdarr': '/opt/docker/tdarr',
+    'autobrr': '/opt/docker/autobrr',
+    'deluge': '/opt/docker/media',
+    'sabnzbd': '/opt/docker/media',
+    'metube': '/opt/docker/metube',
+
+    # docker-lxc-glance (192.168.40.12)
+    'glance': '/opt/glance',
+    'media-stats-api': '/opt/glance',
+    'reddit-manager': '/opt/glance',
+    'nba-stats-api': '/opt/glance',
+    'pihole-stats-api': '/opt/glance',
+    'proxmox-nodes-api': '/opt/glance',
+
+    # traefik-vm01 (192.168.40.20)
+    'traefik': '/opt/docker/traefik',
+
+    # authentik-vm01 (192.168.40.21)
+    'authentik-server': '/opt/docker/authentik',
+    'authentik-worker': '/opt/docker/authentik',
+
+    # immich-vm01 (192.168.40.22)
+    'immich-server': '/opt/docker/immich',
+    'immich-ml': '/opt/docker/immich',
 }

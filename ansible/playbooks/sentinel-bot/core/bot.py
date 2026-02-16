@@ -105,6 +105,7 @@ class SentinelBot(commands.Bot):
             'cogs.tasks',
             'cogs.onboarding',
             'cogs.scheduler',
+            'cogs.power',
         ]
 
         for cog in cogs:

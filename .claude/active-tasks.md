@@ -31,6 +31,44 @@
 
 ## Recently Completed
 
+### Immich Monitoring + Disk Hardening (2026-02-16)
+Deployed monitoring, alerting, and preventive hardening for Immich host after disk-full incident.
+
+**Files Created**:
+- `ansible/playbooks/immich/harden-immich-disk.yml`
+- `ansible/playbooks/monitoring/add-immich-node-exporter.yml`
+- `ansible/playbooks/monitoring/configure-grafana-alerts.yml`
+- `dashboards/immich-host-health.json`
+- `obsidian-homelab/46 - Immich Disk Full Troubleshooting.md`
+
+**Pending User Action**: Provide Discord webhook URL for `#infrastructure-alerts` channel to enable Grafana→Discord alerting.
+
+---
+
+### Ghostfolio Finance Tracker Deployment (2026-01-27)
+Deployed self-hosted wealth management platform with savings/investment forecasting.
+
+**URLs**:
+- Ghostfolio: https://ghostfolio.hrmsmrflrii.xyz
+- Finance Page: https://glance.hrmsmrflrii.xyz (Finance tab)
+
+**Components**:
+- Ghostfolio LXC (ID 208): 192.168.40.26 (PostgreSQL, Redis, Ghostfolio app)
+- Finance Forecast API: systemd service on docker-glance:5065
+- Glance Finance Page: Updated with portfolio iframe, savings forecast, insurance tracker
+
+**Configuration Files**:
+- `/opt/finance-forecast-api/config/savings.json` - Savings account settings
+- `/opt/finance-forecast-api/config/insurance.json` - Insurance policy tracking
+
+**Next Steps for User**:
+1. Visit https://ghostfolio.hrmsmrflrii.xyz and create admin account
+2. Add stock/crypto holdings in Ghostfolio
+3. Update savings.json with actual savings data
+4. Update insurance.json with policy details
+
+---
+
 ### Azure Managed Grafana Deployment (2026-01-20)
 Deployed Azure Managed Grafana with multi-region VM monitoring dashboards.
 

@@ -1,0 +1,138 @@
+---
+# Deploy Power Control API for Glance Dashboard
+# Provides WoL, Shutdown, and Backup trigger functionality
+# Usage: ansible-playbook glance/deploy-power-control-api.yml
+
+- name: Deploy Power Control API
+  hosts: docker-vm-core-utilities01
+  become: true
+  vars:
+    app_name: power-control-api
+    app_dir: /opt/power-control-api
+    app_port: 5057
+    ssh_key_source: ~/.ssh/homelab_ed25519
+
+  tasks:
+    - name: Create application directory
+      file:
+        path: "{{ app_dir }}"
+        state: directory
+        mode: '0755'
+
+    - name: Create keys directory
+      file:
+        path: "{{ app_dir }}/keys"
+        state: directory
+        mode: '0700'
+
+    - name: Copy SSH private key for Proxmox access
+      copy:
+        src: "{{ ssh_key_source }}"
+        dest: "{{ app_dir }}/keys/homelab_ed25519"
+        mode: '0600'
+
+    - name: Copy API application
+      copy:
+        src: files/power-control-api.py
+        dest: "{{ app_dir }}/app.py"
+        mode: '0644'
+      notify: Restart power-control-api
+
+    - name: Create requirements.txt
+      copy:
+        content: |
+          flask>=2.0.0
+          flask-cors>=3.0.0
+          paramiko>=2.11.0
+          gunicorn>=20.1.0
+        dest: "{{ app_dir }}/requirements.txt"
+        mode: '0644'
+
+    - name: Create Dockerfile
+      copy:
+        content: |
+          FROM python:3.11-slim
+
+          # Install system dependencies
+          RUN apt-get update && apt-get install -y --no-install-recommends \
+              wakeonlan \
+              iputils-ping \
+              openssh-client \
+              && rm -rf /var/lib/apt/lists/*
+
+          WORKDIR /app
+
+          COPY requirements.txt .
+          RUN pip install --no-cache-dir -r requirements.txt
+
+          COPY app.py .
+          COPY keys/ /app/keys/
+
+          ENV SSH_KEY_PATH=/app/keys/homelab_ed25519
+
+          EXPOSE 5057
+
+          CMD ["gunicorn", "--bind", "0.0.0.0:5057", "--workers", "2", "--timeout", "120", "app:app"]
+        dest: "{{ app_dir }}/Dockerfile"
+        mode: '0644'
+      notify: Restart power-control-api
+
+    - name: Create docker-compose.yml
+      copy:
+        content: |
+          version: '3.8'
+
+          services:
+            power-control-api:
+              container_name: power-control-api
+              build: .
+              restart: unless-stopped
+              ports:
+                - "5057:5057"
+              environment:
+                - SSH_KEY_PATH=/app/keys/homelab_ed25519
+              volumes:
+                - ./keys:/app/keys:ro
+              networks:
+                - homelab
+              healthcheck:
+                test: ["CMD", "curl", "-f", "http://localhost:5057/health"]
+                interval: 30s
+                timeout: 10s
+                retries: 3
+
+          networks:
+            homelab:
+              external: true
+        dest: "{{ app_dir }}/docker-compose.yml"
+        mode: '0644'
+      notify: Restart power-control-api
+
+    - name: Build and start container
+      community.docker.docker_compose:
+        project_src: "{{ app_dir }}"
+        build: true
+        state: present
+      register: compose_result
+
+    - name: Wait for API to be ready
+      uri:
+        url: "http://localhost:{{ app_port }}/health"
+        method: GET
+        status_code: 200
+      register: health_check
+      retries: 10
+      delay: 3
+      until: health_check.status == 200
+
+    - name: Display API status
+      debug:
+        msg: "Power Control API is running at http://192.168.40.13:{{ app_port }}"
+
+  handlers:
+    - name: Restart power-control-api
+      community.docker.docker_compose:
+        project_src: "{{ app_dir }}"
+        build: true
+        restarted: true
+        state: present

@@ -1,0 +1,176 @@
+---
+# Deploy Ghostfolio - Self-hosted Wealth Management
+# Run: ansible-playbook -i "192.168.40.26," deploy-ghostfolio.yml
+
+- name: Deploy Ghostfolio Finance Tracker
+  hosts: all
+  become: yes
+  vars:
+    ansible_user: hermes-admin
+    ansible_ssh_private_key_file: ~/.ssh/homelab_ed25519
+    ghostfolio_dir: /opt/ghostfolio
+    ghostfolio_port: 3333
+    postgres_user: ghostfolio
+    postgres_db: ghostfolio
+
+  tasks:
+    - name: Display deployment info
+      debug:
+        msg: |
+          ==========================================
+          Deploying Ghostfolio Finance Tracker
+          ==========================================
+          Host: {{ inventory_hostname }}
+          Directory: {{ ghostfolio_dir }}
+          Port: {{ ghostfolio_port }}
+          ==========================================
+
+    - name: Create Ghostfolio directory
+      file:
+        path: "{{ ghostfolio_dir }}"
+        state: directory
+        owner: hermes-admin
+        group: hermes-admin
+        mode: '0755'
+
+    - name: Generate secure passwords and secrets
+      set_fact:
+        db_password: "{{ lookup('password', '/dev/null length=32 chars=ascii_letters,digits') }}"
+        jwt_secret: "{{ lookup('password', '/dev/null length=64 chars=ascii_letters,digits') }}"
+        access_salt: "{{ lookup('password', '/dev/null length=32 chars=ascii_letters,digits') }}"
+
+    - name: Create .env file
+      copy:
+        dest: "{{ ghostfolio_dir }}/.env"
+        content: |
+          # Ghostfolio Environment Configuration
+          # Generated: {{ ansible_date_time.iso8601 }}
+
+          # Database
+          POSTGRES_USER={{ postgres_user }}
+          POSTGRES_PASSWORD={{ db_password }}
+          POSTGRES_DB={{ postgres_db }}
+          DATABASE_URL=postgresql://{{ postgres_user }}:{{ db_password }}@postgres:5432/{{ postgres_db }}
+
+          # Security
+          JWT_SECRET_KEY={{ jwt_secret }}
+          ACCESS_TOKEN_SALT={{ access_salt }}
+
+          # Redis
+          REDIS_HOST=redis
+          REDIS_PORT=6379
+
+          # Application
+          HOST=0.0.0.0
+          PORT={{ ghostfolio_port }}
+        owner: hermes-admin
+        group: hermes-admin
+        mode: '0600'
+
+    - name: Create docker-compose.yml
+      copy:
+        dest: "{{ ghostfolio_dir }}/docker-compose.yml"
+        content: |
+          services:
+            ghostfolio:
+              image: ghostfolio/ghostfolio:latest
+              container_name: ghostfolio
+              restart: unless-stopped
+              ports:
+                - "{{ ghostfolio_port }}:3333"
+              environment:
+                - DATABASE_URL=${DATABASE_URL}
+                - REDIS_HOST=${REDIS_HOST}
+                - REDIS_PORT=${REDIS_PORT}
+                - JWT_SECRET_KEY=${JWT_SECRET_KEY}
+                - ACCESS_TOKEN_SALT=${ACCESS_TOKEN_SALT}
+              depends_on:
+                postgres:
+                  condition: service_healthy
+                redis:
+                  condition: service_started
+              healthcheck:
+                test: ["CMD", "wget", "-q", "--spider", "http://localhost:3333/api/v1/health"]
+                interval: 30s
+                timeout: 10s
+                retries: 5
+                start_period: 60s
+              labels:
+                - "com.centurylinklabs.watchtower.enable=true"
+
+            postgres:
+              image: postgres:15-alpine
+              container_name: ghostfolio-postgres
+              restart: unless-stopped
+              environment:
+                - POSTGRES_USER=${POSTGRES_USER}
+                - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+                - POSTGRES_DB=${POSTGRES_DB}
+              volumes:
+                - postgres_data:/var/lib/postgresql/data
+              healthcheck:
+                test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+                interval: 10s
+                timeout: 5s
+                retries: 5
+
+            redis:
+              image: redis:7-alpine
+              container_name: ghostfolio-redis
+              restart: unless-stopped
+              healthcheck:
+                test: ["CMD", "redis-cli", "ping"]
+                interval: 10s
+                timeout: 5s
+                retries: 5
+
+          volumes:
+            postgres_data:
+
+          networks:
+            default:
+              name: ghostfolio-net
+        owner: hermes-admin
+        group: hermes-admin
+        mode: '0644'
+
+    - name: Pull Docker images
+      command: docker compose pull
+      args:
+        chdir: "{{ ghostfolio_dir }}"
+
+    - name: Start Ghostfolio stack
+      command: docker compose up -d
+      args:
+        chdir: "{{ ghostfolio_dir }}"
+
+    - name: Wait for Ghostfolio to be healthy
+      uri:
+        url: "http://localhost:{{ ghostfolio_port }}/api/v1/health"
+        status_code: 200
+      register: result
+      until: result.status == 200
+      retries: 30
+      delay: 10
+
+    - name: Display success message
+      debug:
+        msg: |
+          ==========================================
+          Ghostfolio Deployed Successfully!
+          ==========================================
+
+          Internal URL: http://{{ inventory_hostname }}:{{ ghostfolio_port }}
+          External URL: https://ghostfolio.hrmsmrflrii.xyz (after Traefik config)
+
+          FIRST-TIME SETUP:
+          1. Open the URL above
+          2. Click "Get Started" to create your admin account
+          3. The first user will automatically have admin privileges
+
+          NEXT STEPS:
+          - Configure Traefik routing
+          - Add DNS entry for ghostfolio.hrmsmrflrii.xyz
+          - Add your stock/crypto holdings
+
+          ==========================================

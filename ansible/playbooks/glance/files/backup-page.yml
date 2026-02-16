@@ -129,7 +129,7 @@
             </div>
           </div>
           <div style="font-size: 11px; color: #666; text-align: center;">
-            Daily backups run at 1:00 AM • Main backups run weekly • NAS sync at 2:00 AM
+            Daily backups run at 19:00 (7 PM) • Main backups run Fridays at 02:00 AM • NAS sync at 2:00 AM
           </div>
         </div>
     - type: custom-api

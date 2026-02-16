@@ -7,6 +7,76 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Glance Dashboard - Major UI Redesign with 25 New Themes (January 20, 2026)
+- **Added page icons/emojis** for improved navigation across all pages:
+  - 🏠 Home, 🛠 Services, 💻 Compute, 💾 Storage, 📦 Backup, 🌐 Network, 🎬 Media, 📰 News, 💰 Finance, 🤖 Reddit, 🏀 Sports
+- **Created new Services page** consolidating all health monitors:
+  - Proxmox nodes health, PBS health, Synology NAS status, Docker containers status
+  - Removed duplicate health monitors from Home page to reduce clutter
+- **Split Web page** into two dedicated pages:
+  - 📰 News: Hacker News, Tech RSS feeds, headline aggregation
+  - 💰 Finance: Stock markets, crypto prices, financial widgets
+- **Standardized widget styling** across all pages:
+  - Consistent padding: 12px (previously varied 8-15px)
+  - Consistent border-radius: 8px (previously varied 6-12px)
+- **Optimized iframe heights** for better viewport utilization:
+  - Proxmox Cluster Health: 3200px → 2400px
+  - Container Status History: 2500px → 1800px
+- **Improved cache times** for efficiency:
+  - Life Progress widget: 1h → 6h
+  - GitHub contribution graph: 6h → 12h
+- **Added 25 new themes** (total now 35):
+  - Editor themes: one-dark, material-ocean, ayu-dark, ayu-mirage, synthwave-84, night-owl, palenight, horizon, everforest
+  - Rose Pine variants: rose-pine, rose-pine-moon
+  - Japanese aesthetics: kanagawa
+  - Catppuccin: catppuccin-macchiato, catppuccin-frappe
+  - GitHub: github-dark, github-dimmed
+  - Modern: vesper, poimandres, vitesse-dark, oxocarbon, mellow, aurora, fairy-floss
+  - Terminal: blue-matrix, green-matrix, amber-terminal, high-contrast
+- **Fixed backup schedule text** on Backup page:
+  - Daily backup: 21:00 → 19:00 (corrected to actual PBS schedule)
+  - Main backup: midnight → 02:00 AM (corrected to actual PBS schedule)
+- **Files modified**:
+  - `gitops-repos/glance-homelab/config/glance.yml` (committed to GitHub)
+  - `ansible/playbooks/glance/files/glance.yml` (synced)
+  - `ansible/playbooks/glance/files/backup-page.yml` (schedule fix)
+
+### Azure Multi-Region VWAN Infrastructure (January 16, 2026)
+- **Deployed Azure Virtual WAN** with dual-region hub-spoke architecture
+  - Southeast Asia hub (sea-hub): 10.100.0.0/23
+  - East Asia hub (eastasia-hub): 10.110.0.0/23
+- **Created 8 Windows Server 2022 VMs** domain-joined to hrmsmrflrii.xyz:
+  - SEA: APP-SEA01 (10.11.1.4), FS-SEA01 (10.12.1.4), FS-SEA02 (10.12.1.5)
+  - East Asia: SRV-EA01/02, APP-EA01, AZRODC01/02 (Read-Only DCs)
+- **Terraform modular deployment** from ubuntu-deploy-vm:
+  - `terraform/azure/multi-region-vwan/` with modules for vwan, spoke-vnet, windows-vm, log-analytics
+  - MSI authentication, cost optimization flags (deploy_aks, deploy_sqlmi)
+- **Ansible domain join automation**:
+  - `ansible/playbooks/azure-multiregion/` with inventory, domain join, RODC promotion playbooks
+  - WinRM connectivity via VNet peering
+- **VNet peering configuration** (identity VNet has existing VPN Gateway):
+  - Spoke VNets peered to identity VNet with use_remote_gateways=true
+  - Deployment VNet peered to all spokes for Ansible connectivity
+- **Documentation updates**:
+  - Technical Manual v6.4: New section "Azure Multi-Region VWAN Infrastructure"
+  - Book Chapter 26: "Azure Multi-Region VWAN Infrastructure" with narrative explanations
+  - `docs/AZURE_MULTIREGION.md`: Architecture reference with diagrams
+- **Estimated monthly cost**: ~$1,185 (without AKS/SQL MI) vs ~$1,885 full deployment
+- **Files created/modified**:
+  - `terraform/azure/multi-region-vwan/` (new module)
+  - `ansible/playbooks/azure-multiregion/` (new playbooks)
+  - `docs/AZURE_MULTIREGION.md` (new documentation)
+  - Obsidian Technical Manual (v6.3 → v6.4)
+  - Obsidian Book (added Chapter 26, renumbered 27-31)
+
+### Dashboard - Proxmox Cluster Health CPU Temperature Visualization (January 15, 2026)
+- **Changed CPU temperature visualization** from 3 individual gauge panels to a single full-width time series
+- **Removed**: Node01 CPU Temp gauge (panel id 15), Node02 CPU Temp gauge (panel id 16), Node03 CPU Temp gauge (panel id 17)
+- **Modified**: Expanded "CPU Temperature History" panel to full width (w=24, h=8), renamed to "CPU Temperatures Over Time"
+- **Added**: Table legend with lastNotNull, mean, and max values for temperature analysis
+- **Updated**: `dashboards/proxmox-cluster-health.json` and Grafana provisioned dashboard
+- **Panel count**: Reduced from 32 to 29 panels
+
 ### Documentation - Complete Homelab Guide Book Expansion (January 13, 2026)
 - **Added Part VIII: Cloud Integration** with 4 new chapters to the Complete Homelab Guide book
 - **Chapter 24: Azure Cloud Environment** - Deployment VM setup, Sentinel SIEM, KQL queries, Terraform workflow
