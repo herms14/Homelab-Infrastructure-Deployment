@@ -1,6 +1,6 @@
 ---
 # Deploy Monitoring Stack (Uptime Kuma, Prometheus, Grafana)
-# Target: docker-vm-utilities01 (192.168.40.10)
+# Target: docker-vm-core-utilities01 (192.168.40.13)
 #
 # Services:
 #   - Uptime Kuma: Service uptime monitoring (port 3001)
@@ -36,7 +36,7 @@
     snmp_exporter_port: 9116
     # External service IPs
     traefik_ip: "192.168.40.20"
-    utilities_ip: "192.168.40.10"
+    utilities_ip: "192.168.40.13"
     # Synology NAS
     synology_ip: "192.168.20.31"
     snmp_community: "homelab"

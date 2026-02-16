@@ -1,8 +1,8 @@
 ---
 # Add Immich node_exporter Scrape Target to Prometheus
-# Configures Prometheus on docker-vm-utilities01 to scrape node_exporter on Immich host
+# Configures Prometheus on docker-vm-core-utilities01 to scrape node_exporter on Immich host
 #
-# Targets: docker-vm-utilities01 (192.168.40.13) - monitoring host
+# Targets: docker-vm-core-utilities01 (192.168.40.13) - monitoring host
 #
 # Usage:
 #   ansible-playbook monitoring/add-immich-node-exporter.yml -i "192.168.40.13," -u hermes-admin --become

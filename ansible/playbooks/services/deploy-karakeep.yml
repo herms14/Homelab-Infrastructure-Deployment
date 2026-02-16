@@ -1,11 +1,11 @@
 ---
 # Deploy Karakeep - Bookmark Manager (formerly Hoarder)
-# Host: docker-vm-utilities01 (192.168.40.10)
+# Host: docker-vm-core-utilities01 (192.168.40.13)
 # Port: 3005 (avoiding 3000=Speedtest, 3001=Uptime Kuma)
 # URL: https://karakeep.hrmsmrflrii.xyz
 
 - name: Deploy Karakeep Bookmark Manager
-  hosts: docker-vm-utilities01
+  hosts: docker-vm-core-utilities01
   become: yes
   vars:
     service_name: karakeep
@@ -112,6 +112,6 @@
       debug:
         msg: |
           Karakeep deployed successfully!
-          - Internal URL: http://192.168.40.10:{{ service_port }}
+          - Internal URL: http://192.168.40.13:{{ service_port }}
           - External URL: https://karakeep.hrmsmrflrii.xyz
           - Create your first account on first visit

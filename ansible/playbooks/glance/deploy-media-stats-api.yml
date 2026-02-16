@@ -6,7 +6,7 @@
 #   ansible-playbook glance/deploy-media-stats-api.yml
 
 - name: Deploy Media Stats API
-  hosts: docker-vm-utilities01
+  hosts: docker-vm-core-utilities01
   become: yes
   vars:
     app_path: /opt/media-stats-api
@@ -106,9 +106,9 @@
           Media Stats API Deployed Successfully!
           =============================================
 
-          Internal URL: http://192.168.40.10:{{ app_port }}
-          Health: http://192.168.40.10:{{ app_port }}/health
-          Stats: http://192.168.40.10:{{ app_port }}/api/stats
+          Internal URL: http://192.168.40.13:{{ app_port }}
+          Health: http://192.168.40.13:{{ app_port }}/health
+          Stats: http://192.168.40.13:{{ app_port }}/api/stats
 
           This API aggregates Radarr/Sonarr stats for the
           Glance dashboard Media Stats grid widget.

@@ -186,8 +186,8 @@
           Life Progress API Deployed Successfully!
           ===========================================
 
-          API Endpoint: http://192.168.40.10:{{ life_progress_port }}/progress
-          Health Check: http://192.168.40.10:{{ life_progress_port }}/health
+          API Endpoint: http://192.168.40.13:{{ life_progress_port }}/progress
+          Health Check: http://192.168.40.13:{{ life_progress_port }}/health
 
           Current Progress:
           -----------------

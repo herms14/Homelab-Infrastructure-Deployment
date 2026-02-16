@@ -21,7 +21,7 @@
 #   - PROJECT_BOT_WEBHOOK_SECRET: Shared secret for GitLab webhook verification
 
 - name: Deploy Project Bot
-  hosts: docker-vm-utilities01
+  hosts: docker-vm-core-utilities01
   become: true
   vars:
     bot_path: /opt/project-bot
@@ -165,7 +165,7 @@
           Webhook Port: {{ webhook_port }}
           Health Check: http://localhost:{{ webhook_port }}/health
 
-          GitLab Webhook URL: http://192.168.40.10:{{ webhook_port }}/webhook
+          GitLab Webhook URL: http://192.168.40.13:{{ webhook_port }}/webhook
           (Configure this in GitLab project settings)
 
           Next Steps:

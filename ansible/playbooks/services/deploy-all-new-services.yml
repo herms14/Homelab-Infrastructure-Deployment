@@ -9,14 +9,14 @@
     - name: Display deployment plan
       debug:
         msg: |
-          Deploying 5 new services to docker-vm-utilities01:
+          Deploying 5 new services to docker-vm-core-utilities01:
           1. Lagident (Photo Gallery) - Port 9933
           2. Karakeep (Bookmark Manager) - Port 3001
           3. Wizarr (Jellyfin Invites) - Port 5690
           4. Feeds Fun (RSS Reader) - Port 8001
           5. Tracearr (Media Tracking) - Port 3002
 
-# Deploy services to docker-vm-utilities01
+# Deploy services to docker-vm-core-utilities01
 - import_playbook: deploy-lagident.yml
 - import_playbook: deploy-karakeep.yml
 - import_playbook: deploy-wizarr.yml

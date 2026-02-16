@@ -11,7 +11,7 @@
 #
 
 - name: Deploy Enhanced Web and Reddit Pages
-  hosts: docker-vm-utilities01
+  hosts: docker-lxc-glance
   become: yes
   vars:
     glance_config_dir: /opt/glance/config
@@ -132,5 +132,5 @@
           - Thumbnails on posts
           - Native widgets for r/technology, r/programming, r/sysadmin
 
-          Manage subreddits: http://192.168.40.10:5053
+          Manage subreddits: http://192.168.40.13:5053
           ============================================================

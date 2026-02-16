@@ -1,11 +1,11 @@
 ---
 # Deploy Tracearr - Media Request Tracking
-# Host: docker-vm-utilities01 (192.168.40.10)
+# Host: docker-vm-core-utilities01 (192.168.40.13)
 # Port: 3002 (changed from 3000 to avoid conflicts)
 # URL: https://tracearr.hrmsmrflrii.xyz
 
 - name: Deploy Tracearr Media Tracking
-  hosts: docker-vm-utilities01
+  hosts: docker-vm-core-utilities01
   become: yes
   vars:
     service_name: tracearr
@@ -81,6 +81,6 @@
       debug:
         msg: |
           Tracearr deployed successfully!
-          - Internal URL: http://192.168.40.10:{{ service_port }}
+          - Internal URL: http://192.168.40.13:{{ service_port }}
           - External URL: https://tracearr.hrmsmrflrii.xyz
           - Uses supervised image (includes TimescaleDB + Redis)

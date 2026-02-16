@@ -7,7 +7,7 @@
   become: yes
   vars:
     traefik_dynamic_dir: /opt/traefik/config/dynamic
-    utilities_host: 192.168.40.10
+    utilities_host: 192.168.40.13
 
   tasks:
     - name: Add new services to Traefik dynamic config

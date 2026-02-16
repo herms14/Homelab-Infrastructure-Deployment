@@ -19,7 +19,7 @@
 #   3. On first container start, check logs for OAuth authentication URL
 
 - name: Deploy NBA Stats API
-  hosts: docker-vm-utilities01
+  hosts: docker-vm-core-utilities01
   become: yes
   vars:
     api_path: /opt/nba-stats-api
@@ -403,10 +403,10 @@
           ========================================
 
           API Endpoints:
-          - Games:     http://192.168.40.10:{{ api_port }}/games
-          - Standings: http://192.168.40.10:{{ api_port }}/standings
-          - Fantasy:   http://192.168.40.10:{{ api_port }}/fantasy
-          - Health:    http://192.168.40.10:{{ api_port }}/health
+          - Games:     http://192.168.40.13:{{ api_port }}/games
+          - Standings: http://192.168.40.13:{{ api_port }}/standings
+          - Fantasy:   http://192.168.40.13:{{ api_port }}/fantasy
+          - Health:    http://192.168.40.13:{{ api_port }}/health
 
           Today's Games: {{ games_test.json.gamesCount | default(0) }}
 

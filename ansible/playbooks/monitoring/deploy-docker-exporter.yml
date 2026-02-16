@@ -80,7 +80,7 @@
 
 
 - name: Update Prometheus Configuration
-  hosts: docker-vm-utilities01
+  hosts: docker-vm-core-utilities01
   become: yes
 
   tasks:
@@ -98,9 +98,9 @@
 
             - job_name: 'docker-stats-utilities'
               static_configs:
-                - targets: ['192.168.40.10:9417']
+                - targets: ['192.168.40.13:9417']
                   labels:
-                    host: 'docker-vm-utilities01'
+                    host: 'docker-vm-core-utilities01'
 
     - name: Restart Prometheus
       community.docker.docker_compose_v2:
@@ -114,4 +114,4 @@
         msg: |
           Docker Stats Exporter deployed!
           - Media Host: http://192.168.40.11:9417/metrics
-          - Utilities Host: http://192.168.40.10:9417/metrics
+          - Utilities Host: http://192.168.40.13:9417/metrics

@@ -51,18 +51,20 @@ ALLOWED_CHANNELS = os.environ.get('ALLOWED_CHANNELS', 'container-updates')
 
 # Container to host mapping
 CONTAINER_HOSTS = {
-    # docker-vm-utilities01 (192.168.40.10)
-    "uptime-kuma": "192.168.40.10",
-    "prometheus": "192.168.40.10",
-    "grafana": "192.168.40.10",
-    "glance": "192.168.40.10",
-    "n8n": "192.168.40.10",
-    "paperless-ngx": "192.168.40.10",
-    "speedtest-tracker": "192.168.40.10",
-    "jaeger": "192.168.40.10",
-    "omada-exporter": "192.168.40.10",
-    "nba-stats-api": "192.168.40.10",
-    "media-stats-api": "192.168.40.10",
+    # docker-vm-core-utilities01 (192.168.40.13)
+    "uptime-kuma": "192.168.40.13",
+    "prometheus": "192.168.40.13",
+    "grafana": "192.168.40.13",
+    "n8n": "192.168.40.13",
+    "paperless-ngx": "192.168.40.13",
+    "speedtest-tracker": "192.168.40.13",
+    "jaeger": "192.168.40.13",
+    "omada-exporter": "192.168.40.13",
+    "nba-stats-api": "192.168.40.13",
+    "media-stats-api": "192.168.40.13",
+
+    # docker-lxc-glance / LXC 200 (192.168.40.12)
+    "glance": "192.168.40.12",
 
     # docker-vm-media01 (192.168.40.11)
     "jellyfin": "192.168.40.11",
@@ -89,7 +91,7 @@ CONTAINER_HOSTS = {
 
 # VM/LXC hosts for package updates
 VM_HOSTS = {
-    "docker-utilities": "192.168.40.10",
+    "docker-utilities": "192.168.40.13",
     "docker-media": "192.168.40.11",
     "traefik": "192.168.40.20",
     "authentik": "192.168.40.21",
@@ -100,13 +102,13 @@ VM_HOSTS = {
 
 # Custom containers that can be rebuilt (not from Docker Hub)
 CUSTOM_CONTAINERS = {
-    "life-progress": {"host": "192.168.40.10", "path": "/opt/life-progress"},
-    "media-stats-api": {"host": "192.168.40.10", "path": "/opt/media-stats-api"},
-    "nba-stats-api": {"host": "192.168.40.10", "path": "/opt/nba-stats-api"},
-    "reddit-manager": {"host": "192.168.40.10", "path": "/opt/reddit-manager"},
-    "argus-bot": {"host": "192.168.40.10", "path": "/opt/argus-bot"},
+    "life-progress": {"host": "192.168.40.13", "path": "/opt/life-progress"},
+    "media-stats-api": {"host": "192.168.40.13", "path": "/opt/media-stats-api"},
+    "nba-stats-api": {"host": "192.168.40.13", "path": "/opt/nba-stats-api"},
+    "reddit-manager": {"host": "192.168.40.13", "path": "/opt/reddit-manager"},
+    "argus-bot": {"host": "192.168.40.13", "path": "/opt/argus-bot"},
     "mnemosyne-bot": {"host": "192.168.40.11", "path": "/opt/mnemosyne-bot"},
-    "chronos-bot": {"host": "192.168.40.10", "path": "/opt/chronos-bot"},
+    "chronos-bot": {"host": "192.168.40.13", "path": "/opt/chronos-bot"},
 }
 
 # Pending updates storage
@@ -700,7 +702,8 @@ async def list_containers(interaction: discord.Interaction):
     )
 
     host_names = {
-        "192.168.40.10": " Utilities",
+        "192.168.40.12": " Glance LXC",
+        "192.168.40.13": " Utilities",
         "192.168.40.11": " Media",
         "192.168.40.20": " Traefik",
         "192.168.40.21": " Authentik",

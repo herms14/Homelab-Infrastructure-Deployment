@@ -1,12 +1,12 @@
 # Prometheus Scrape Configuration for Omada Network Monitoring
 # Add these jobs to your prometheus.yml scrape_configs section
 #
-# Location: /opt/monitoring/prometheus/prometheus.yml on docker-vm-utilities01
+# Location: /opt/monitoring/prometheus/prometheus.yml on docker-vm-core-utilities01
 
 # Omada SDN Exporter - TP-Link network devices
 - job_name: 'omada'
   static_configs:
-    - targets: ['192.168.40.10:9202']
+    - targets: ['192.168.40.13:9202']
       labels:
         site: 'Default'
 
@@ -16,7 +16,7 @@
 - job_name: 'speedtest'
   metrics_path: /api/speedtest/latest/prometheus
   static_configs:
-    - targets: ['192.168.40.10:3000']
+    - targets: ['192.168.40.13:3000']
   scrape_interval: 5m  # Don't scrape too often since tests run every 6h
 
 # OPNsense (existing - verify this is configured)

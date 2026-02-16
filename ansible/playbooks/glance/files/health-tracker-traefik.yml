@@ -1,0 +1,15 @@
+http:
+  routers:
+    health-tracker:
+      rule: "Host(`health-api.hrmsmrflrii.xyz`)"
+      entryPoints:
+        - websecure
+      service: health-tracker
+      tls:
+        certResolver: letsencrypt
+
+  services:
+    health-tracker:
+      loadBalancer:
+        servers:
+          - url: "http://192.168.40.13:5062"

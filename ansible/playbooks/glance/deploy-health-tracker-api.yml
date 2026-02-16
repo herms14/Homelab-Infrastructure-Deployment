@@ -1,0 +1,179 @@
+---
+# Health Tracker API Deployment
+# ==============================
+# Deploys a Flask API that integrates Strava activities and weight logging
+# for the Glance Health dashboard page.
+#
+# Features:
+# - Strava OAuth2 integration (bike rides, gym, any activity type)
+# - Activity caching with auto-refresh (30 min TTL)
+# - Manual weight logging with Chart.js graphs
+# - HTML pages for Glance iframe embedding
+# - JSON endpoints for Glance custom-api widgets
+#
+# Prerequisites:
+# - After deployment, configure Strava at http://192.168.40.13:5062/page/setup
+#
+# Usage:
+#   ansible-playbook glance/deploy-health-tracker-api.yml
+
+- name: Deploy Health Tracker API
+  hosts: docker-vm-core-utilities01
+  become: yes
+  vars:
+    health_tracker_path: /opt/health-tracker-api
+    health_tracker_port: 5062
+
+  tasks:
+    - name: Create Health Tracker directory
+      file:
+        path: "{{ health_tracker_path }}"
+        state: directory
+        mode: '0755'
+
+    - name: Create config directory
+      file:
+        path: "{{ health_tracker_path }}/config"
+        state: directory
+        mode: '0755'
+
+    - name: Copy Flask application
+      copy:
+        src: files/health-tracker-api.py
+        dest: "{{ health_tracker_path }}/app.py"
+        mode: '0644'
+
+    - name: Create requirements.txt
+      copy:
+        dest: "{{ health_tracker_path }}/requirements.txt"
+        mode: '0644'
+        content: |
+          flask==3.1.0
+          flask-cors==5.0.1
+          gunicorn==23.0.0
+          requests==2.32.3
+
+    - name: Create Dockerfile
+      copy:
+        dest: "{{ health_tracker_path }}/Dockerfile"
+        mode: '0644'
+        content: |
+          FROM python:3.11-slim
+          WORKDIR /app
+          COPY requirements.txt .
+          RUN pip install --no-cache-dir -r requirements.txt
+          COPY app.py .
+          EXPOSE 5062
+          CMD ["gunicorn", "-w", "2", "-b", "0.0.0.0:5062", "--timeout", "120", "app:app"]
+
+    - name: Create Docker Compose file
+      copy:
+        dest: "{{ health_tracker_path }}/docker-compose.yml"
+        mode: '0644'
+        content: |
+          services:
+            health-tracker-api:
+              build: .
+              container_name: health-tracker-api
+              restart: unless-stopped
+              ports:
+                - "5062:5062"
+              environment:
+                - TZ=Asia/Manila
+                - CONFIG_DIR=/app/config
+              volumes:
+                - ./config:/app/config
+              healthcheck:
+                test: ["CMD", "curl", "-f", "http://localhost:5062/api/health"]
+                interval: 30s
+                timeout: 10s
+                retries: 3
+              labels:
+                - "com.centurylinklabs.watchtower.enable=false"
+
+    - name: Create default Strava tokens config (if not exists)
+      copy:
+        dest: "{{ health_tracker_path }}/config/strava_tokens.json"
+        mode: '0644'
+        force: no
+        content: |
+          {
+            "client_id": "",
+            "client_secret": "",
+            "access_token": "",
+            "refresh_token": "",
+            "expires_at": 0,
+            "athlete": {}
+          }
+
+    - name: Create default weight log (if not exists)
+      copy:
+        dest: "{{ health_tracker_path }}/config/weight_log.json"
+        mode: '0644'
+        force: no
+        content: |
+          {
+            "unit": "kg",
+            "goal_weight": null,
+            "entries": []
+          }
+
+    - name: Create default settings (if not exists)
+      copy:
+        dest: "{{ health_tracker_path }}/config/settings.json"
+        mode: '0644'
+        force: no
+        content: |
+          {
+            "timezone": "Asia/Manila",
+            "cache_ttl_minutes": 30,
+            "calendar_days": 60,
+            "weight_unit": "kg"
+          }
+
+    - name: Build and deploy Health Tracker container
+      community.docker.docker_compose_v2:
+        project_src: "{{ health_tracker_path }}"
+        state: present
+        build: always
+
+    - name: Wait for Health Tracker API to be ready
+      uri:
+        url: "http://localhost:{{ health_tracker_port }}/api/health"
+        status_code: [200]
+      register: api_status
+      until: api_status.status == 200
+      retries: 30
+      delay: 2
+
+    - name: Display deployment information
+      debug:
+        msg: |
+          ================================================
+          Health Tracker API Deployed Successfully!
+          ================================================
+
+          API Base:      http://192.168.40.13:{{ health_tracker_port }}
+          Health Check:  http://192.168.40.13:{{ health_tracker_port }}/api/health
+          Setup Page:    http://192.168.40.13:{{ health_tracker_port }}/page/setup
+
+          Pages (for Glance iframe):
+          - Calendar:    http://192.168.40.13:{{ health_tracker_port }}/page/calendar
+          - Weight:      http://192.168.40.13:{{ health_tracker_port }}/page/weight
+          - Activities:  http://192.168.40.13:{{ health_tracker_port }}/page/activities
+
+          API Endpoints (for Glance custom-api):
+          - /api/strava/status    - Connection status
+          - /api/activities/weekly - Weekly summary
+          - /api/weight           - Weight data
+
+          Next Steps:
+          1. Visit the Setup Page to connect Strava
+          2. Run the Glance Health tab playbook to add the dashboard page
+
+          Config Files:
+          - {{ health_tracker_path }}/config/strava_tokens.json
+          - {{ health_tracker_path }}/config/weight_log.json
+          - {{ health_tracker_path }}/config/settings.json
+
+          ================================================

@@ -31,6 +31,28 @@
 
 ## Recently Completed
 
+### Health Tracker API + Glance Health Page (2026-02-16)
+Deployed Strava-integrated fitness tracker API on 192.168.40.13:5062 and Health page on Glance dashboard.
+
+**Files Created**:
+- `ansible/playbooks/glance/files/health-tracker-api.py`
+- `ansible/playbooks/glance/files/health-page-config.yml`
+- `ansible/playbooks/glance/deploy-health-tracker-api.yml`
+- `ansible/playbooks/glance/update-glance-health-tab.yml`
+
+**User Action Required**: Connect Strava at http://192.168.40.13:5062/page/setup
+
+### Bulk Service Updates + Manual Guide (2026-02-16)
+Updated 14 Docker services across 4 hosts. Created comprehensive update manual documenting per-host procedures.
+
+**Files Created**:
+- `obsidian-homelab/47 - Manual Service Updates Guide.md`
+- Technical Manual v7.3 - "Manual Service Update Procedures" section
+- Book Chapter 16 - "Manual Updates" narrative section
+
+### IP/URL Mapping Audit (2026-02-16)
+Audited and corrected all stale 192.168.40.10 (decommissioned) references across documentation and ansible playbooks. Fixed 50+ references across 35+ files. Updated .claude agent configs, context.md, obsidian docs, and all ansible playbooks to use correct IPs (192.168.40.12 for Glance LXC, 192.168.40.13 for utilities VM).
+
 ### Immich Monitoring + Disk Hardening (2026-02-16)
 Deployed monitoring, alerting, and preventive hardening for Immich host after disk-full incident.
 

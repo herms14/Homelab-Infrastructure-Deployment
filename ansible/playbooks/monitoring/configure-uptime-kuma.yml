@@ -11,7 +11,7 @@
   hosts: localhost
   gather_facts: false
   vars:
-    uptime_kuma_url: "http://192.168.40.10:3001"
+    uptime_kuma_url: "http://192.168.40.13:3001"
     uptime_kuma_username: "{{ lookup('env', 'UPTIME_KUMA_USERNAME') | default('admin', true) }}"
     uptime_kuma_password: "{{ lookup('env', 'UPTIME_KUMA_PASSWORD') | default('', true) }}"
 
@@ -39,7 +39,7 @@
         hostname: "192.168.20.34"
         description: "Kubernetes control plane HA"
       - name: "Docker Utilities"
-        hostname: "192.168.40.10"
+        hostname: "192.168.40.13"
         description: "Docker utilities host"
       - name: "Docker Media"
         hostname: "192.168.40.11"

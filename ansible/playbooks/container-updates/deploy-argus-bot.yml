@@ -12,7 +12,7 @@
 #   ARGUS_DISCORD_TOKEN=xxx ansible-playbook container-updates/deploy-argus-bot.yml
 
 - name: Deploy Argus Container Update Bot
-  hosts: docker-vm-utilities01
+  hosts: docker-vm-core-utilities01
   become: yes
   vars:
     bot_path: /opt/argus-bot
@@ -132,8 +132,8 @@
           =====================================================
 
           Container: argus-bot
-          Host: docker-vm-utilities01 (192.168.40.10)
-          Webhook: http://192.168.40.10:{{ webhook_port }}/webhook
+          Host: docker-vm-core-utilities01 (192.168.40.13)
+          Webhook: http://192.168.40.13:{{ webhook_port }}/webhook
           Channel: #{{ allowed_channels }}
 
           Commands:
@@ -148,7 +148,7 @@
           Watchtower Integration:
           -----------------------
           Set WATCHTOWER_NOTIFICATION_URL on each host to:
-          generic+http://192.168.40.10:{{ webhook_port }}/webhook
+          generic+http://192.168.40.13:{{ webhook_port }}/webhook
 
           Logs: docker logs -f argus-bot
 

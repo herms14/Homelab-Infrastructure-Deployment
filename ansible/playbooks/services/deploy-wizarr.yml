@@ -1,12 +1,12 @@
 ---
 # Deploy Wizarr - Jellyfin/Plex Invitation System
-# Host: docker-vm-utilities01 (192.168.40.10)
+# Host: docker-vm-core-utilities01 (192.168.40.13)
 # Port: 5690
 # URL: https://wizarr.hrmsmrflrii.xyz
 # Integrates with: Jellyfin at https://jellyfin.hrmsmrflrii.xyz
 
 - name: Deploy Wizarr Invitation System
-  hosts: docker-vm-utilities01
+  hosts: docker-vm-core-utilities01
   become: yes
   vars:
     service_name: wizarr
@@ -78,7 +78,7 @@
       debug:
         msg: |
           Wizarr deployed successfully!
-          - Internal URL: http://192.168.40.10:{{ service_port }}
+          - Internal URL: http://192.168.40.13:{{ service_port }}
           - External URL: https://wizarr.hrmsmrflrii.xyz
 
           Jellyfin Configuration:

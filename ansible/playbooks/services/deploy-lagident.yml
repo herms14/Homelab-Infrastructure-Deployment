@@ -1,11 +1,11 @@
 ---
 # Deploy Lagident - Simple Photo Gallery
-# Host: docker-vm-utilities01 (192.168.40.10)
+# Host: docker-vm-core-utilities01 (192.168.40.13)
 # Port: 9933
 # URL: https://lagident.hrmsmrflrii.xyz
 
 - name: Deploy Lagident Photo Gallery
-  hosts: docker-vm-utilities01
+  hosts: docker-vm-core-utilities01
   become: yes
   vars:
     service_name: lagident
@@ -78,6 +78,6 @@
       debug:
         msg: |
           Lagident deployed successfully!
-          - Internal URL: http://192.168.40.10:{{ service_port }}
+          - Internal URL: http://192.168.40.13:{{ service_port }}
           - External URL: https://lagident.hrmsmrflrii.xyz
           - Photos directory: {{ install_dir }}/photos

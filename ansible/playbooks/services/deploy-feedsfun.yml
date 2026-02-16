@@ -1,11 +1,11 @@
 ---
 # Deploy Feeds Fun - AI-powered RSS Reader
-# Host: docker-vm-utilities01 (192.168.40.10)
+# Host: docker-vm-core-utilities01 (192.168.40.13)
 # Port: 8001 (changed from 8000 to avoid conflicts)
 # URL: https://feeds.hrmsmrflrii.xyz
 
 - name: Deploy Feeds Fun RSS Reader
-  hosts: docker-vm-utilities01
+  hosts: docker-vm-core-utilities01
   become: yes
   vars:
     service_name: feedsfun
@@ -131,7 +131,7 @@
       debug:
         msg: |
           Feeds Fun deployed successfully!
-          - Internal URL: http://192.168.40.10:{{ service_port }}
+          - Internal URL: http://192.168.40.13:{{ service_port }}
           - External URL: https://feeds.hrmsmrflrii.xyz
           - Mode: Single-user (auto-login as 'admin')
           - Note: Add OpenAI API key in .env for AI tagging

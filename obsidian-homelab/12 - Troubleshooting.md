@@ -587,6 +587,81 @@ docker exec gitlab gitlab-ctl status
 
 ---
 
+### Pi-hole v6 Web UI Unreachable (Port 80/443 Not Listening)
+
+**Resolved**: February 16, 2026
+
+**Symptoms**:
+- Pi-hole DNS resolution works (port 53 responds)
+- Pi-hole web admin UI unreachable at `http://192.168.90.53/admin/`
+- `curl http://localhost:80/admin/` returns HTTP 000 (connection refused)
+- `ss -tlnp` shows port 53 listening but NO listeners on port 80 or 443
+
+**Root Cause**: Pi-hole v6 FTL runs as the `pihole` user (uid 999). The process starts as root to bind port 53 (DNS), then drops privileges to the `pihole` user before starting the web server. Ports 80 and 443 are privileged ports (< 1024) and require `CAP_NET_BIND_SERVICE` capability. The FTL binary lacked this capability, and because the port config used the `o` (optional) flag (`80o,443os`), FTL silently skipped binding them instead of erroring.
+
+**Why It Was Hard to Spot**: The `o` (optional) flag meant NO error was logged — FTL simply didn't start the web server and continued running normally for DNS. The FTL log and journald showed zero web-related errors.
+
+**Diagnosis**:
+```bash
+# 1. Verify DNS works but web doesn't
+nslookup google.com 192.168.90.53        # Works
+curl -s -o /dev/null -w '%{http_code}' http://192.168.90.53/admin/  # Returns 000
+
+# 2. Check what's listening
+ssh root@192.168.90.53 "ss -tlnp"
+# Port 53: listening (pihole-FTL)
+# Port 80: NOT listening
+# Port 443: NOT listening
+
+# 3. Check port configuration
+ssh root@192.168.90.53 "pihole-FTL --config webserver.port"
+# Returns: 80o,443os,[::]:80o,[::]:443os
+# The 'o' means optional — failure to bind is silently ignored
+
+# 4. Check binary capabilities
+ssh root@192.168.90.53 "getcap /usr/bin/pihole-FTL"
+# Empty output — no capabilities set
+
+# 5. Check FTL user
+ssh root@192.168.90.53 "id pihole"
+# uid=999(pihole) — unprivileged, cannot bind ports < 1024
+```
+
+**Fix**:
+```bash
+# Add CAP_NET_BIND_SERVICE capability to FTL binary
+ssh -i ~/.ssh/homelab_ed25519 root@192.168.90.53
+
+setcap CAP_NET_BIND_SERVICE+eip /usr/bin/pihole-FTL
+
+# Verify capability was set
+getcap /usr/bin/pihole-FTL
+# /usr/bin/pihole-FTL cap_net_bind_service=eip
+
+# Restart FTL
+systemctl restart pihole-FTL
+```
+
+**Verification**:
+```bash
+# 1. Check ports are listening
+ss -tlnp | grep -E ':80|:443'
+# LISTEN 0.0.0.0:80 and 0.0.0.0:443 should appear
+
+# 2. Test web UI
+curl -s -o /dev/null -w '%{http_code}' http://localhost:80/admin/
+# Should return 302 (redirect to login)
+
+# 3. Confirm DNS still works
+nslookup google.com 192.168.90.53
+```
+
+**Prevention**:
+- After Pi-hole updates, the FTL binary is replaced and the capability is lost. Re-run `setcap CAP_NET_BIND_SERVICE+eip /usr/bin/pihole-FTL` and restart FTL after each update.
+- Alternatively, change the port to a non-privileged port (e.g., `8080`) in `/etc/pihole/pihole.toml` to avoid needing capabilities entirely.
+
+---
+
 ## Network Issues
 
 ### VLAN-Aware Bridge Missing

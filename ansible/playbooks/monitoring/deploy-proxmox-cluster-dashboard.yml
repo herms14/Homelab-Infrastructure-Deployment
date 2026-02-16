@@ -6,7 +6,7 @@
 #   ansible-playbook monitoring/deploy-proxmox-cluster-dashboard.yml
 #
 # Prerequisites:
-#   - Grafana running on docker-vm-utilities01:3030
+#   - Grafana running on docker-vm-core-utilities01:3030
 #   - Grafana API key or admin credentials
 
 - name: Deploy Proxmox Cluster Health Dashboard

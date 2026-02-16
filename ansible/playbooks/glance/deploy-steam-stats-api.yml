@@ -320,8 +320,8 @@
           Steam Stats API Deployed Successfully!
           ===========================================
 
-          API Endpoint: http://192.168.40.10:{{ steam_stats_port }}/stats
-          Health Check: http://192.168.40.10:{{ steam_stats_port }}/health
+          API Endpoint: http://192.168.40.13:{{ steam_stats_port }}/stats
+          Health Check: http://192.168.40.13:{{ steam_stats_port }}/health
 
           Steam Profile: {{ stats_response.json.profile.name | default('N/A') }}
           Total Games: {{ stats_response.json.total_games | default('N/A') }}

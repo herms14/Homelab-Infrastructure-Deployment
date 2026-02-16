@@ -7,8 +7,8 @@
 # Usage:
 #   ansible-playbook portainer/deploy-portainer.yml
 
-- name: Deploy Portainer on docker-vm-utilities01
-  hosts: docker-vm-utilities01
+- name: Deploy Portainer on docker-vm-core-utilities01
+  hosts: docker-vm-core-utilities01
   become: yes
   vars:
     portainer_data_path: /opt/portainer
@@ -56,7 +56,7 @@
         msg: |
           Portainer deployed successfully!
 
-          Access URL: http://192.168.40.10:{{ portainer_port }}
+          Access URL: http://192.168.40.13:{{ portainer_port }}
           External URL: https://portainer.hrmsmrflrii.xyz (after Traefik config)
 
           First-time setup:
@@ -101,13 +101,13 @@
           Portainer Setup Complete!
           ===========================================
 
-          Portainer UI: http://192.168.40.10:9000
+          Portainer UI: http://192.168.40.13:9000
 
           After first-time setup, add these endpoints:
           ------------------------------------------
           | Name                    | IP:Port            |
           |-------------------------|---------------------|
-          | docker-vm-utilities01   | 192.168.40.10:9001 |
+          | docker-vm-core-utilities01   | 192.168.40.13:9001 |
           | docker-vm-media01       | 192.168.40.11:9001 |
           | traefik-vm01            | 192.168.40.20:9001 |
           | authentik-vm01          | 192.168.40.21:9001 |

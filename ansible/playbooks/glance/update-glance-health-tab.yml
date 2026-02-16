@@ -1,0 +1,110 @@
+---
+# Update Glance Health Tab
+# =========================
+# Adds a Health page to the Glance dashboard with:
+# - Weekly exercise summary (custom-api widget)
+# - Weight progress (custom-api widget)
+# - Strava connection status (custom-api widget)
+# - Exercise calendar heatmap (iframe)
+# - Weight tracker chart + log form (iframe)
+# - Recent activities list (iframe)
+#
+# Uses file-based config merge to avoid Ansible/Jinja2 conflicts with
+# Glance Go template syntax ({{ }}).
+#
+# Prerequisites:
+#   - Health Tracker API deployed (run deploy-health-tracker-api.yml first)
+#
+# Usage:
+#   ansible-playbook glance/update-glance-health-tab.yml
+
+- name: Add Health Tab to Glance Dashboard
+  hosts: docker-lxc-glance
+  become: yes
+  vars:
+    glance_path: /opt/glance
+
+  tasks:
+    - name: Copy Health page config to host
+      copy:
+        src: files/health-page-config.yml
+        dest: /tmp/health-page-config.yml
+        mode: '0644'
+
+    - name: Check if Health page already exists in Glance config
+      shell: "grep -c 'name.*Health' {{ glance_path }}/config/glance.yml || true"
+      register: health_check
+      changed_when: false
+
+    - name: Merge Health page into Glance config
+      when: health_check.stdout | int == 0
+      shell: |
+        python3 -c "
+        import yaml, shutil
+
+        glance_file = '{{ glance_path }}/config/glance.yml'
+        health_file = '/tmp/health-page-config.yml'
+
+        shutil.copy2(glance_file, glance_file + '.bak')
+
+        with open(glance_file, 'r') as f:
+            glance = yaml.safe_load(f)
+        with open(health_file, 'r') as f:
+            health_page = yaml.safe_load(f)
+
+        existing = [p for p in glance.get('pages', []) if 'Health' in p.get('name', '')]
+        if not existing:
+            glance['pages'].append(health_page)
+
+            class LiteralStr(str):
+                pass
+            def literal_representer(dumper, data):
+                return dumper.represent_scalar('tag:yaml.org,2002:str', data, style='|')
+            yaml.add_representer(LiteralStr, literal_representer)
+
+            def convert_multiline(obj):
+                if isinstance(obj, dict):
+                    return {k: convert_multiline(v) for k, v in obj.items()}
+                elif isinstance(obj, list):
+                    return [convert_multiline(i) for i in obj]
+                elif isinstance(obj, str) and '\n' in obj:
+                    return LiteralStr(obj)
+                return obj
+
+            glance = convert_multiline(glance)
+            with open(glance_file, 'w') as f:
+                yaml.dump(glance, f, default_flow_style=False, allow_unicode=True, width=1000, sort_keys=False)
+            print('Health page added successfully')
+        else:
+            print('Health page already exists')
+        "
+
+    - name: Clean up temp file
+      file:
+        path: /tmp/health-page-config.yml
+        state: absent
+
+    - name: Restart Glance container
+      when: health_check.stdout | int == 0
+      community.docker.docker_compose_v2:
+        project_src: "{{ glance_path }}"
+        state: restarted
+
+    - name: Display result
+      debug:
+        msg: |
+          ================================================
+          Glance Health Tab {{ 'Added' if health_check.stdout | int == 0 else 'Already Exists' }}!
+          ================================================
+
+          Dashboard URL: https://glance.hrmsmrflrii.xyz
+
+          Health Tab Features:
+          - Weekly Exercise Summary (days active, rides, gym)
+          - Weight Progress (current, goal, trend)
+          - Strava Connection Status
+          - 60-Day Exercise Calendar Heatmap
+          - Weight Tracker Chart + Log Form
+          - Recent Activities List
+
+          ================================================
