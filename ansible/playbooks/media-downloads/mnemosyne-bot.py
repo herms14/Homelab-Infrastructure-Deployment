@@ -49,7 +49,7 @@ JELLYFIN_URL = os.getenv("JELLYFIN_URL", "https://jellyfin.hrmsmrflrii.xyz")
 
 # Monitoring settings
 POLL_INTERVAL = int(os.getenv("POLL_INTERVAL", "60"))  # seconds
-PROGRESS_THRESHOLDS = [50, 80, 100]
+PROGRESS_THRESHOLDS = []  # Empty = no progress notifications, only completion
 
 # Logging
 logging.basicConfig(
@@ -984,33 +984,8 @@ async def monitor_downloads():
 
             info = {"title": full_title, "type": "movie", "poster": poster}
 
-            # New download notification
-            if tracker.should_notify_start(download_id, info):
-                size = format_size(item.get("size", 0))
-                embed = create_embed(
-                    "New Download Started",
-                    f"**{full_title}** is now downloading.",
-                    color=0x3498db
-                )
-                embed.add_field(name="Size", value=size, inline=True)
-                embed.add_field(name="Quality", value=item.get("quality", {}).get("quality", {}).get("name", "Unknown"), inline=True)
-                if poster:
-                    embed.set_thumbnail(url=poster)
-                await channel.send(embed=embed)
-
-            # Progress notification
-            if item.get("status", "").lower() == "downloading":
-                threshold = tracker.should_notify_progress(download_id, progress)
-                if threshold and threshold < 100:
-                    embed = create_embed(
-                        f"Download Progress: {threshold}%",
-                        f"**{full_title}** is {threshold}% complete.",
-                        color=0xf39c12
-                    )
-                    embed.add_field(name="ETA", value=item.get("timeleft", "Unknown"), inline=True)
-                    if poster:
-                        embed.set_thumbnail(url=poster)
-                    await channel.send(embed=embed)
+            # Register download for completion tracking (no start notification)
+            tracker.should_notify_start(download_id, info)
 
     # Check Sonarr queue
     sonarr_queue = await fetch_sonarr("queue", {"includeSeries": "true", "includeEpisode": "true"})
@@ -1034,32 +1009,8 @@ async def monitor_downloads():
 
             info = {"title": full_title, "type": "tv", "poster": poster}
 
-            # New download notification
-            if tracker.should_notify_start(download_id, info):
-                size = format_size(item.get("size", 0))
-                embed = create_embed(
-                    "New Episode Downloading",
-                    f"**{full_title}** is now downloading.",
-                    color=0x3498db
-                )
-                embed.add_field(name="Size", value=size, inline=True)
-                if poster:
-                    embed.set_thumbnail(url=poster)
-                await channel.send(embed=embed)
-
-            # Progress notification
-            if item.get("status", "").lower() == "downloading":
-                threshold = tracker.should_notify_progress(download_id, progress)
-                if threshold and threshold < 100:
-                    embed = create_embed(
-                        f"Download Progress: {threshold}%",
-                        f"**{full_title}** is {threshold}% complete.",
-                        color=0xf39c12
-                    )
-                    embed.add_field(name="ETA", value=item.get("timeleft", "Unknown"), inline=True)
-                    if poster:
-                        embed.set_thumbnail(url=poster)
-                    await channel.send(embed=embed)
+            # Register download for completion tracking (no start notification)
+            tracker.should_notify_start(download_id, info)
 
     # Check for completed downloads
     for download_id in list(tracker.known_downloads):

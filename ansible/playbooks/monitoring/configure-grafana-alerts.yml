@@ -180,16 +180,26 @@
             host: "immich"
             service: "immich"
           noDataState: "NoData"
-          execErrState: "Error"
+          execErrState: "OK"
           data:
-            - refId: "disk_usage"
+            - refId: "A"
               relativeTimeRange:
                 from: 300
                 to: 0
               datasourceUid: "PBFA97CFB590B2093"
               model:
                 expr: '100 - (node_filesystem_avail_bytes{job="node-immich", mountpoint="/", fstype!="tmpfs"} / node_filesystem_size_bytes{job="node-immich", mountpoint="/", fstype!="tmpfs"} * 100)'
-                refId: "disk_usage"
+                refId: "A"
+            - refId: "B"
+              relativeTimeRange:
+                from: 300
+                to: 0
+              datasourceUid: "__expr__"
+              model:
+                type: "reduce"
+                expression: "A"
+                reducer: "last"
+                refId: "B"
             - refId: "threshold"
               relativeTimeRange:
                 from: 300
@@ -197,7 +207,7 @@
               datasourceUid: "__expr__"
               model:
                 type: "threshold"
-                expression: "disk_usage"
+                expression: "B"
                 conditions:
                   - evaluator:
                       type: "gt"
@@ -205,8 +215,6 @@
                         - 90
                     operator:
                       type: "and"
-                    reducer:
-                      type: "last"
                 refId: "threshold"
         status_code: [201, 409]
       register: critical_rule
@@ -229,23 +237,32 @@
           for: "10m"
           annotations:
             summary: "Immich host disk usage is high (>80%)"
-            value: "{{ '{{' }} $values.disk_usage {{ '}}' }}% used"
             description: "The Immich host (192.168.40.22) root disk is above 80%. Consider cleaning up Docker images and logs."
           labels:
             severity: "warning"
             host: "immich"
             service: "immich"
           noDataState: "NoData"
-          execErrState: "Error"
+          execErrState: "OK"
           data:
-            - refId: "disk_usage"
+            - refId: "A"
               relativeTimeRange:
                 from: 600
                 to: 0
               datasourceUid: "PBFA97CFB590B2093"
               model:
                 expr: '100 - (node_filesystem_avail_bytes{job="node-immich", mountpoint="/", fstype!="tmpfs"} / node_filesystem_size_bytes{job="node-immich", mountpoint="/", fstype!="tmpfs"} * 100)'
-                refId: "disk_usage"
+                refId: "A"
+            - refId: "B"
+              relativeTimeRange:
+                from: 600
+                to: 0
+              datasourceUid: "__expr__"
+              model:
+                type: "reduce"
+                expression: "A"
+                reducer: "last"
+                refId: "B"
             - refId: "threshold"
               relativeTimeRange:
                 from: 600
@@ -253,7 +270,7 @@
               datasourceUid: "__expr__"
               model:
                 type: "threshold"
-                expression: "disk_usage"
+                expression: "B"
                 conditions:
                   - evaluator:
                       type: "gt"
@@ -261,8 +278,6 @@
                         - 80
                     operator:
                       type: "and"
-                    reducer:
-                      type: "last"
                 refId: "threshold"
         status_code: [201, 409]
       register: warning_rule
@@ -285,23 +300,32 @@
           for: "15m"
           annotations:
             summary: "Immich host disk predicted to fill within 24 hours"
-            value: "Predicted to reach 0 bytes free within 24h"
             description: "Based on the disk usage trend over the last 6 hours, the Immich host (192.168.40.22) root disk is predicted to fill completely within 24 hours."
           labels:
             severity: "warning"
             host: "immich"
             service: "immich"
           noDataState: "NoData"
-          execErrState: "Error"
+          execErrState: "OK"
           data:
-            - refId: "prediction"
+            - refId: "A"
               relativeTimeRange:
                 from: 21600
                 to: 0
               datasourceUid: "PBFA97CFB590B2093"
               model:
                 expr: 'predict_linear(node_filesystem_avail_bytes{job="node-immich", mountpoint="/", fstype!="tmpfs"}[6h], 24*3600)'
-                refId: "prediction"
+                refId: "A"
+            - refId: "B"
+              relativeTimeRange:
+                from: 21600
+                to: 0
+              datasourceUid: "__expr__"
+              model:
+                type: "reduce"
+                expression: "A"
+                reducer: "last"
+                refId: "B"
             - refId: "threshold"
               relativeTimeRange:
                 from: 21600
@@ -309,7 +333,7 @@
               datasourceUid: "__expr__"
               model:
                 type: "threshold"
-                expression: "prediction"
+                expression: "B"
                 conditions:
                   - evaluator:
                       type: "lt"

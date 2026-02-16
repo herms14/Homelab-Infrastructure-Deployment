@@ -4,6 +4,53 @@
 
 ---
 
+## 2026-02-16 (cont. 8)
+
+### Download Notification Spam Fix + Jellyseerr → Seerr Upgrade
+**Status**: ✅ Complete
+**Task**: Fix Discord download notification spam, upgrade Jellyseerr to Seerr v3.0.1
+
+**Download Notification Fix**:
+- **Root Cause**: Sentinel bot (`scheduler.py`) sent notifications at 50%, 80%, 100% milestones = 3 msgs/download
+- **Fix**: Changed `milestones = [50, 80, 100]` → `milestones = [100]` in sentinel-bot scheduler
+- Also cleaned up mnemosyne-bot.py and download-monitor.py (removed start + progress notifications)
+- Deployed updated scheduler.py to sentinel-bot on 192.168.40.13, restarted container
+
+**Jellyseerr → Seerr v3.0.1 Upgrade**:
+- Image changed: `fallenbagel/jellyseerr:latest` (v2.7.3) → `ghcr.io/seerr-team/seerr:latest` (v3.0.1)
+- Fixed config permissions: `chown -R 1000:1000` (Seerr runs as UID 1000)
+- Edited docker-compose.yml via Alpine container (no sudo on media host)
+- Added `init: true` to service definition
+- Database migration ran automatically on startup
+
+**Documentation Updated**:
+- `08 - Arr Media Stack.md` — Updated Jellyseerr section with Seerr v3.0.1 details
+- `24 - Discord Bots.md` — Expanded download notification spam fix notes
+- `Hermes Homelab Technical Manual.md` — Added Seerr upgrade procedure + download notification config section
+- `Book - The Complete Homelab Guide.md` — Added Seerr migration narrative + notification spam fix narrative
+
+---
+
+## 2026-02-16 (cont. 7)
+
+### Grafana Alerting Fix + Documentation
+**Status**: ✅ Complete
+**Task**: Fix false-positive Grafana alerts for Immich disk, document alerting configuration
+
+**Problem**: Three Immich disk alerts firing on Discord with `DatasourceError` — actual disk was at 11% (healthy)
+**Root Cause**: Alert rules missing Reduce step in pipeline. Grafana requires Query → Reduce → Threshold (3-step). Threshold was referencing raw time series (A) instead of reduced value (B).
+**Fix**: Deleted 3 broken rules via Grafana API, recreated with proper 3-step pipeline. Changed `execErrState` from `"Error"` to `"OK"`.
+
+**Documentation Updated**:
+- `17 - Monitoring Stack.md` — Expanded Grafana Alerts section with pipeline architecture, contact points, notification policies, alert rules table, API management commands, troubleshooting table
+- `Hermes Homelab Technical Manual.md` — Added "Grafana Alerting Configuration" section after Immich Glance Integration with rule architecture, configuration values table, deploy/manage commands
+- `Book - The Complete Homelab Guide.md` — Added "The Alerting Pipeline" narrative section to Chapter 35 explaining 3-step pipeline, execErrState, predict_linear, notification routing
+
+**Files Modified**:
+- `ansible/playbooks/monitoring/configure-grafana-alerts.yml` — Fixed alert rule data pipelines
+
+---
+
 ## 2026-02-16 (cont. 6)
 
 ### Strava Stats, Dashboard Fixes, and GitHub Sync

@@ -219,31 +219,8 @@ def process_radarr_downloads(tracker: DownloadTracker):
         status = item.get("status", "").lower()
         poster = get_movie_poster(movie)
 
-        # Check for new download
-        if tracker.should_notify_start(download_id):
-            size = format_size(item.get("size", 0))
-            send_discord_notification(
-                title="New Download Started",
-                description=f"Hey Master Hermes, **{full_title}** is now downloading.\n\n"
-                           f"**Size:** {size}\n"
-                           f"**Quality:** {item.get('quality', {}).get('quality', {}).get('name', 'Unknown')}",
-                color=0x3498db,  # Blue
-                thumbnail_url=poster
-            )
-
-        # Check for progress milestones
-        if status == "downloading":
-            threshold = tracker.should_notify_progress(download_id, progress)
-            if threshold and threshold < 100:
-                eta = item.get("timeleft", "Unknown")
-                send_discord_notification(
-                    title=f"Download Progress: {threshold}%",
-                    description=f"**{full_title}** is {threshold}% complete.\n\n"
-                               f"**ETA:** {eta}\n"
-                               f"**Downloaded:** {format_size(item.get('size', 0) - item.get('sizeleft', 0))}",
-                    color=0xf39c12,  # Orange
-                    thumbnail_url=poster
-                )
+        # Register download for completion tracking (no start notification)
+        tracker.should_notify_start(download_id)
 
     tracker.cleanup_stale(active_ids)
     return active_ids
@@ -258,46 +235,8 @@ def process_sonarr_downloads(tracker: DownloadTracker):
         download_id = f"sonarr_{item.get('id')}"
         active_ids.add(download_id)
 
-        series = item.get("series", {})
-        episode = item.get("episode", {})
-        series_title = series.get("title", "Unknown Series")
-        season = episode.get("seasonNumber", 0)
-        ep_num = episode.get("episodeNumber", 0)
-        ep_title = episode.get("title", "")
-
-        full_title = f"{series_title} - S{season:02d}E{ep_num:02d}"
-        if ep_title:
-            full_title += f" - {ep_title}"
-
-        progress = calculate_progress(item)
-        status = item.get("status", "").lower()
-        poster = get_series_poster(series)
-
-        # Check for new download
-        if tracker.should_notify_start(download_id):
-            size = format_size(item.get("size", 0))
-            send_discord_notification(
-                title="New Episode Downloading",
-                description=f"Hey Master Hermes, **{full_title}** is now downloading.\n\n"
-                           f"**Size:** {size}\n"
-                           f"**Quality:** {item.get('quality', {}).get('quality', {}).get('name', 'Unknown')}",
-                color=0x3498db,  # Blue
-                thumbnail_url=poster
-            )
-
-        # Check for progress milestones
-        if status == "downloading":
-            threshold = tracker.should_notify_progress(download_id, progress)
-            if threshold and threshold < 100:
-                eta = item.get("timeleft", "Unknown")
-                send_discord_notification(
-                    title=f"Download Progress: {threshold}%",
-                    description=f"**{full_title}** is {threshold}% complete.\n\n"
-                               f"**ETA:** {eta}\n"
-                               f"**Downloaded:** {format_size(item.get('size', 0) - item.get('sizeleft', 0))}",
-                    color=0xf39c12,  # Orange
-                    thumbnail_url=poster
-                )
+        # Register download for completion tracking (no start notification)
+        tracker.should_notify_start(download_id)
 
     tracker.cleanup_stale(active_ids)
     return active_ids

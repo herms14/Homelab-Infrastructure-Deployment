@@ -193,8 +193,8 @@ class SchedulerCog(commands.Cog, name="Scheduler"):
             await self._notify_progress(download_id, title, 'episode', percent_complete)
 
     async def _notify_progress(self, download_id: str, title: str, media_type: str, percent: float):
-        """Send progress notification at milestones."""
-        milestones = [50, 80, 100]
+        """Send progress notification only on completion."""
+        milestones = [100]
 
         if not self.bot.db:
             return
