@@ -1,16 +1,14 @@
 # Proxmox Homelab Infrastructure
 
-[![Proxmox](https://img.shields.io/badge/Proxmox-VE%209.1.2-orange)](https://www.proxmox.com/)
+[![Proxmox](https://img.shields.io/badge/Proxmox-VE%209.2.11-orange)](https://www.proxmox.com/)
 [![Terraform](https://img.shields.io/badge/Terraform-1.5+-purple)](https://www.terraform.io/)
 [![Ansible](https://img.shields.io/badge/Ansible-2.15+-red)](https://www.ansible.com/)
 
-Production-grade homelab infrastructure managed with Terraform and Ansible on a 3-node Proxmox VE cluster.
+Self-hosted homelab infrastructure managed with Terraform and Ansible on a 3-node Proxmox VE cluster — media, identity/SSO, monitoring, automation, and a handful of personal apps, all reverse-proxied through Traefik and gated behind Authentik.
 
 ## Documentation
 
-### Modular Documentation (Recommended)
-
-We maintain focused, composable documentation in the `docs/` directory:
+### Modular Documentation
 
 | Resource | Link | Description |
 |----------|------|-------------|
@@ -27,43 +25,46 @@ We maintain focused, composable documentation in the `docs/` directory:
 
 **Full documentation available in the [Wiki](../../wiki)**
 
-The Wiki contains comprehensive, beginner-friendly guides for every aspect of this infrastructure.
-
 ## Infrastructure at a Glance
 
 | Component | Details |
 |-----------|---------|
-| **Proxmox Cluster** | 3 nodes (node01, node02, node03) |
-| **Virtual Machines** | 17 VMs across 2 VLANs |
-| **Services** | 22 containerized applications |
-| **Kubernetes** | 9-node HA cluster (3 control + 6 workers) |
+| **Proxmox Cluster** | 3 nodes (MorpheusCluster) |
+| **Virtual Machines** | 5 |
+| **LXC Containers** | 11 |
+| **Services** | 40+ containerized applications |
 | **SSL/HTTPS** | Let's Encrypt wildcard via Cloudflare |
 | **Domain** | *.hrmsmrflrii.xyz |
+
+> This project previously ran a 9-node Kubernetes cluster and an Azure hybrid-AD lab for learning purposes. Both were decommissioned as the project matured toward a leaner, fully self-hosted architecture — see `docs/` for what's actually running today.
 
 ### Services Running
 
 | Category | Services |
 |----------|----------|
-| **Reverse Proxy** | Traefik v3.2 with automatic SSL |
-| **Identity** | Authentik (SSO/OAuth/SAML) |
+| **Reverse Proxy** | Traefik v3.7 with automatic SSL (Let's Encrypt DNS-01) |
+| **Identity** | Authentik (SSO for every service) |
 | **Media** | Jellyfin, Radarr, Sonarr, Lidarr, Prowlarr, Bazarr, Overseerr, Jellyseerr, Tdarr, Autobrr |
 | **Photos** | Immich (self-hosted Google Photos alternative) |
-| **Documents** | Paperless-ngx (document management) |
-| **DevOps** | GitLab CE |
-| **Automation** | n8n (workflow automation) |
-| **Dashboard** | Glance |
+| **Documents** | Paperless-ngx |
+| **DevOps** | GitLab CE (GitOps pipeline: push to main → deploy) |
+| **Automation** | n8n, custom Discord bot ("Sentinel") for infra ops + gated container updates |
+| **Dashboards** | Glance, Homepage |
+| **Monitoring** | Prometheus, Grafana, Uptime Kuma, Jaeger |
+| **Home Automation** | Home Assistant |
+| **Personal Finance** | Ghostfolio |
 
 ## Quick Start
 
 ```bash
 # Clone the repository
-git clone https://github.com/herms14/Proxmox-TerraformDeployments.git
-cd Proxmox-TerraformDeployments
+git clone https://github.com/herms14/Homelab-Infrastructure-Deployment.git
+cd Homelab-Infrastructure-Deployment
 
 # Configure your variables
 cd terraform/proxmox
 cp terraform.tfvars.example terraform.tfvars
-# Edit terraform.tfvars with your Proxmox API credentials
+# Edit terraform.tfvars with your own Proxmox API credentials
 
 # Deploy infrastructure
 terraform init
@@ -76,74 +77,29 @@ terraform apply
 ## Repository Structure
 
 ```
-homelab-infra-automation-project/
-├── terraform/              # All Terraform configurations
-│   ├── proxmox/            # Proxmox VM/LXC deployment
-│   │   ├── main.tf         # VM definitions
-│   │   ├── lxc.tf          # LXC container definitions
-│   │   └── variables.tf    # Terraform variables
-│   ├── azure/              # Azure cloud resources
-│   │   ├── deploy-vm/      # Azure deployment VM
-│   │   ├── sentinel/       # Azure Sentinel SIEM
-│   │   └── nat-gateway/    # NAT gateway
-│   ├── modules/            # Reusable Terraform modules
-│   │   ├── linux-vm/       # Linux VM module
-│   │   ├── windows-vm/     # Windows VM module
-│   │   └── lxc/            # LXC container module
-│   └── env/                # Environment-specific tfvars
-├── ansible/                # All Ansible automation
-│   ├── roles/              # Service configurations
-│   │   ├── k8s/            # Kubernetes deployment
-│   │   ├── docker/         # Docker & Arr stack
-│   │   ├── traefik/        # Reverse proxy
-│   │   ├── authentik/      # Identity provider
-│   │   └── ...             # Other services
-│   ├── playbooks/          # Deployment playbooks
-│   │   ├── monitoring/     # Grafana dashboards
-│   │   ├── services/       # Service deployments
-│   │   ├── sentinel-bot/   # Discord bots
-│   │   └── ...             # Other playbooks
-│   └── inventory/          # Inventory files
-├── scripts/                # Utility scripts
-│   ├── utilities/          # Helper scripts
-│   ├── gitlab-runner/      # CI/CD scripts
-│   └── diagrams/           # Diagram generators
-├── docs/                   # Technical documentation
-├── dashboards/             # Grafana dashboard JSON
-├── apps/                   # Custom applications
-├── wiki/                   # GitHub Wiki mirror
-└── CLAUDE.md               # AI assistant context
+Homelab-Infrastructure-Deployment/
+├── terraform/              # Terraform configurations
+│   ├── proxmox/             # Proxmox VM/LXC deployment
+│   └── modules/             # Reusable Terraform modules
+├── ansible/                # Ansible automation
+│   ├── roles/               # Service configurations (traefik, authentik, docker, ...)
+│   └── playbooks/            # Deployment playbooks (monitoring, services, sentinel-bot, ...)
+├── scripts/                 # Utility scripts
+├── docs/                    # Technical documentation
+├── dashboards/               # Grafana dashboard JSON
+└── claude.md                # AI assistant context
 ```
 
 ## Key Technologies
 
-- **Proxmox VE 9.1.2** - Virtualization platform
-- **Terraform** - Infrastructure as Code
-- **Ansible** - Configuration management
-- **Docker** - Containerization
-- **Kubernetes** - Container orchestration
-- **Traefik** - Reverse proxy & SSL
-- **Cloudflare** - DNS & SSL certificates
-- **Synology NAS** - NFS storage backend
-
-## Learn More
-
-| Topic | Link |
-|-------|------|
-| Getting Started | [Wiki: Introduction](../../wiki/Introduction) |
-| Architecture Overview | [Wiki: Architecture](../../wiki/Architecture-Overview) |
-| Network Setup | [docs/NETWORKING.md](docs/NETWORKING.md) |
-| Adding Services | [docs/SERVICES.md](docs/SERVICES.md) |
-| Troubleshooting | [docs/TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md) |
-
-## Files Reference
-
-| File | Purpose |
-|------|---------|
-| `CLAUDE.md` | AI assistant context & infrastructure summary |
-| `docs/*.md` | Modular documentation |
-| `CHANGELOG.md` | Version history and changes |
-| `CREDENTIALS.md` | Sensitive data reference (gitignored) |
+- **Proxmox VE** — virtualization platform
+- **Terraform** — infrastructure as code
+- **Ansible** — configuration management
+- **Docker Compose** — service deployment
+- **Traefik** — reverse proxy & automatic SSL
+- **Authentik** — SSO across every service
+- **Cloudflare** — DNS & SSL certificates
+- **Synology NAS** — NFS storage backend
 
 ## Contributing
 
@@ -158,4 +114,4 @@ This project is open source. Use it as a reference for your own homelab!
 
 ---
 
-*Last updated: December 2025*
+*Last updated: August 2026*
