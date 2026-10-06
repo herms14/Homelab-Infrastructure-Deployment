@@ -1,5 +1,7 @@
 # Hybrid Lab Deployment Guide
 
+> **ARCHIVED**: The Azure hybrid lab (Azure Arc, Sentinel, Windows DCs, VWAN) was decommissioned on 2026-05-25. This document is kept for reference only and does not describe the current environment. See the main [README](../README.md).
+
 This guide covers the deployment of the Windows Server Active Directory hybrid lab on Proxmox VE.
 
 ## Architecture Overview

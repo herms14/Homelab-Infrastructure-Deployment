@@ -1,5 +1,7 @@
 # Azure Environment Technical Manual
 
+> **ARCHIVED**: The Azure hybrid lab (Azure Arc, Sentinel, Windows DCs, VWAN) was decommissioned on 2026-05-25. This document is kept for reference only and does not describe the current environment. See the main [README](../README.md).
+
 This document provides comprehensive technical documentation for the Azure environment integrated with the homelab infrastructure.
 
 ## Table of Contents

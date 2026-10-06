@@ -1,5 +1,7 @@
 # Kubernetes Learning Tutorial: Deploying Glance Dashboard
 
+> **ARCHIVED**: The Kubernetes cluster was decommissioned on 2026-05-23. Glance now runs on Docker in `docker-lxc-glance` (CT200). This tutorial is kept for reference only. See the main [README](../README.md).
+
 > **Goal**: Learn Kubernetes concepts by deploying a real application (Glance Dashboard + APIs) to your on-premises cluster, then migrate it to Azure Kubernetes Service (AKS).
 
 > **Important**: This is a learning exercise. Your production Glance on LXC 200 (192.168.40.12) will continue running unchanged.

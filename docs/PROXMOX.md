@@ -5,12 +5,15 @@
 ## Cluster Nodes
 
 **Cluster**: MorpheusCluster (3-node + Qdevice)
+**Version**: Proxmox VE 9.2.21 (pve-manager), kernel 7.0.14-20-pve (verified 2026-10-06)
 
-| Node | IP Address | Tailscale IP | Purpose | Workload Type |
-|------|------------|--------------|---------|---------------|
-| **node01** | 192.168.20.20 | 100.89.33.5 | Primary VM Host | K8s cluster, LXCs, Core Services |
-| **node02** | 192.168.20.21 | 100.96.195.27 | Service Host | Traefik, Authentik, GitLab, Immich |
-| **node03** | 192.168.20.22 | 100.88.228.34 | Desktop Node (Ryzen 9) | GitLab, Immich, Syslog Server |
+| Node | IP Address | Tailscale IP | CPU / RAM | Workload Type |
+|------|------------|--------------|-----------|---------------|
+| **node01** | 192.168.20.20 | 100.89.33.5 | 16 CPU / 61 GB | Ansible controller, docker-vm-core-utilities01, most LXCs (Traefik, Pi-hole, media, Glance, Helios, codex-agent) |
+| **node02** | 192.168.20.21 | 100.96.195.27 | 16 CPU / 28 GB | gitlab-runner-vm01, Authentik, Chronicle, Ghostfolio |
+| **node03** | 192.168.20.22 | 100.88.228.34 | 32 CPU / 31 GB | Desktop Node (Ryzen 9): GitLab, Immich, PBS (CT100), Windows templates |
+
+> Kubernetes (9 VMs) was decommissioned on 2026-05-23. See [INVENTORY.md](./INVENTORY.md) for the full current VM/LXC list.
 
 ### Node03 Hardware
 

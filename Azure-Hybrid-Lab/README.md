@@ -1,4 +1,9 @@
-# Azure Hybrid Lab
+# Azure Hybrid Lab (ARCHIVED)
+
+> [!WARNING]
+> **ARCHIVED / DECOMMISSIONED 2026-05-25.** This lab is no longer running. All Azure resources (Azure Arc, Microsoft Sentinel, Windows domain controllers, VPN, VWAN) and the on-prem Hyper-V hybrid host (KratosPC) were retired. Everything in this folder is kept for reference only and is **not** part of the current homelab rebuild. The status below is historical.
+>
+> For the current environment and rebuild order, see the main [README](../README.md). Related archived material: `terraform/azure/`, `terraform/hybrid-lab/`, `ansible-playbooks/hybrid-lab/`, `ansible/playbooks/azure-*`, `docs/AZURE_*.md`.
 
 Enterprise-grade hybrid infrastructure spanning on-prem Hyper-V and Azure, using Packer + Terraform + Ansible.
 

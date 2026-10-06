@@ -84,7 +84,9 @@
 | 50 | Guest | 192.168.50.0/24 | 192.168.50.1 | Guest WiFi | .50-.254 |
 | 60 | Sonos | 192.168.60.0/24 | 192.168.60.1 | Sonos speakers | .50-.100 |
 | 90 | Management | 192.168.90.0/24 | 192.168.90.1 | Network device management | .50-.254 |
-| 91 | Firewall | 192.168.91.0/24 | 192.168.91.1 | OPNsense firewall | - |
+| 91 | Firewall | 192.168.91.0/24 | 192.168.91.1 | OPNsense firewall (not in use, see note) | - |
+
+> **Note (2026-10-06)**: OPNsense is not part of the current network. Routing, VLANs and ACLs are handled entirely by the TP-Link Omada SDN stack (ER605 gateway + OC300 controller), and internal DNS is served by Pi-hole (`192.168.90.53`). VLAN 91 and any OPNsense references below are kept for history only.
 
 ### Homelab VLANs (Primary)
 
@@ -92,7 +94,7 @@ The infrastructure uses two primary VLANs:
 
 | VLAN | Network | Gateway | Purpose | Services |
 |------|---------|---------|---------|----------|
-| **VLAN 20** | 192.168.20.0/24 | 192.168.20.1 | Kubernetes Infrastructure | K8s control plane, worker nodes, Ansible |
+| **VLAN 20** | 192.168.20.0/24 | 192.168.20.1 | Infrastructure | Proxmox nodes, PBS, Synology NFS, Ansible controller |
 | **VLAN 40** | 192.168.40.0/24 | 192.168.40.1 | Services & Management | Docker hosts, logging, automation |
 
 ## Network Segmentation with ACLs

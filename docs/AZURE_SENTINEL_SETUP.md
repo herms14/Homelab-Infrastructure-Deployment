@@ -1,5 +1,7 @@
 # Azure Sentinel Setup Guide
 
+> **ARCHIVED**: The Azure hybrid lab (Azure Arc, Sentinel, Windows DCs, VWAN) was decommissioned on 2026-05-25. This document is kept for reference only and does not describe the current environment. See the main [README](../README.md).
+
 > **Purpose**: Centralized SIEM for homelab security monitoring and learning
 > **Status**: ✅ Fully Deployed via Terraform
 >

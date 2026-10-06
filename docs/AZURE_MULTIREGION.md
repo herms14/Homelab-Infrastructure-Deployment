@@ -1,5 +1,7 @@
 # Multi-Region Azure Infrastructure with VWAN
 
+> **ARCHIVED**: The Azure hybrid lab (Azure Arc, Sentinel, Windows DCs, VWAN) was decommissioned on 2026-05-25. This document is kept for reference only and does not describe the current environment. See the main [README](../README.md).
+
 ## Overview
 
 This document describes the multi-region Azure infrastructure using Azure Virtual WAN with hubs in Southeast Asia (SEA) and East Asia. All Windows servers are domain-joined to **hrmsmrflrii.xyz**.

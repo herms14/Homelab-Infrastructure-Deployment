@@ -1,5 +1,7 @@
 # Azure Hybrid Lab
 
+> **ARCHIVED**: The Azure hybrid lab (Azure Arc, Sentinel, Windows DCs, VWAN) was decommissioned on 2026-05-25. This document is kept for reference only and does not describe the current environment. See the main [README](../README.md).
+
 This document covers the Azure Hybrid Lab environment - a complete enterprise simulation with Active Directory, domain controllers, and integration with the on-premises homelab via site-to-site VPN.
 
 ## Overview

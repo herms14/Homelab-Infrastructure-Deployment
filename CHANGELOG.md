@@ -7,6 +7,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Documentation Refresh for Current Infrastructure (October 6, 2026)
+- **Verified docs against the live cluster** (queried with `pvesh` on 2026-10-06):
+  - Proxmox VE 9.2.21 (kernel 7.0.14-20-pve), MorpheusCluster 3 nodes + QDevice
+  - 5 VMs + 3 templates, 13 LXCs (12 running, `homepage-lxc` stopped)
+- **README.md rewritten** as a from-scratch redeploy guide:
+  - Current node, VM, LXC and service tables
+  - New 13-step **rebuild order**: network/VLANs, Proxmox + QDevice, storage/NFS, PBS, templates, Terraform, Ansible, core services, app services, monitoring, Glance, Helios API, codex patch-management agent, each linked to the matching repo folder or doc
+  - Added sections for **Helios API** (`helios-lxc`, CT210), the **autonomous patch-management pipeline** (`codex-agent-lxc`, CT211) and the **Glance** dashboard repo
+  - Retired/archived table: Kubernetes (2026-05-23), Azure hybrid lab (2026-05-25), KratosPC Hyper-V, OPNsense
+  - Warning that `terraform/proxmox/main.tf` still holds retired k8s/syslog VM groups, and that all LXCs (incl. CT210/CT211) are deployed manually, not in Terraform
+- **claude.md** refreshed with the current inventory, Terraform coverage notes and archived-folder list
+- **docs/INVENTORY.md** rewritten for the current VM/LXC inventory, backup jobs and IP reservations (Kubernetes removed)
+- **docs/SERVICES.md** overview table updated to LXC hosts and new services
+- **docs/PROXMOX.md** node table updated (version, CPU/RAM, current workloads)
+- **docs/NETWORKING.md**: noted OPNsense / VLAN 91 is not in use (Omada SDN + Pi-hole)
+- **Archived banners** added to `Azure-Hybrid-Lab/README.md`, `docs/AZURE_*.md`, `docs/HYBRID_LAB_DEPLOYMENT.md` and `docs/KUBERNETES_GLANCE_TUTORIAL.md` (content kept for reference)
+
 ### Glance Dashboard - Major UI Redesign with 25 New Themes (January 20, 2026)
 - **Added page icons/emojis** for improved navigation across all pages:
   - 🏠 Home, 🛠 Services, 💻 Compute, 💾 Storage, 📦 Backup, 🌐 Network, 🎬 Media, 📰 News, 💰 Finance, 🤖 Reddit, 🏀 Sports

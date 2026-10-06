@@ -1,5 +1,7 @@
 # Azure Sentinel Learning Lab
 
+> **ARCHIVED**: The Azure hybrid lab (Azure Arc, Sentinel, Windows DCs, VWAN) was decommissioned on 2026-05-25. This document is kept for reference only and does not describe the current environment. See the main [README](../README.md).
+
 > **Purpose**: Hands-on security monitoring lab using Microsoft Sentinel SIEM
 > **Status**: Production - Data Flowing
 > **Last Updated**: January 15, 2026

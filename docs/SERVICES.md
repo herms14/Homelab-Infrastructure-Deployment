@@ -1,25 +1,33 @@
 # Deployed Services
 
-> Part of the [Proxmox Infrastructure Documentation](../CLAUDE.md)
+> Part of the [Proxmox Infrastructure Documentation](../claude.md)
 
 ## Service Overview
 
 All services deployed via Docker Compose, managed by Ansible automation from `ansible-controller01`.
 
+> **Updated 2026-10-06**: Traefik, Authentik and the media stack moved from VMs to LXCs in January 2026. Host names in the detailed sections below may still show the old `*-vm01` names; the table here and [INVENTORY.md](./INVENTORY.md) are current.
+
 | Category | Host | Services |
 |----------|------|----------|
-| Reverse Proxy | traefik-vm01 | Traefik |
-| Identity | authentik-vm01 | Authentik |
-| Photos | immich-vm01 | Immich |
-| DevOps | gitlab-vm01 | GitLab CE |
-| CI/CD | gitlab-runner-vm01 | GitLab Runner, Ansible |
-| Media | docker-vm-media01 | Arr Stack (12 services) |
-| Dashboard | docker-lxc-glance (192.168.40.12) | Glance, Media Stats API, Reddit Manager, NBA Stats API, Pi-hole Stats API |
-| Monitoring | docker-vm-core-utilities01 (192.168.40.13) | Grafana, Prometheus, Uptime Kuma, Life Progress API |
-| Utilities | docker-vm-core-utilities01 (192.168.40.13) | n8n, Paperless, Speedtest Tracker, Jaeger |
-| Media Tools | docker-vm-core-utilities01 (192.168.40.13) | Wizarr, Tracearr, Karakeep |
+| Reverse Proxy | traefik-lxc (CT203, 192.168.40.20) | Traefik v3 |
+| Identity | authentik-lxc (CT204, 192.168.40.21) | Authentik |
+| DNS | pihole (CT202, 192.168.90.53) | Pi-hole v6 + Unbound |
+| Photos | immich-vm01 (192.168.40.22) | Immich |
+| DevOps | gitlab-vm01 (192.168.40.23) | GitLab CE |
+| CI/CD | gitlab-runner-vm01 (192.168.40.24) | GitLab Runner |
+| Media | docker-lxc-media (CT205, 192.168.40.11) | Jellyfin + Arr stack |
+| Dashboard | docker-lxc-glance (CT200, 192.168.40.12) | Glance (`:8080`), proxmox-nodes-api (`:5061`), pihole-stats-api (`:5055`) |
+| Monitoring | docker-vm-core-utilities01 (192.168.40.13) | Uptime Kuma (`:3001`), Prometheus (`:9090`), Grafana (`:3030`), Jaeger |
+| Utilities | docker-vm-core-utilities01 (192.168.40.13) | n8n (`:5678`), Paperless-ngx (`:8000`), Karakeep (`:3005`), Speedtest Tracker (`:3000`) |
+| Glance helper APIs | docker-vm-core-utilities01 (192.168.40.13) | life-progress (`:5051`), steam-stats (`:5055`), gaming-pc-stats (`:5056`), power-control-api (`:5057`), service-version-api (`:5070`), nas-backup-status-api (`:9102`) |
 | Discord Bots | docker-vm-core-utilities01 (192.168.40.13) | Sentinel Bot (consolidated) |
-| Container Metrics | Both Docker hosts | cAdvisor, Docker Stats Exporter |
+| Smart Home | homeassistant-lxc (CT206, 192.168.40.25) | Home Assistant |
+| Finance | ghostfolio-lxc (CT208, 192.168.40.26) | Ghostfolio |
+| Changelog | chronicle-lxc (CT207, 192.168.40.15) | Homelab Chronicle |
+| Control plane API | helios-lxc (CT210, 192.168.40.14) | [Helios API](https://github.com/herms14/helios-homelab-api) |
+| Patch automation | codex-agent-lxc (CT211, 192.168.40.16) | Codex patch-management agent (`sre-agent.service`) |
+| Container Metrics | Docker hosts | cAdvisor, Docker Stats Exporter |
 
 ## Traefik Reverse Proxy
 
